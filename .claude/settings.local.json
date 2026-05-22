@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "WebFetch(domain:vite-plugin-web-extension.aklinker1.io)",
+      "WebFetch(domain:github.com)"
+    ]
+  }
+}
