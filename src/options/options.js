@@ -1,4 +1,4 @@
-import { getStorage, setStorage } from '../shared/storage/storage.js';
+import { getStorage } from '../shared/storage/storage.js';
 
 document.addEventListener('DOMContentLoaded', async () => {
   const settings = await getStorage('settings');
