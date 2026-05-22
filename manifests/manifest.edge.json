@@ -1,0 +1,4 @@
+{
+  "$extends": "manifest.base.json",
+  "name": "EXT LGE CL"
+}

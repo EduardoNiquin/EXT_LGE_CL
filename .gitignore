@@ -1,10 +1,10 @@
-@"
 # Dependencias
 node_modules/
 
 # Build
 dist/
 build/
+packages/
 
 # Variables de entorno
 .env
@@ -26,4 +26,3 @@ Thumbs.db
 # Archivos temporales
 *.tmp
 *.temp
-"@ | Out-File -Encoding utf8 .gitignore
