@@ -4,13 +4,258 @@
   padding: 0;
 }
 
-body {
-  width: 320px;
-  min-height: 200px;
-  font-family: system-ui, sans-serif;
-  font-size: 14px;
+:root {
+  --accent:       #ea1917;
+  --accent-hover: #c71412;
+  --black:        #111111;
+  --gray-800:     #2a2a2a;
+  --gray-600:     #555555;
+  --gray-400:     #999999;
+  --gray-200:     #e5e5e5;
+  --gray-100:     #f5f5f5;
+  --white:        #ffffff;
+
+  --radius:       8px;
+  --radius-sm:    4px;
+  --transition:   140ms ease;
 }
 
-#app {
-  padding: 16px;
+body {
+  width: 360px;
+  background: var(--white);
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 13px;
+  color: var(--black);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Header ── */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--black);
+  padding: 0 14px;
+  height: 48px;
+}
+
+.header-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.header-accent-bar {
+  display: block;
+  width: 4px;
+  height: 22px;
+  background: var(--accent);
+  border-radius: 2px;
+}
+
+.header-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--white);
+  letter-spacing: 0.02em;
+}
+
+.header-version {
+  font-size: 11px;
+  color: var(--gray-400);
+  font-weight: 500;
+}
+
+/* ── Search ── */
+.search-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--gray-200);
+  background: var(--white);
+  position: relative;
+}
+
+.search-icon {
+  width: 16px;
+  height: 16px;
+  color: var(--gray-400);
+  flex-shrink: 0;
+  transition: color var(--transition);
+}
+
+.search-wrapper:focus-within .search-icon {
+  color: var(--accent);
+}
+
+.search-input {
+  flex: 1;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 13px;
+  color: var(--black);
+  line-height: 1.4;
+}
+
+.search-input::placeholder {
+  color: var(--gray-400);
+}
+
+.search-clear {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border: none;
+  background: var(--gray-200);
+  border-radius: 50%;
+  cursor: pointer;
+  color: var(--gray-600);
+  flex-shrink: 0;
+  transition: background var(--transition), color var(--transition);
+  padding: 0;
+}
+
+.search-clear:hover {
+  background: var(--accent);
+  color: var(--white);
+}
+
+.search-clear svg {
+  width: 10px;
+  height: 10px;
+}
+
+/* ── Features section ── */
+.features-section {
+  padding: 8px 0 4px;
+}
+
+.features-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--gray-400);
+  padding: 0 14px 6px;
+}
+
+.features-list {
+  list-style: none;
+}
+
+/* ── Feature item ── */
+.feature-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  cursor: pointer;
+  transition: background var(--transition);
+  border-left: 3px solid transparent;
+}
+
+.feature-item:hover {
+  background: var(--gray-100);
+  border-left-color: var(--accent);
+}
+
+.feature-item:active {
+  background: var(--gray-200);
+}
+
+.feature-badge {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  background: var(--accent);
+  color: var(--white);
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.feature-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.feature-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--black);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: color var(--transition);
+}
+
+.feature-item:hover .feature-name {
+  color: var(--accent);
+}
+
+.feature-desc {
+  font-size: 11px;
+  color: var(--gray-600);
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.feature-arrow {
+  flex-shrink: 0;
+  width: 14px;
+  height: 14px;
+  color: var(--gray-400);
+  transition: color var(--transition), transform var(--transition);
+}
+
+.feature-item:hover .feature-arrow {
+  color: var(--accent);
+  transform: translateX(2px);
+}
+
+/* ── Empty state ── */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 28px 14px;
+  color: var(--gray-400);
+  text-align: center;
+}
+
+.empty-state svg {
+  width: 36px;
+  height: 36px;
+  opacity: 0.5;
+}
+
+.empty-state p {
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.empty-state strong {
+  color: var(--gray-600);
+}
+
+/* ── Utility ── */
+.hidden {
+  display: none !important;
+}
+
+mark {
+  background: transparent;
+  color: var(--accent);
+  font-weight: 700;
 }

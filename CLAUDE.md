@@ -63,15 +63,32 @@ npm test
 - **Manifests:** modificar `manifest.base.json` para cambios comunes; los overrides solo para diferencias reales Chrome/Edge.
 - **Cross-browser:** Chrome y Edge comparten 99% del código. Si algo no funciona en Edge, documentarlo aquí.
 
+## Popup UI
+
+El popup tiene buscador en tiempo real + lista de features. Agregar una funcionalidad nueva = un objeto en `src/popup/features.js`:
+
+```js
+{
+  id: 'mi-feature',       // kebab-case, único
+  name: 'Nombre visible',
+  description: 'Una línea descriptiva',
+  abbr: 'ABR',            // 2-4 letras para el badge
+  keywords: ['alias', 'palabras clave para búsqueda'],
+}
+```
+
+La función `openFeature(feature)` en `popup.js` es el punto de entrada para navegar a la vista del feature (pendiente de implementar por feature).
+
 ## Estado del proyecto
 
-- ✅ Scaffolding inicial completo
-- ✅ CI en GitHub Actions funcionando (lint + test + build chrome/edge)
+- ✅ Scaffolding completo con CI funcionando (lint + test + build chrome/edge)
 - ✅ ESLint 10 flat config con globals browser/webextensions
 - ✅ GitHub Actions con Node 22 y actions v5
+- ✅ Popup UI: header, buscador con highlight, lista de features escalable
 - ⏳ Pendiente: agregar íconos PNG reales en `assets/icons/`
-- ⏳ Pendiente: definir el primer feature/módulo funcional
-- ⏳ Pendiente: escribir tests en `tests/unit/*.test.js` (Vitest listo)
+- ⏳ Pendiente: implementar navegación en `openFeature()` → vista por feature
+- ⏳ Pendiente: implementar feature "Colocar TAGs"
+- ⏳ Pendiente: tests en `tests/unit/*.test.js`
 
 ## Decisiones tomadas
 

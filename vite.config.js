@@ -26,6 +26,7 @@ export default defineConfig(({ mode }) => {
         ],
       }),
     ],
+    publicDir: 'assets',
     build: {
       outDir: `dist/${browser}`,
       emptyOutDir: true,
