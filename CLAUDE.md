@@ -5,7 +5,7 @@ Extensión de navegador para **Chrome y Edge** (ambos Chromium, Manifest V3). Ob
 ## Stack
 
 - **Bundler:** Vite 8 + `vite-plugin-web-extension` (descubre entry points desde el manifest automáticamente)
-- **Tests:** Vitest 4
+- **Tests:** Vitest 4 (`--passWithNoTests` habilitado hasta que haya tests reales)
 - **Lint:** ESLint 10 (flat config, `eslint.config.js`)
 - **Packaging:** `web-ext` 10 (genera ZIPs para las stores)
 - **Node:** 22 LTS (CI corre con v22)
@@ -66,10 +66,12 @@ npm test
 ## Estado del proyecto
 
 - ✅ Scaffolding inicial completo
-- ✅ CI en GitHub Actions (lint + test + build)
+- ✅ CI en GitHub Actions funcionando (lint + test + build chrome/edge)
+- ✅ ESLint 10 flat config con globals browser/webextensions
+- ✅ GitHub Actions con Node 22 y actions v5
 - ⏳ Pendiente: agregar íconos PNG reales en `assets/icons/`
 - ⏳ Pendiente: definir el primer feature/módulo funcional
-- ⏳ Pendiente: configurar tests (Vitest está instalado pero no hay tests aún)
+- ⏳ Pendiente: escribir tests en `tests/unit/*.test.js` (Vitest listo)
 
 ## Decisiones tomadas
 
