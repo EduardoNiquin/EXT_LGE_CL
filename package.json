@@ -5,8 +5,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite --mode chrome",
-    "dev:edge": "vite --mode edge",
+    "dev": "vite build --watch --mode chrome",
+    "dev:edge": "vite build --watch --mode edge",
     "build:chrome": "vite build --mode chrome",
     "build:edge": "vite build --mode edge",
     "build": "npm run build:chrome && npm run build:edge",

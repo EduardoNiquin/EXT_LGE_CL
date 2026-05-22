@@ -9,46 +9,18 @@
 </head>
 <body>
   <header class="header">
+    <button id="back-btn" class="back-btn hidden" aria-label="Volver">
+      <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+        <path d="M10 3L5 8l5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </button>
     <div class="header-brand">
       <span class="header-accent-bar"></span>
-      <span class="header-title">LGE CL Tools</span>
+      <span class="header-title" id="header-title">LGE CL Tools</span>
     </div>
     <span class="header-version">v0.1</span>
   </header>
-
-  <div class="search-wrapper">
-    <svg class="search-icon" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-      <circle cx="8.5" cy="8.5" r="5.5" stroke="currentColor" stroke-width="1.6"/>
-      <path d="M13 13l3.5 3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
-    </svg>
-    <input
-      type="text"
-      id="search"
-      class="search-input"
-      placeholder="Buscar funcionalidad..."
-      autocomplete="off"
-      spellcheck="false"
-    />
-    <button id="search-clear" class="search-clear hidden" aria-label="Limpiar búsqueda">
-      <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
-        <path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
-      </svg>
-    </button>
-  </div>
-
-  <main class="features-section">
-    <p class="features-label" id="features-label">Funcionalidades</p>
-    <ul id="features-list" class="features-list" role="list"></ul>
-    <div id="empty-state" class="empty-state hidden" aria-live="polite">
-      <svg viewBox="0 0 40 40" fill="none" aria-hidden="true">
-        <circle cx="18" cy="18" r="11" stroke="currentColor" stroke-width="2"/>
-        <path d="M26 26l6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-        <path d="M14 18h8M18 14v8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-      </svg>
-      <p>Sin resultados para <strong id="empty-term"></strong></p>
-    </div>
-  </main>
-
+  <main id="app"></main>
   <script type="module" src="./popup.js"></script>
 </body>
 </html>
