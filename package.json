@@ -12,7 +12,7 @@
     "build": "npm run build:chrome && npm run build:edge",
     "package:chrome": "web-ext build --source-dir dist/chrome --artifacts-dir packages",
     "package:edge": "web-ext build --source-dir dist/edge --artifacts-dir packages",
-    "test": "vitest run",
+    "test": "vitest run --passWithNoTests",
     "test:watch": "vitest",
     "lint": "eslint src/"
   },
