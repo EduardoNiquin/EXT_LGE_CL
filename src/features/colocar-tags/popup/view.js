@@ -1,5 +1,8 @@
 import { MESSAGES } from '../constants.js';
 import { sendMessageToActiveTab } from '../../../shared/messaging/messaging.js';
+import { logger } from '../../../shared/utils/logger.js';
+
+const log = logger('colocar-tags/popup');
 
 export function render(container) {
   container.innerHTML = `
@@ -31,10 +34,15 @@ async function loadPageData() {
     const response = await sendMessageToActiveTab({ type: MESSAGES.GET_PAGE_DATA });
 
     if (!response?.ok) {
+      log.warn('detección falló', response);
       stateEl.className = 'ct-state ct-state--warn';
-      stateEl.innerHTML = `<p>${response?.reason || 'No se pudo leer la página.'}</p>`;
+      stateEl.innerHTML = `
+        <p>${escapeHtml(response?.reason || 'No se pudo leer la página.')}</p>
+        ${response?.diag ? renderDiag(response.diag) : ''}
+      `;
       return;
     }
+    log.info('detección OK', { rows: response.data?.grid?.rows?.length, frame: response.frame });
 
     stateEl.classList.add('hidden');
     dataEl.classList.remove('hidden');
@@ -122,6 +130,49 @@ function labelOf(key) {
     publish:       'Publish',
   };
   return labels[key] || key;
+}
+
+function renderDiag(diag) {
+  const selRows = Object.entries(diag.selectors || {}).map(([key, info]) => `
+    <tr>
+      <td>${info.present ? '✓' : '✗'}</td>
+      <td><code>${escapeHtml(key)}</code></td>
+      <td><code>${escapeHtml(info.selector)}</code></td>
+    </tr>
+  `).join('');
+
+  const iframesList = (diag.iframes || []).length
+    ? `<ul class="ct-diag-iframes">${
+        diag.iframes.map(f => `
+          <li>
+            ${f.id ? `<code>#${escapeHtml(f.id)}</code> ` : ''}
+            ${f.name ? `<code>name=${escapeHtml(f.name)}</code> ` : ''}
+            <span class="ct-diag-src">${escapeHtml(f.src || '')}</span>
+          </li>
+        `).join('')
+      }</ul>`
+    : '<p class="ct-empty">No hay iframes en este frame.</p>';
+
+  return `
+    <details class="ct-diag" open>
+      <summary>Diagnóstico</summary>
+      <div class="ct-diag-body">
+        <p><strong>URL:</strong> <code>${escapeHtml(diag.url || '')}</code></p>
+        <p><strong>Frame:</strong> ${diag.isTopFrame ? 'top' : 'iframe'} · <strong>iframes hijos:</strong> ${diag.iframeCount ?? 0}</p>
+        <p><strong>Faltantes:</strong> ${diag.missing?.length ? diag.missing.map(m => `<code>${escapeHtml(m)}</code>`).join(', ') : '—'}</p>
+        <table class="ct-diag-table">
+          <thead><tr><th></th><th>Clave</th><th>Selector</th></tr></thead>
+          <tbody>${selRows}</tbody>
+        </table>
+        <p><strong>Iframes:</strong></p>
+        ${iframesList}
+        <p class="ct-state-hint">
+          Debug rápido: en GP1 abre DevTools (F12) → consola → cambia el contexto a <code>EXT LGE CL</code> →
+          tipea <code>__extLgeCl.help()</code>.
+        </p>
+      </div>
+    </details>
+  `;
 }
 
 function escapeHtml(value) {

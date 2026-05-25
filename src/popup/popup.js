@@ -1,4 +1,19 @@
 import { features } from './features.js';
+import { install, register, cmd } from '../shared/debug/index.js';
+import { sendMessageToActiveTab } from '../shared/messaging/messaging.js';
+import { MESSAGES as COLOCAR_TAGS_MSG } from '../features/colocar-tags/constants.js';
+
+const version = chrome?.runtime?.getManifest?.()?.version;
+install({ version, context: 'popup' });
+
+// Atajos para depurar el lado del popup sin abrir el content script.
+register('popup', {
+  listFeatures: cmd(() => features.map(f => ({ id: f.id, name: f.name })), 'Features registradas en el popup'),
+  ping: cmd(
+    () => sendMessageToActiveTab({ type: COLOCAR_TAGS_MSG.GET_PAGE_DATA }),
+    'Envía get-page-data a la pestaña activa y devuelve la respuesta',
+  ),
+});
 
 const app         = document.getElementById('app');
 const backBtn     = document.getElementById('back-btn');
