@@ -6,6 +6,11 @@ dist/
 build/
 packages/
 
+# Claves y artefactos de empaquetado (no commitear nunca)
+keys/
+*.pem
+*.crx
+
 # Variables de entorno
 .env
 .env.local

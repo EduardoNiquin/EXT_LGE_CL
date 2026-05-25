@@ -3,7 +3,8 @@
     "allow": [
       "WebSearch",
       "WebFetch(domain:vite-plugin-web-extension.aklinker1.io)",
-      "WebFetch(domain:github.com)"
+      "WebFetch(domain:github.com)",
+      "Bash(node *)"
     ]
   }
 }

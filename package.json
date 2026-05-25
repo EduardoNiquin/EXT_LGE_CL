@@ -12,6 +12,12 @@
     "build": "npm run build:chrome && npm run build:edge",
     "package:chrome": "web-ext build --source-dir dist/chrome --artifacts-dir packages",
     "package:edge": "web-ext build --source-dir dist/edge --artifacts-dir packages",
+    "build:ext": "vite build --mode edge",
+    "pack:ext": "node scripts/pack-extension.mjs --browser=edge",
+    "policy:gen": "node scripts/generate-policy.mjs",
+    "release:ext": "npm run build:ext && npm run pack:ext && npm run policy:gen",
+    "install:ext": "powershell -ExecutionPolicy Bypass -File scripts/install.ps1",
+    "uninstall:ext": "powershell -ExecutionPolicy Bypass -File scripts/install.ps1 -Uninstall",
     "test": "vitest run --passWithNoTests",
     "test:watch": "vitest",
     "lint": "eslint src/"
