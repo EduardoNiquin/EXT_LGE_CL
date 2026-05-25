@@ -4,7 +4,8 @@
       "WebSearch",
       "WebFetch(domain:vite-plugin-web-extension.aklinker1.io)",
       "WebFetch(domain:github.com)",
-      "Bash(node *)"
+      "Bash(node *)",
+      "Bash(powershell.exe -NoProfile -Command \"Expand-Archive -Path 'C:\\\\temp\\\\EXT_LGE_CL\\\\build\\\\EXT_LGE_CL-installer-0.1.0.zip' -DestinationPath 'C:\\\\temp\\\\EXT_LGE_CL\\\\build\\\\_verify' -Force; Get-ChildItem 'C:\\\\temp\\\\EXT_LGE_CL\\\\build\\\\_verify'\")"
     ]
   }
 }

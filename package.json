@@ -16,6 +16,7 @@
     "pack:ext": "node scripts/pack-extension.mjs --browser=edge",
     "policy:gen": "node scripts/generate-policy.mjs",
     "release:ext": "npm run build:ext && npm run pack:ext && npm run policy:gen",
+    "installer:build": "npm run release:ext && node scripts/build-installer.mjs",
     "install:ext": "powershell -ExecutionPolicy Bypass -File scripts/install.ps1",
     "uninstall:ext": "powershell -ExecutionPolicy Bypass -File scripts/install.ps1 -Uninstall",
     "test": "vitest run --passWithNoTests",
