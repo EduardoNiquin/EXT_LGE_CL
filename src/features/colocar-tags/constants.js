@@ -7,6 +7,7 @@ export const MESSAGES = {
 // Puertos long-lived para flujos con streaming de progreso.
 export const PORTS = {
   DELIVERY_RUN: 'colocar-tags:delivery-run',
+  PRODUCT_RUN:  'colocar-tags:product-run',
 };
 
 // Tipos de mensaje que viajan por el puerto DELIVERY_RUN.
@@ -37,6 +38,26 @@ export const STEPS = {
   DELIV_SAVE_PROD:    'save-prod',
   DELIV_CONFIRM_PROD: 'confirm-prod',
   DELIV_ACK_PROD:     'ack-prod',
+
+  // Product Tag — pasos por cada uno de los hasta 2 tags por SKU. `detail.tagIndex`
+  // (1 o 2) acompaña a cada uno de los progress, para que el popup pueda mostrar
+  // en qué row está trabajando.
+  PROD_CHECK_ROW:     'pt-check-row',
+  PROD_CATEGORY:      'pt-category',
+  PROD_GROUP:         'pt-group',
+  PROD_TAG_VALUE:     'pt-tag-value',
+  PROD_TYPE:          'pt-type',
+  PROD_USE:           'pt-use',
+  PROD_USER_TYPE:     'pt-user-type',
+  PROD_DATES:         'pt-dates',
+  PROD_TAG_DONE:      'pt-tag-done',
+  PROD_SAVE_STG:      'pt-save-stg',
+  PROD_CONFIRM_STG:   'pt-confirm-stg',
+  PROD_ACK_STG:       'pt-ack-stg',
+  PROD_SAVE_PROD:     'pt-save-prod',
+  PROD_CONFIRM_PROD:  'pt-confirm-prod',
+  PROD_ACK_PROD:      'pt-ack-prod',
+
   DONE:               'done',
 };
 
@@ -98,6 +119,42 @@ export const SELECTORS = {
   messageboxButton:  '.ft .L-button button',
   messageboxBody:    '.bd',
 };
+
+/**
+ * Selectores parametrizados por número de fila de Product Tag (1 o 2). Los
+ * tenemos aparte de `SELECTORS` porque son funciones, y eso rompe utilidades
+ * que asumen strings (ej. `debug.check()`). Los listboxes de los combos
+ * comparten IDs entre filas (`cb1-listbox`/`cb2-listbox`) por lo que el driver
+ * los resuelve por estructura DOM (`input.closest('.combobox')`); los inputs
+ * sí son únicos por id, igual que el resto.
+ *
+ * Los tags y groups disponibles vienen del backend de GP1 y son **dinámicos**:
+ * no se pueden hardcodear ni validar contra una lista cerrada. El driver
+ * intenta match exacto + case-insensitive y lanza error con muestra si la
+ * opción no existe en el listbox.
+ */
+export const PRODUCT_TAG_SELECTORS = {
+  chk:          (i) => `#productTag${i}Chk`,
+  categorySel:  (i) => `#productTagCategory${i}`,
+  groupInput:   (i) => `#productTagGroup${i}`,
+  valueInput:   (i) => `#productTag${i}`,
+  typeSel:      (i) => `#productTag${i}Type`,
+  useFlag:      (i) => `#productTag${i}UseFlag`,
+  // El id `#productTag<N>UserType` está duplicado en un hidden + el select
+  // visible que sí queremos. El visible es `select#useType<N>`.
+  userType:     (i) => `select#useType${i}`,
+  beginDay:     (i) => `#productTag${i}BeginDay`,
+  beginTime:    (i) => `#productTag${i}BeginTime`,
+  endDay:       (i) => `#productTag${i}EndDay`,
+  endTime:      (i) => `#productTag${i}EndTime`,
+};
+
+/** Opciones canónicas del select Type. Las del front pueden cambiar; reportamos error si no matchean. */
+export const PRODUCT_TAG_TYPES = ['gradient', 'solid', 'line'];
+export const PRODUCT_TAG_CATEGORIES = ['Product', 'Promotion'];
+
+/** Máximo de tags por SKU según el sistema GP1. */
+export const PRODUCT_TAG_MAX = 2;
 
 export const MODEL_STATUS = {
   ACTIVE:       'ACTIVE',

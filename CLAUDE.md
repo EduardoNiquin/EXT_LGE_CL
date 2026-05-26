@@ -193,7 +193,7 @@ Comandos generales:
 - ✅ Driver del UI L-* de GP1 (`modal`, `messagebox`, `combobox`) aislado del flow
 - ✅ Sub-router de secciones dentro del popup (Lectura | Tag Delivery | Tag Producto)
 - ✅ **Feature "Lead Times":** automatización end-to-end del flujo Magento Manage Address Level 2 con state machine multi-página, persistido en `chrome.storage.local`, popup con múltiples regiones + progreso live + stop de emergencia
-- ⏳ Pendiente: Feature "Colocar TAGs" — Tag de Producto (estructura ya lista, falta definir pasos)
+- ✅ Feature "Colocar TAGs" — Tag de Producto: flow end-to-end con 1 ó 2 tags por SKU (3 selectores encadenados + type + schedule por tag), streaming por port, cancelación y persistencia
 - ⏳ Pendiente: tests en `tests/unit/*.test.js`
 
 ## Comunicación popup ↔ content
@@ -239,6 +239,42 @@ Pantalla objetivo: **Marketing Info Mapping** dentro de GP1 (SPA).
 - Confirm STG/PROD: "all selected rows of information"
 - Success STG: "successfully saved to STG"
 - Success PROD: "successfully saved to PROD"
+
+**Tag de Producto — flujo (etapa 3):**
+
+1. Popup recolecta: `skus[]`, `tags[]` (1 ó 2 tags), cada uno con `{ category, group, tag, type, beginDay, beginTime, endDay, endTime }`, más `skipProd` global. Persiste config en `chrome.storage.local`.
+2. Popup abre port `colocar-tags:product-run` con `START + config`.
+3. Content (frame que detecta MIM) itera SKUs:
+   - `searchProductBySku(sku)` — idéntico al flujo Delivery.
+   - `applyProductTags({ tags, skipProd, userType: 'ALL' })`:
+     - Para cada tag (orden 1 → 2):
+       1. Marcar `#productTag<N>Chk`.
+       2. `select#productTagCategory<N>` ← `category` (Product/Promotion).
+       3. Combobox `#productTagGroup<N>` ← `group` (depende de category, esperamos a que se populen los `<li>`).
+       4. Combobox `#productTag<N>` ← `tag` (depende de group).
+       5. `select#productTag<N>Type` ← `type` (gradient/solid/line).
+       6. Marcar `#productTag<N>UseFlag`.
+       7. `select#useType<N>` ← `ALL` (el id `#productTag<N>UserType` está duplicado en un hidden, hay que tomar el visible).
+       8. Setear `#productTag<N>BeginDay/BeginTime/EndDay/EndTime`.
+     - Click `SAVE TO STG` → confirm YES → ack OK.
+     - Si `!skipProd`: SAVE PROD + confirm + ack. Magento cierra el modal solo tras el último OK.
+4. Mismo protocolo de progreso por SKU que delivery; los pasos del flujo de cada tag llevan `detail.tagIndex` para que el popup pinte "Tag 1 — Setteando Type" / "Tag 2 — …".
+
+**Particularidad del combobox de Product Tag:** los `<ul role="listbox">` de los combos comparten IDs (`cb1-listbox`, `cb2-listbox`) — HTML técnicamente inválido pero existente. Por eso `selectComboboxByInput` (en `gp1/combobox.js`) resuelve el botón y el listbox desde el input usando `input.closest('.combobox.combobox-list')` en vez de querySelector por id. Además espera a que el listbox tenga `<li>` antes de buscar la opción, porque los combos están encadenados (group depende de category, tag depende de group) y el populate es asíncrono.
+
+**Tags dinámicos en GP1 — no se hardcodean.** Las opciones de `productTagGroup<N>` y `productTag<N>` (también el listbox de delivery `cb2-listbox`) las populates el backend de GP1 por SKU. Pueden cambiar producto a producto y no hay forma de validar contra una lista cerrada del lado de la extension. El driver `commitComboboxSelection` intenta match exacto + case-insensitive como fallback y lanza `ComboboxOptionNotFoundError` (en `gp1/combobox.js`) con muestra de las opciones disponibles si no encuentra. El handler central (`runSkuBatch` en `content/index.js`) atrapa esa excepción y reporta el SKU como ERROR claro al popup en vez de cascadear timeouts.
+
+**Pre-flight modal entre SKUs.** Antes de cada `searchProductBySku`, `ensureCleanModalState()` drena messageboxes residuales (intenta OK/YES/NO en orden, hasta 4 veces) y cierra el modal #dialog2 si quedó abierto desde un SKU anterior con error. Si tras eso el modal sigue abierto, el SKU se marca ERROR con `step: 'pre-modal-open'` y se continúa con el siguiente. Esto evita la cascada típica de "el primer SKU falla → todos los siguientes fallan porque el modal residual cubre el form".
+
+**Watchdog en el popup.** `attachPortWatchdog` (en `popup/utils.js`) dispara en 12s si el port no recibió ningún mensaje del content script. Cubre el caso donde la pestaña activa no es GP1 o no está en MIM — el handleConnect del content script ignora silenciosamente y sin el watchdog el popup quedaría spinneando indefinidamente.
+
+**Validación de fechas centralizada.** `content/validators.js#validateDateTimeRange` chequea formato (YYYY-MM-DD / HH:MM) **y semántica** (beginDay ≤ endDay; si mismo día, beginTime ≤ endTime). Lo usan tanto el flow de Delivery como el de Product Tag — antes había dos validaciones distintas.
+
+**Limitaciones reportadas por el usuario:**
+- Si un producto ya tiene 2 tags y se manda 1 nuevo, el 2° se sobrescribe (queda sólo el 1° nuevo). Comportamiento del sistema, no del flow.
+- Si se mandan 2 tags, se aplican en orden (1 → 2). El flow ya cumple esto.
+
+**Reorganización del handler `content/index.js`:** ambos puertos (`DELIVERY_RUN` y `PRODUCT_RUN`) comparten el mismo loop `runSkuBatch`, parametrizado vía `PORT_RUNNERS[port.name].runPerSku`. Esto evita duplicar manejo de SkuNotFoundError, WaitAbortedError y reporting de progress.
 
 **Comandos debug expuestos** (todos bajo `__extLgeCl.colocarTags.`):
 - `diagnose()` — diagnóstico completo del frame.

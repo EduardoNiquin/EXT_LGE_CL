@@ -1,7 +1,7 @@
 import { FEATURE_ID, PORTS, PORT_MSG, STATUS, STEPS, DELIVERY_DEFAULTS } from '../../constants.js';
 import { getStorage, setStorage } from '../../../../shared/storage/storage.js';
 import { logger } from '../../../../shared/utils/logger.js';
-import { escapeHtml } from '../utils.js';
+import { attachPortWatchdog, escapeHtml } from '../utils.js';
 
 const log = logger('colocar-tags/delivery');
 const STORAGE_KEY = `${FEATURE_ID}:delivery:last-config`;
@@ -31,6 +31,7 @@ const STEP_LABELS = {
 };
 
 let activePort = null;
+let activeWatchdog = null;
 let skuStates  = new Map();
 
 export async function render(container) {
@@ -156,10 +157,30 @@ async function startRun(container, config) {
   const port = chrome.tabs.connect(tab.id, { name: PORTS.DELIVERY_RUN });
   activePort = port;
 
+  // Si ningún frame de la pestaña detecta MIM, el handler del content script
+  // ignora silenciosamente y no llega ningún PROGRESS. El watchdog atrapa ese
+  // caso para no dejar al usuario esperando.
+  activeWatchdog = attachPortWatchdog(port, {
+    timeoutMs: 12000,
+    onTimeout: () => {
+      setProgressTitle(container, 'Sin respuesta de la pestaña');
+      toggleRunning(container, false);
+      alert(
+        'La pestaña activa no respondió en 12s.\n\n' +
+        'Posibles causas:\n' +
+        '• No estás en la pantalla "Marketing Info Mapping" de GP1.\n' +
+        '• La pestaña activa no es la de GP1.\n' +
+        '• El content script no cargó (reintentá recargando la pestaña).',
+      );
+    },
+  });
+
   port.onMessage.addListener((msg) => onPortMessage(container, msg));
   port.onDisconnect.addListener(() => {
     log.info('port desconectado');
     activePort = null;
+    activeWatchdog?.dispose();
+    activeWatchdog = null;
     toggleRunning(container, false);
   });
 
@@ -176,6 +197,8 @@ function onCancel() {
 
 function onPortMessage(container, msg) {
   log.debug('progress', msg);
+  // Cualquier mensaje del content cancela el watchdog: la pestaña respondió.
+  activeWatchdog?.clear();
   switch (msg?.type) {
     case PORT_MSG.PROGRESS:
       updateSkuState(container, msg);

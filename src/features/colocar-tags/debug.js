@@ -1,5 +1,5 @@
 import { register, cmd } from '../../shared/debug/index.js';
-import { SELECTORS, DELIVERY_DEFAULTS } from './constants.js';
+import { SELECTORS, DELIVERY_DEFAULTS, PRODUCT_TAG_SELECTORS } from './constants.js';
 import { diagnose } from './content/detector.js';
 import { parsePage } from './content/parser.js';
 import { searchProductBySku, findRowBySalesModel } from './content/flows/search-product.js';
@@ -22,12 +22,25 @@ register('colocarTags', {
   ),
   check: cmd(
     () => Object.fromEntries(
-      Object.entries(SELECTORS).map(([k, sel]) => [k, Boolean(document.querySelector(sel))]),
+      Object.entries(SELECTORS)
+        .filter(([, sel]) => typeof sel === 'string')
+        .map(([k, sel]) => [k, Boolean(document.querySelector(sel))]),
     ),
-    'true/false por cada selector contra el DOM actual',
+    'true/false por cada selector estático contra el DOM actual',
+  ),
+  checkProductTagRow: cmd(
+    (i = 1) => Object.fromEntries(
+      Object.entries(PRODUCT_TAG_SELECTORS)
+        .map(([k, fn]) => [k, { selector: fn(i), present: Boolean(document.querySelector(fn(i))) }]),
+    ),
+    'checkProductTagRow(1|2) — estado de los selectores de la fila i de Product Tag',
   ),
   find: cmd(
-    (key) => document.querySelector(SELECTORS[key]),
+    (key) => {
+      const sel = SELECTORS[key];
+      if (typeof sel !== 'string') return null;
+      return document.querySelector(sel);
+    },
     'find("searchForm") → elemento DOM o null',
   ),
   iframes: cmd(

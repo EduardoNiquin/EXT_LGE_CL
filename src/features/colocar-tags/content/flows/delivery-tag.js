@@ -7,6 +7,7 @@ import {
   waitForNoMessagebox,
 } from '../gp1/messagebox.js';
 import { waitForModalClosed } from '../gp1/modal.js';
+import { validateDateTimeRange } from '../validators.js';
 
 /**
  * Aplica un Tag de Delivery dentro del modal de Marketing Info abierto.
@@ -120,10 +121,5 @@ export async function applyDeliveryTag(args) {
 
 function validateInputs({ tagLabel, beginDay, beginTime, endDay, endTime }) {
   if (!tagLabel) throw new Error('tagLabel requerido');
-  for (const [k, v] of [['beginDay', beginDay], ['endDay', endDay]]) {
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(v || '')) throw new Error(`${k} debe ser YYYY-MM-DD (recibido: "${v}")`);
-  }
-  for (const [k, v] of [['beginTime', beginTime], ['endTime', endTime]]) {
-    if (!/^\d{2}:\d{2}$/.test(v || '')) throw new Error(`${k} debe ser HH:MM (recibido: "${v}")`);
-  }
+  validateDateTimeRange({ prefix: 'Delivery', beginDay, beginTime, endDay, endTime });
 }
