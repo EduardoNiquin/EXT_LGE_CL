@@ -192,6 +192,7 @@ Comandos generales:
 - ✅ Capa `shared/dom` con primitivas reutilizables (`waitFor`, `setInputValue`, `clickEl`, `setChecked`, etc.)
 - ✅ Driver del UI L-* de GP1 (`modal`, `messagebox`, `combobox`) aislado del flow
 - ✅ Sub-router de secciones dentro del popup (Lectura | Tag Delivery | Tag Producto)
+- ✅ **Feature "Lead Times":** automatización end-to-end del flujo Magento Manage Address Level 2 con state machine multi-página, persistido en `chrome.storage.local`, popup con múltiples regiones + progreso live + stop de emergencia
 - ⏳ Pendiente: Feature "Colocar TAGs" — Tag de Producto (estructura ya lista, falta definir pasos)
 - ⏳ Pendiente: tests en `tests/unit/*.test.js`
 
@@ -249,6 +250,105 @@ Pantalla objetivo: **Marketing Info Mapping** dentro de GP1 (SPA).
 - `selectors()` — copia del mapa de selectores.
 
 Pendiente etapa 2: documentar el flujo de cómo se aplican los tags (el usuario lo va a explicar).
+
+## Feature: Lead Times (Magento)
+
+Pantalla objetivo: **Manage Address Level 2** dentro de Magento admin (`/regional_management/level2/...`). Es un CRUD admin tradicional (no SPA), así que el flujo cruza **navegaciones full-page** entre el listing y la pantalla `Edit Address Level 2`.
+
+**Estructura:**
+```
+src/features/lead-times/
+├── constants.js              SELECTORS, STORAGE_KEYS, COMUNA_STATUS, REGION_STATUS, PAGE_TYPE, EDIT_URL_RE, TEXTS, DEFAULTS
+├── state.js                  get/set/clear/update del run + appendLog (chrome.storage.local)
+├── debug.js                  Comandos __extLgeCl.leadTimes.*
+├── content/
+│   ├── detector.js           detectPage() → { type: 'listing'|'edit'|'other', editId? } + diagnose()
+│   ├── parser.js             parseListingRows() / getActiveFilters() / getRecordsFound() / getTotalPages()
+│   ├── index.js              init() — tick inicial + listener de storage.onChanged
+│   ├── magento/              Drivers del admin grid + edit page
+│   │   ├── filters.js        openFilters / setRegionFilter / applyFilters / clearAllFilters
+│   │   ├── grid.js           waitForGridReady / collectComunasOnCurrentPage / collectAllComunas (paginación)
+│   │   └── edit-page.js      openDeliveryCollapsible / setLeadTimes / clickSave / leaveEditPage
+│   └── flows/
+│       └── run.js            tickIfActive() — state machine; onListing / onEdit / advanceRegion / finalize
+└── popup/
+    ├── view.js               Sub-router (preparado para más secciones; hoy: una sola)
+    ├── utils.js              escapeHtml / formatTime
+    └── sections/
+        └── runner.js         Form de regiones + start/stop + progreso live + log
+```
+
+**Modelo de estado (`chrome.storage.local["lead-times:run"]`):**
+```ts
+{
+  active: boolean,
+  startedAt, finishedAt, finishReason?,
+  currentRegionIndex: number,
+  queue: [{
+    regionName, minDays, maxDays,
+    status: REGION_STATUS,
+    error?, totalComunas?, currentComunaIndex?,
+    comunas?: [{
+      id, code, name, regionName, currentMin, currentMax, editHref,
+      status: COMUNA_STATUS, error?, previousMin?, previousMax?, savedAt?,
+    }],
+  }],
+  log: [{ ts, level, message }], // cap 400
+}
+```
+
+**Detección de página** (`content/detector.js`):
+- `EDIT_URL_RE` matchea `/regional_management/level2/edit/id/<N>/` → `type: 'edit'`, `editId: N`.
+- `h1.page-title === 'Manage Address Level 2'` → `type: 'listing'`.
+- Cualquier otra → `type: 'other'` (ignorada).
+
+**State machine** (`flows/run.js`):
+- `tickIfActive()` se invoca en `init` (tras 300ms para dejar montar el grid) y en cada `chrome.storage.onChanged` del key del run. Sólo top frame; guard de reentrancia con `running` flag.
+- **onListing:**
+  1. Si alguna comuna quedó en RUNNING (acabamos de volver del edit tras un save) → marcarla OK.
+  2. Si la región actual no tiene comunas recolectadas → openFilters, setRegionFilter, applyFilters, collectAllComunas (recorre todas las páginas vía `.action-next`).
+  3. Si todas las comunas están terminadas → `advanceRegion()`.
+  4. Si hay una pendiente → marcarla RUNNING, `window.location.href = editHref`.
+- **onEdit:**
+  1. Verifica que el `editId` de la URL coincide con la comuna RUNNING.
+  2. `openDeliveryCollapsible` (click si `data-state-collapsible="closed"`).
+  3. `setLeadTimes({ minDays, maxDays })` con `setInputValue` en `input[name="delivery_leadtime_min/max"]`.
+  4. `clickSave` — Magento navega solo de vuelta al listing. **No** marcamos OK acá; lo hace el próximo tick al detectar listing (así sabemos que Magento efectivamente navegó).
+  5. En caso de error: marcar ERROR + `leaveEditPage` (limpia `window.onbeforeunload` y click en `#back` para esquivar el confirm "Changes have been made").
+
+**Comunicación popup ↔ content:** únicamente vía `chrome.storage.local` + `chrome.storage.onChanged`. **No** se usan `runtime.sendMessage` ni ports, porque los page reloads de Magento los cerrarían. El popup escribe el run para arrancar; el content suscribe sus cambios; ambos refrescan al ver el storage cambiar.
+
+**Stop de emergencia:** popup setea `run.active = false` + `finishReason = 'cancelled'`. Cualquier tick en vuelo termina su paso actual y el siguiente tick no entra (guard en `tickIfActive`). Una nav ya disparada no se cancela — la comuna en curso terminará como OK o ERROR según resultado real.
+
+**Quirk del botón Filters tras editar:** una vez que en una sesión se entra a un Edit y se vuelve al listing, el botón "Filters" del data grid de Magento queda en un estado donde a veces no abre el panel. La única forma conocida de destrabarlo es **recargar la página**. Por eso `advanceRegion()` hace `window.location.reload()` al saltar de una región a la siguiente: el storage del run persiste, y el próximo tick (post reload) abre el panel limpio y aplica el filtro de la nueva región.
+
+**Selectores Magento clave** (`constants.SELECTORS`):
+- `button[data-action="grid-filter-expand"]` → abre panel.
+- `.admin__data-grid-filters-wrap._show` → panel abierto.
+- `input[name="region_name"]` → filtro Address Level 1.
+- `button[data-action="grid-filter-apply"]` → Apply Filters.
+- `.admin__data-grid-filters-current._show` → señal de que el filtro fue registrado.
+- `tbody tr.data-row` + `.data-grid-actions-cell a[data-action="item-edit"]` → links de Edit (href tiene id+key).
+- `.admin__data-grid-pager .action-next` → siguiente página (disabled cuando es la última).
+- `[data-index="delivery"] .fieldset-wrapper-title[data-state-collapsible="open|closed"]` → header del colapsable.
+- `input[name="delivery_leadtime_min|max"]` → inputs.
+- `#save` / `#back` → botones del page-main-actions.
+
+**MUY IMPORTANTE:** la acción "Delete" del row NUNCA se toca. El driver sólo conoce `#save`, `#back` y `a[data-action="item-edit"]`. La opción "delete" del menú de acciones no se busca por nadie en el código.
+
+**Comandos debug** (todos bajo `__extLgeCl.leadTimes.`):
+- `diagnose()`, `page()`, `selectors()`, `check()`, `parseRows()`, `filters()`, `records()`.
+- `state()` — devuelve el run persistido.
+- `stop()` — marca el run como inactivo (no aborta un tick en vuelo).
+- `reset()` — borra todo el storage del run.
+- `tick()` — fuerza un tick del state machine en este frame.
+
+**UI del popup:** tabla de regiones (regionName / min / max / ✕) con botón "Agregar región", `Iniciar` / `Detener`, barra de progreso global, lista de regiones con stats por región, `<details>` con los últimos 50 logs. Se suscribe a `storage.onChanged` para refresco live aunque el popup quede abierto durante el run.
+
+**Pendientes / no resueltos:**
+- Si hay múltiples tabs de Magento abiertas, el run no distingue. Hoy se asume una sola.
+- No hay reintento automático si una comuna falla; queda ERROR y se sigue con la próxima.
+- No se guarda historial de runs (sólo el último + el último config para autocomplete del form).
 
 ## Distribución a otras PC corporativas
 
