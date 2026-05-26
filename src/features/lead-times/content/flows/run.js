@@ -131,11 +131,29 @@ async function onListing(run) {
         await advanceRegion(run);
         return;
       }
-      region.comunas = comunas.map((c) => ({ ...c, status: COMUNA_STATUS.PENDING }));
+      region.comunas = comunas.map((c) => {
+        const curMin = parseInt(c.currentMin, 10);
+        const curMax = parseInt(c.currentMax, 10);
+        if (curMin === region.minDays && curMax === region.maxDays) {
+          return {
+            ...c,
+            status: COMUNA_STATUS.SKIPPED,
+            skipReason: 'already-set',
+            previousMin: c.currentMin,
+            previousMax: c.currentMax,
+          };
+        }
+        return { ...c, status: COMUNA_STATUS.PENDING };
+      });
       region.totalComunas = comunas.length;
       region.status = REGION_STATUS.RUNNING;
+      const pendingCount = region.comunas.filter((c) => c.status === COMUNA_STATUS.PENDING).length;
+      const skippedCount = region.comunas.length - pendingCount;
       await setRun(run);
-      await appendLog({ level: 'info', message: `${region.regionName}: ${comunas.length} comunas` });
+      await appendLog({
+        level: 'info',
+        message: `${region.regionName}: ${comunas.length} comunas — ${pendingCount} a modificar, ${skippedCount} ya correctas`,
+      });
     } catch (err) {
       region.status = REGION_STATUS.ERROR;
       region.error  = err?.message || String(err);
@@ -151,11 +169,12 @@ async function onListing(run) {
   if (nextIdx === -1) {
     region.status = REGION_STATUS.DONE;
     await setRun(run);
-    const okCount  = region.comunas.filter((c) => c.status === COMUNA_STATUS.OK).length;
-    const errCount = region.comunas.filter((c) => c.status === COMUNA_STATUS.ERROR).length;
+    const okCount      = region.comunas.filter((c) => c.status === COMUNA_STATUS.OK).length;
+    const errCount     = region.comunas.filter((c) => c.status === COMUNA_STATUS.ERROR).length;
+    const skippedCount = region.comunas.filter((c) => c.status === COMUNA_STATUS.SKIPPED).length;
     await appendLog({
       level: 'info',
-      message: `${region.regionName} terminada — ok=${okCount} err=${errCount}`,
+      message: `${region.regionName} terminada — ok=${okCount} skipped=${skippedCount} err=${errCount}`,
     });
     await advanceRegion(run);
     return;

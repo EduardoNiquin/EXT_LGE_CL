@@ -49,6 +49,7 @@ export async function render(container) {
         <div class="lt-actions">
           <button type="button" id="lt-start" class="ct-btn ct-btn--primary">Iniciar</button>
           <button type="button" id="lt-stop"  class="ct-btn ct-btn--ghost" disabled>Detener</button>
+          <button type="button" id="lt-clear" class="ct-btn ct-btn--ghost hidden">Limpiar</button>
         </div>
       </section>
 
@@ -77,15 +78,28 @@ export async function render(container) {
 
   container.querySelector('#lt-start').addEventListener('click', () => onStart(container, queue));
   container.querySelector('#lt-stop').addEventListener('click', onStop);
+  container.querySelector('#lt-clear').addEventListener('click', () => onClear(container));
 
-  // Si ya hay un run activo, mostrar progreso inmediatamente.
+  // Si ya hay un run (activo o terminado) mostrar progreso inmediatamente.
   if (run) renderProgress(container, run);
-  toggleButtons(container, Boolean(run?.active));
+  toggleButtons(container, run);
 
   // Suscribirse a cambios para refrescar live.
   unsubscribeStorage = subscribeToRunChanges((newRun) => {
-    renderProgress(container, newRun);
-    toggleButtons(container, Boolean(newRun?.active));
+    if (newRun) {
+      renderProgress(container, newRun);
+    } else {
+      // Run borrado de storage → ocultar progreso y resetear vista.
+      hideProgress(container);
+      // Re-pintar la queue desde el último config.
+      getLastConfig().then((last) => {
+        const q = normalizeQueueForUi(last?.rows || [], null);
+        // Reemplazar la queue actual en pantalla.
+        const newList = container.querySelector('#lt-queue-list');
+        if (newList) renderQueueRows(newList, q);
+      });
+    }
+    toggleButtons(container, newRun);
   });
 }
 
@@ -211,19 +225,42 @@ async function onStop() {
   log.info('stop pedido desde popup');
 }
 
+async function onClear(container) {
+  const run = await getRun();
+  // Sólo permitimos limpiar runs que ya no están activos. Si quedó activo
+  // por alguna razón, forzamos stop primero.
+  if (run?.active) {
+    if (!confirm('Hay un run activo. ¿Detenerlo y limpiar?')) return;
+    await updateRun((r) => ({ ...r, active: false, finishedAt: Date.now(), finishReason: 'cancelled' }));
+  }
+  await clearRun();
+  log.info('run limpiado desde popup');
+  hideProgress(container);
+  // El listener de storage.onChanged se va a disparar igual; toggleButtons se actualizará.
+}
+
+function hideProgress(container) {
+  const wrap = container.querySelector('#lt-progress');
+  if (wrap) wrap.classList.add('hidden');
+}
+
 // -----------------------------------------------------------------------------
 // progreso
 // -----------------------------------------------------------------------------
 
-function toggleButtons(container, running) {
-  const startBtn  = container.querySelector('#lt-start');
-  const stopBtn   = container.querySelector('#lt-stop');
-  const addBtn    = container.querySelector('#lt-add-region');
-  if (startBtn) startBtn.disabled = running;
-  if (stopBtn)  stopBtn.disabled  = !running;
-  if (addBtn)   addBtn.disabled   = running;
+function toggleButtons(container, run) {
+  const active   = Boolean(run?.active);
+  const finished = Boolean(run && !run.active);
+  const startBtn = container.querySelector('#lt-start');
+  const stopBtn  = container.querySelector('#lt-stop');
+  const clearBtn = container.querySelector('#lt-clear');
+  const addBtn   = container.querySelector('#lt-add-region');
+  if (startBtn) startBtn.disabled = active;
+  if (stopBtn)  stopBtn.disabled  = !active;
+  if (addBtn)   addBtn.disabled   = active;
+  if (clearBtn) clearBtn.classList.toggle('hidden', !finished);
   container.querySelectorAll('#lt-queue-list input, #lt-queue-list button').forEach((el) => {
-    el.disabled = running;
+    el.disabled = active;
   });
 }
 
@@ -242,7 +279,15 @@ function renderProgress(container, run) {
   } else {
     titleEl.textContent = 'Finalizado';
   }
-  container.querySelector('#lt-progress-counter').textContent = `${stats.doneComunas} / ${stats.totalComunas}`;
+  const counterEl = container.querySelector('#lt-progress-counter');
+  const breakdown = [];
+  if (stats.ok      > 0) breakdown.push(`<span class="lt-stat-ok">${stats.ok} modificadas</span>`);
+  if (stats.skipped > 0) breakdown.push(`<span class="lt-stat-skipped">${stats.skipped} omitidas</span>`);
+  if (stats.error   > 0) breakdown.push(`<span class="lt-stat-error">${stats.error} con error</span>`);
+  counterEl.innerHTML = `
+    <span class="lt-stat-total">${stats.doneComunas} / ${stats.totalComunas}</span>
+    ${breakdown.length ? `<span class="lt-stat-sep"></span>${breakdown.join(' · ')}` : ''}
+  `;
 
   const pct = stats.totalComunas > 0 ? Math.round((stats.doneComunas / stats.totalComunas) * 100) : 0;
   const bar = container.querySelector('#lt-progress-bar span');
@@ -266,8 +311,12 @@ function renderProgress(container, run) {
       ${comunaStats ? `
         <div class="lt-region-counts">
           <span>${comunaStats.done}/${comunaStats.total}</span>
-          ${comunaStats.error ? `<span class="lt-err">${comunaStats.error} con error</span>` : ''}
-          ${region.currentComunaIndex != null && region.comunas[region.currentComunaIndex]
+          ${comunaStats.ok       ? `<span class="lt-stat-ok">✓ ${comunaStats.ok}</span>` : ''}
+          ${comunaStats.skipped  ? `<span class="lt-stat-skipped">⊝ ${comunaStats.skipped}</span>` : ''}
+          ${comunaStats.error    ? `<span class="lt-stat-error">✗ ${comunaStats.error}</span>` : ''}
+          ${region.currentComunaIndex != null
+            && region.comunas[region.currentComunaIndex]
+            && region.comunas[region.currentComunaIndex].status === 'running'
             ? `<span class="lt-current">→ ${escapeHtml(region.comunas[region.currentComunaIndex].name)}</span>`
             : ''}
         </div>
@@ -294,28 +343,32 @@ function renderProgress(container, run) {
 
 function computeStats(run) {
   let totalComunas = 0;
-  let doneComunas  = 0;
+  let ok = 0; let skipped = 0; let error = 0;
   for (const region of run.queue || []) {
     if (Array.isArray(region.comunas)) {
       totalComunas += region.comunas.length;
       for (const c of region.comunas) {
-        if ([COMUNA_STATUS.OK, COMUNA_STATUS.ERROR, COMUNA_STATUS.SKIPPED].includes(c.status)) {
-          doneComunas += 1;
-        }
+        if      (c.status === COMUNA_STATUS.OK)      ok++;
+        else if (c.status === COMUNA_STATUS.SKIPPED) skipped++;
+        else if (c.status === COMUNA_STATUS.ERROR)   error++;
       }
     }
   }
-  return { totalComunas, doneComunas };
+  return { totalComunas, doneComunas: ok + skipped + error, ok, skipped, error };
 }
 
 function computeRegionStats(region) {
-  let done = 0; let error = 0;
+  let ok = 0; let skipped = 0; let error = 0;
   for (const c of region.comunas) {
-    if (c.status === COMUNA_STATUS.OK)      done++;
-    else if (c.status === COMUNA_STATUS.ERROR) { done++; error++; }
-    else if (c.status === COMUNA_STATUS.SKIPPED) done++;
+    if      (c.status === COMUNA_STATUS.OK)      ok++;
+    else if (c.status === COMUNA_STATUS.SKIPPED) skipped++;
+    else if (c.status === COMUNA_STATUS.ERROR)   error++;
   }
-  return { total: region.totalComunas ?? region.comunas.length, done, error };
+  return {
+    total: region.totalComunas ?? region.comunas.length,
+    done:  ok + skipped + error,
+    ok, skipped, error,
+  };
 }
 
 function labelRegionStatus(s) {
@@ -348,8 +401,3 @@ function subscribeToRunChanges(callback) {
 
 // Expuesto para testing / debug:
 export const __test = { computeStats, computeRegionStats, normalizeQueueForUi };
-
-// Mantener clearRun importado para que se pueda invocar via debug API si fuera
-// necesario (no se llama en la UI normal, pero ESLint marcaría unused si no se
-// referencia).
-export { clearRun };

@@ -306,7 +306,7 @@ src/features/lead-times/
 - `tickIfActive()` se invoca en `init` (tras 300ms para dejar montar el grid) y en cada `chrome.storage.onChanged` del key del run. Sólo top frame; guard de reentrancia con `running` flag.
 - **onListing:**
   1. Si alguna comuna quedó en RUNNING (acabamos de volver del edit tras un save) → marcarla OK.
-  2. Si la región actual no tiene comunas recolectadas → openFilters, setRegionFilter, applyFilters, collectAllComunas (recorre todas las páginas vía `.action-next`).
+  2. Si la región actual no tiene comunas recolectadas → openFilters, setRegionFilter, applyFilters, collectAllComunas (recorre todas las páginas vía `.action-next`). Al guardar las comunas, las que ya tienen los lead times deseados (`currentMin === minDays && currentMax === maxDays`) se marcan **SKIPPED** con `skipReason: 'already-set'` en lugar de PENDING — no se entra a su Edit.
   3. Si todas las comunas están terminadas → `advanceRegion()`.
   4. Si hay una pendiente → marcarla RUNNING, `window.location.href = editHref`.
 - **onEdit:**

@@ -910,6 +910,12 @@ mark {
 
 .lt-err { color: #b1251a; font-size: 10.5px; }
 
+.lt-stat-ok      { color: #1a7f37; font-weight: 600; }
+.lt-stat-skipped { color: var(--gray-600); font-weight: 600; }
+.lt-stat-error   { color: #b1251a; font-weight: 600; }
+.lt-stat-total   { color: var(--gray-700); font-weight: 700; font-variant-numeric: tabular-nums; }
+.lt-stat-sep     { display: inline-block; width: 8px; }
+
 .lt-log-details { margin-top: 4px; }
 .lt-log {
   list-style: none;
