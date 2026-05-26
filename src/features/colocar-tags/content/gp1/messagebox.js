@@ -1,17 +1,19 @@
 import { SELECTORS } from '../../constants.js';
 import { waitFor, waitForGone } from '../../../../shared/dom/wait.js';
 import { clickEl, findByText } from '../../../../shared/dom/events.js';
+import { isVisible } from './modal.js';
 
 /**
  * Devuelve el messagebox visible "más arriba" (mayor z-index) o null.
  * Puede haber varios apilados (el de confirm queda detrás del de éxito).
+ *
+ * Igual que el modal, usamos `isVisible` (computed style + offsetParent +
+ * rect en viewport) en vez de sólo dimensiones, porque RUI deja boxes
+ * en el DOM con dims pero `display: none` cuando están cerradas.
  */
 export function getTopMessagebox() {
   const boxes = Array.from(document.querySelectorAll(SELECTORS.messagebox))
-    .filter((el) => {
-      const r = el.getBoundingClientRect();
-      return r.width > 0 && r.height > 0;
-    })
+    .filter(isVisible)
     .sort((a, b) => {
       const za = parseInt(a.style.zIndex || '0', 10);
       const zb = parseInt(b.style.zIndex || '0', 10);

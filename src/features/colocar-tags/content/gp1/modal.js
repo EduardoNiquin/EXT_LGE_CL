@@ -1,14 +1,40 @@
 import { SELECTORS } from '../../constants.js';
 import { waitForElement, waitForGone, waitFor } from '../../../../shared/dom/wait.js';
 
-/** Devuelve el modal #dialog2 si está visible, o null. */
+/**
+ * Determina si un elemento está visible al usuario. Cubre varias formas
+ * de ocultar elementos que aparecen en GP1 / RUI:
+ *  - `display: none` propio o de un ancestro (offsetParent === null).
+ *  - `visibility: hidden` propio.
+ *  - opacity 0.
+ *  - posicionado fuera del viewport (rect.right < 0 || rect.bottom < 0).
+ *  - dimensiones cero.
+ *
+ * Atajo: los elementos `position: fixed` tienen offsetParent === null
+ * incluso cuando son visibles, así que en ese caso saltamos esa señal.
+ */
+function isVisible(el) {
+  if (!el) return false;
+  const cs = window.getComputedStyle(el);
+  if (cs.display === 'none') return false;
+  if (cs.visibility === 'hidden' || cs.visibility === 'collapse') return false;
+  if (parseFloat(cs.opacity) === 0) return false;
+  if (cs.position !== 'fixed' && el.offsetParent === null) return false;
+  const rect = el.getBoundingClientRect();
+  if (rect.width === 0 || rect.height === 0) return false;
+  if (rect.right <= 0 || rect.bottom <= 0) return false;
+  return true;
+}
+
+/** Devuelve el modal #dialog2 si está realmente visible, o null. */
 export function getMarketingModal() {
   const el = document.querySelector(SELECTORS.modal);
-  if (!el) return null;
-  const rect = el.getBoundingClientRect();
-  if (rect.width === 0 || rect.height === 0) return null;
+  if (!isVisible(el)) return null;
   return el;
 }
+
+/** Export para que el módulo de messagebox use la misma heurística. */
+export { isVisible };
 
 export function isMarketingModalOpen() {
   return Boolean(getMarketingModal());

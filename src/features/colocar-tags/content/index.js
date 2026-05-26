@@ -79,14 +79,15 @@ const PORT_RUNNERS = {
 function handleConnect(port) {
   const runner = PORT_RUNNERS[port.name];
   if (!runner) return;
-  log.info('port conectado', { name: port.name });
 
-  // Sólo el frame que detecta la pantalla acepta el run. Si nuestro frame no
-  // tiene MIM, ignoramos: otro frame (iframe) ya estará escuchando también.
+  // En multi-frame (GP1 admin) onConnect dispara en cada frame. Sólo el que
+  // detecta MIM se subscribe al port; los demás retornan en silencio sin
+  // hacer ruido en el log.
   if (!diagnose().detected) {
-    log.debug('port ignorado (este frame no detecta MIM)', { url: location.href });
+    log.debug('port ignorado (frame sin MIM)', { name: port.name, url: location.href });
     return;
   }
+  log.info('port conectado', { name: port.name });
 
   const ctrl = new AbortController();
   let active = false;
@@ -141,21 +142,27 @@ async function runSkuBatch({ config, port, signal, runner }) {
       continue;
     }
 
-    // Pre-flight: si el SKU anterior dejó algún modal o messagebox abierto,
-    // intentamos limpiar antes de empezar. Si no se puede, abortamos el SKU
-    // con un error claro en vez de cascadear timeouts oscuros.
-    const cleaned = await ensureCleanModalState(signal).catch((err) => ({ ok: false, reason: err?.message || String(err) }));
-    if (cleaned && cleaned.ok === false) {
-      safePost(port, {
-        type: PORT_MSG.PROGRESS,
-        sku,
-        index: i,
-        total: skus.length,
-        status: STATUS.ERROR,
-        step: 'pre-modal-open',
-        reason: `Modal o popup del SKU anterior no pudo cerrarse: ${cleaned.reason}`,
-      });
-      continue;
+    // Pre-flight: si quedó algún modal o messagebox abierto, intentamos
+    // limpiarlo antes de empezar. Sólo aplica a partir del 2º SKU — en el
+    // primero asumimos que el usuario empezó en el listing sin nada abierto;
+    // si por algún motivo hubiera un modal manual, lo detectaremos cuando
+    // `waitForModalOpen` resuelva instantáneamente con el modal viejo y los
+    // selectores del flow fallen claro.
+    if (i > 0) {
+      const cleaned = await ensureCleanModalState(signal).catch((err) => ({ ok: false, reason: err?.message || String(err) }));
+      if (cleaned && cleaned.ok === false) {
+        log.warn(`pre-flight falló para ${sku}`, cleaned);
+        safePost(port, {
+          type: PORT_MSG.PROGRESS,
+          sku,
+          index: i,
+          total: skus.length,
+          status: STATUS.ERROR,
+          step: 'pre-modal-open',
+          reason: `Modal o popup del SKU anterior no pudo cerrarse: ${cleaned.reason}`,
+        });
+        continue;
+      }
     }
 
     safePost(port, { type: PORT_MSG.PROGRESS, sku, index: i, total: skus.length, status: STATUS.RUNNING, step: STEPS.SEARCH_TYPE });
