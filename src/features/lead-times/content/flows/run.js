@@ -131,6 +131,27 @@ async function onListing(run) {
         await advanceRegion(run);
         return;
       }
+
+      // Red de seguridad: TODAS las comunas leídas deben pertenecer a la
+      // región que filtramos. Si una sola no matchea, abortamos esta región
+      // antes de tocar nada — pudo haber sido un filtro mal aplicado por
+      // Magento o un grid stale, y procesar significaría romper datos en
+      // regiones equivocadas.
+      const wanted = normalizeText(region.regionName);
+      const mismatched = comunas.filter((c) => !normalizeText(c.regionName).includes(wanted));
+      if (mismatched.length > 0) {
+        const sampleRegions = [...new Set(mismatched.map((c) => c.regionName))].slice(0, 3);
+        region.status = REGION_STATUS.ERROR;
+        region.error  = `Filtro inconsistente: ${mismatched.length}/${comunas.length} comunas no son de "${region.regionName}". Detectado: ${sampleRegions.join(' | ')}`;
+        await setRun(run);
+        await appendLog({
+          level: 'error',
+          message: `${region.regionName}: ABORTADA por filtro inconsistente — ${region.error}`,
+        });
+        await advanceRegion(run);
+        return;
+      }
+
       region.comunas = comunas.map((c) => {
         const curMin = parseInt(c.currentMin, 10);
         const curMax = parseInt(c.currentMax, 10);
@@ -272,4 +293,19 @@ async function finalize(run, { reason } = {}) {
   run.finishReason = reason || 'done';
   await setRun(run);
   await appendLog({ level: 'info', message: `Run finalizado (${run.finishReason})` });
+}
+
+/**
+ * Normaliza un texto para comparaciones case- y diacritics-insensitive.
+ * "Región Aysén" → "region aysen".
+ */
+const DIACRITICS_RE = new RegExp('[\\u0300-\\u036f]', 'g');
+
+function normalizeText(s) {
+  return (s || '')
+    .toString()
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(DIACRITICS_RE, '');
 }

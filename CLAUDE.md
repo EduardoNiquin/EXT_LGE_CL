@@ -322,6 +322,10 @@ src/features/lead-times/
 
 **Quirk del botón Filters tras editar:** una vez que en una sesión se entra a un Edit y se vuelve al listing, el botón "Filters" del data grid de Magento queda en un estado donde a veces no abre el panel. La única forma conocida de destrabarlo es **recargar la página**. Por eso `advanceRegion()` hace `window.location.reload()` al saltar de una región a la siguiente: el storage del run persiste, y el próximo tick (post reload) abre el panel limpio y aplica el filtro de la nueva región.
 
+**Sincronización tras Apply Filters:** el chip `.admin__data-grid-filters-current._show` aparece casi inmediatamente al clickear "Apply Filters", pero las filas del grid pueden seguir mostrando datos viejos por cientos de ms mientras Magento recarga. Si recolectamos en esa ventana, leemos filas sin filtrar. `applyFilters()` ahora toma snapshot del primer `editId` y del contador de "records found" antes del click y espera a que **uno de los dos cambie** (o que la lista se vacíe) antes de devolver.
+
+**Red de seguridad anti-corrupción:** después de `collectAllComunas()`, el flow valida que **todas** las comunas leídas tengan `regionName` que contenga (normalizado, sin acentos, lowercase) el nombre de la región filtrada. Si una sola no matchea, se aborta la región con `REGION_STATUS.ERROR` y se loguea con muestra de los nombres detectados — preferimos saltarnos una región antes que pisar lead times de otra. Esta es la última barrera contra grids stale o filtros mal aplicados.
+
 **Selectores Magento clave** (`constants.SELECTORS`):
 - `button[data-action="grid-filter-expand"]` → abre panel.
 - `.admin__data-grid-filters-wrap._show` → panel abierto.

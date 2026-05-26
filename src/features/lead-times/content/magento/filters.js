@@ -2,6 +2,7 @@
 // Sólo expone primitivas; la decisión de cuándo aplicarlas vive en el flow.
 
 import { SELECTORS } from '../../constants.js';
+import { getRecordsFound, parseListingRows } from '../parser.js';
 import { clickEl, setInputValue } from '../../../../shared/dom/events.js';
 import { sleep, waitFor, waitForElement } from '../../../../shared/dom/wait.js';
 
@@ -25,19 +26,45 @@ export async function setRegionFilter(value, { signal } = {}) {
 }
 
 /**
- * Click en Apply Filters. Espera a que aparezca el chip de filtro activo (la
- * lista `.admin__data-grid-filters-current._show`) para asegurar que Magento
- * registró la aplicación.
+ * Click en Apply Filters. Tras el click espera a que el grid se haya
+ * **efectivamente refrescado** — no sólo a que aparezca el chip de filtro.
+ *
+ * El chip `.admin__data-grid-filters-current._show` aparece en cuanto KO
+ * actualiza el observable de filtros, pero las filas del grid pueden seguir
+ * mostrando datos viejos durante varios cientos de ms mientras Magento
+ * vuelve a pedir los datos. Si recolectamos comunas en esa ventana, leemos
+ * el grid sin filtrar — bug que arruinaría toda la corrida.
+ *
+ * Para detectar el refresh real tomamos snapshot del primer row y del
+ * contador "X records found" antes del click, y esperamos a que **uno de los
+ * dos cambie** o que el grid se vacíe (caso 0 records).
  */
-export async function applyFilters({ signal, timeout = 10000 } = {}) {
+export async function applyFilters({ signal, timeout = 15000 } = {}) {
+  const beforeFirstId = parseListingRows()[0]?.editId ?? null;
+  const beforeCount   = getRecordsFound();
+
   const btn = await waitForElement(SELECTORS.filterApply, { signal, description: 'botón Apply Filters' });
   clickEl(btn);
+
+  // El chip aparece casi inmediatamente — espera corta para asegurar que KO
+  // registró la aplicación.
   await waitFor(
     () => document.querySelector(`${SELECTORS.activeFiltersWrap}._show`) || null,
-    { signal, timeout, description: 'chip de filtro activo' },
+    { signal, timeout: 5000, description: 'chip de filtro activo' },
   );
-  // Pequeño respiro para que el grid empiece a recargar.
-  await sleep(250, signal);
+
+  // Y ahora el cambio efectivo en el grid.
+  await waitFor(() => {
+    const rows = parseListingRows();
+    const firstNow = rows[0]?.editId ?? null;
+    const countNow = getRecordsFound();
+    if (firstNow !== beforeFirstId && rows.length > 0) return true;
+    if (countNow !== beforeCount && countNow != null) return true;
+    return null;
+  }, { signal, timeout, interval: 200, description: 'grid refrescado tras Apply Filters' });
+
+  // Pequeño respiro para que el repintado termine.
+  await sleep(200, signal);
 }
 
 /** Limpia todos los filtros activos. */
