@@ -75,4 +75,29 @@ Write-Host "Restarting Edge to load policy..."
 Get-Process -Name 'msedge' -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
 Start-Sleep -Seconds 2
 
+if (-not $Uninstall) {
+    # Borrar cache de la extensión en cada perfil de Edge para forzar
+    # reinstalación desde la política. Sin esto Edge usa la versión cacheada.
+    $infoPath = Join-Path $buildDir 'pack-info.json'
+    if (Test-Path $infoPath) {
+        $info = Get-Content $infoPath -Raw | ConvertFrom-Json
+        $extId = $info.extensionId
+        $userData = Join-Path $env:LOCALAPPDATA 'Microsoft\Edge\User Data'
+        if (Test-Path $userData) {
+            Get-ChildItem -Path $userData -Directory -ErrorAction SilentlyContinue | ForEach-Object {
+                $extPath = Join-Path $_.FullName "Extensions\$extId"
+                if (Test-Path $extPath) {
+                    try {
+                        Remove-Item -Path $extPath -Recurse -Force -ErrorAction Stop
+                        Write-Host "  cleared cache: $extPath"
+                    } catch {
+                        Write-Warning "  could not clear (in use?): $extPath"
+                    }
+                }
+            }
+        }
+        Start-Sleep -Seconds 1
+    }
+}
+
 Write-Host "`nDone. Open edge://policy/ and edge://extensions/ to verify."

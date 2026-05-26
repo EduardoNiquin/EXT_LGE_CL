@@ -1,9 +1,11 @@
-// Comandos de debug específicos de "colocar-tags".
-// Se auto-registra al ser importado desde el content script.
 import { register, cmd } from '../../shared/debug/index.js';
-import { SELECTORS } from './constants.js';
+import { SELECTORS, DELIVERY_DEFAULTS } from './constants.js';
 import { diagnose } from './content/detector.js';
 import { parsePage } from './content/parser.js';
+import { searchProductBySku, findRowBySalesModel } from './content/flows/search-product.js';
+import { applyDeliveryTag } from './content/flows/delivery-tag.js';
+import { isMarketingModalOpen, getMarketingModal } from './content/gp1/modal.js';
+import { getTopMessagebox, getMessageboxBodyText } from './content/gp1/messagebox.js';
 
 register('colocarTags', {
   diagnose: cmd(
@@ -19,10 +21,9 @@ register('colocarTags', {
     'Mapa de selectores que usa la feature',
   ),
   check: cmd(
-    () =>
-      Object.fromEntries(
-        Object.entries(SELECTORS).map(([k, sel]) => [k, Boolean(document.querySelector(sel))]),
-      ),
+    () => Object.fromEntries(
+      Object.entries(SELECTORS).map(([k, sel]) => [k, Boolean(document.querySelector(sel))]),
+    ),
     'true/false por cada selector contra el DOM actual',
   ),
   find: cmd(
@@ -30,12 +31,11 @@ register('colocarTags', {
     'find("searchForm") → elemento DOM o null',
   ),
   iframes: cmd(
-    () =>
-      Array.from(document.querySelectorAll('iframe')).map((f) => ({
-        id: f.id || null,
-        name: f.name || null,
-        src: f.getAttribute('src') || '(sin src)',
-      })),
+    () => Array.from(document.querySelectorAll('iframe')).map((f) => ({
+      id: f.id || null,
+      name: f.name || null,
+      src: f.getAttribute('src') || '(sin src)',
+    })),
     'Lista de iframes del frame actual',
   ),
   frameInfo: cmd(
@@ -45,5 +45,53 @@ register('colocarTags', {
       isTopFrame: window === window.top,
     }),
     'Info del frame donde corre este content script',
+  ),
+
+  // --- runners interactivos para el flow Delivery ---
+  findRow: cmd(
+    (sku) => findRowBySalesModel(sku),
+    'findRow("OLED65B5PSA.AWH") → fila DOM o null',
+  ),
+  openModal: cmd(
+    (sku) => searchProductBySku({ sku, onStep: (s, d) => console.log('[step]', s, d || '') }),
+    'openModal(sku) → busca, click Edit y abre el modal. Loguea pasos.',
+  ),
+  isModalOpen: cmd(
+    () => isMarketingModalOpen(),
+    'true si #dialog2 está visible',
+  ),
+  modal: cmd(
+    () => getMarketingModal(),
+    'Devuelve el elemento DOM del modal o null',
+  ),
+  topMessagebox: cmd(
+    () => {
+      const box = getTopMessagebox();
+      return box ? { body: getMessageboxBodyText(box), z: box.style.zIndex } : null;
+    },
+    'Inspecciona el messagebox visible top',
+  ),
+
+  /**
+   * runDelivery({sku, tagLabel?, beginDay, beginTime, endDay, endTime, skipProd?})
+   * Encadena search + applyDeliveryTag para 1 SKU. No emite progress al popup,
+   * loguea por console.
+   */
+  runDelivery: cmd(
+    async (opts = {}) => {
+      const {
+        sku,
+        tagLabel  = DELIVERY_DEFAULTS.tagLabel,
+        beginDay,
+        beginTime,
+        endDay,
+        endTime,
+        skipProd  = DELIVERY_DEFAULTS.skipProd,
+      } = opts;
+      const onStep = (s, d) => console.log('[step]', s, d || '');
+      await searchProductBySku({ sku, onStep });
+      return applyDeliveryTag({ tagLabel, beginDay, beginTime, endDay, endTime, skipProd, onStep });
+    },
+    'runDelivery({sku, beginDay, beginTime, endDay, endTime, tagLabel?, skipProd?}) — 1 SKU end-to-end',
   ),
 });

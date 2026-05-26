@@ -122,9 +122,28 @@ New-ItemProperty -Path $AllowList  -Name '1' -PropertyType String -Value $Extens
 Write-Host "Política de Edge aplicada."
 
 Write-Host ""
-Write-Host "Reiniciando Edge para cargar la política..."
+Write-Host "Cerrando Edge para limpiar caché de la extensión..."
 Get-Process -Name msedge -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
 Start-Sleep -Seconds 2
+
+# Forzar que Edge reinstale la extensión desde la política en vez de usar la
+# versión cacheada del perfil. Sin esto, los updates requieren desinstalar +
+# reinstalar manualmente.
+$edgeUserData = Join-Path $env:LOCALAPPDATA 'Microsoft\\Edge\\User Data'
+if (Test-Path $edgeUserData) {
+    Get-ChildItem -Path $edgeUserData -Directory -ErrorAction SilentlyContinue | ForEach-Object {
+        $extPath = Join-Path $_.FullName "Extensions\\$ExtensionId"
+        if (Test-Path $extPath) {
+            try {
+                Remove-Item -Path $extPath -Recurse -Force -ErrorAction Stop
+                Write-Host "  limpiado: $extPath"
+            } catch {
+                Write-Warning "  no se pudo limpiar (en uso?): $extPath"
+            }
+        }
+    }
+}
+Start-Sleep -Seconds 1
 
 Write-Host ""
 Write-Host "==================================================================="

@@ -97,15 +97,37 @@ Cada feature vive en `src/features/<feature-id>/` con esta estructura:
 
 ```
 src/features/<feature-id>/
-├── constants.js              IDs de mensajes, selectores, enums del dominio
+├── constants.js              IDs de mensajes/puertos, selectores, enums del dominio
 ├── debug.js                  Comandos de debug — auto-registra en window.__extLgeCl
 ├── content/                  Lógica que corre en la página objetivo
 │   ├── detector.js           Confirma que estamos en la pantalla correcta + diagnose()
 │   ├── parser.js             Extrae datos del DOM
-│   └── index.js              Init: registra el listener de mensajes
+│   ├── index.js              Init: listener de mensajes one-shot + onConnect de ports
+│   ├── gp1/                  Driver del UI específico de GP1 (widgets L-*)
+│   │   ├── modal.js          Lifecycle del modal #dialog2
+│   │   ├── messagebox.js     YES/NO/OK por texto + waitForMessagebox
+│   │   └── combobox.js       selectComboboxOption(input, button, listbox, label)
+│   └── flows/                Orquestación de pasos del dominio
+│       ├── search-product.js sku → Search → fila exacta → Edit → modal abierto
+│       └── delivery-tag.js   Aplica Tag de Delivery dentro del modal + STG + PROD
 └── popup/
-    └── view.js               Exporta render(container)
+    ├── view.js               Sub-router del feature (tabs entre secciones)
+    ├── utils.js              Helpers comunes (escapeHtml, etc.)
+    └── sections/             Una sub-vista por archivo
+        ├── reader.js         Lectura de pantalla (filtros + grid)
+        ├── delivery-tag.js   Form + port + progreso + persistencia
+        └── product-tag.js    Placeholder
 ```
+
+**Capa shared/dom** — primitivas DOM genéricas reutilizables por cualquier feature:
+
+```
+src/shared/dom/
+├── wait.js                   waitFor / waitForElement / waitForGone / sleep + WaitTimeoutError + WaitAbortedError
+└── events.js                 setInputValue / setSelectValue / setChecked / clickEl / findByText
+```
+
+Todas las esperas aceptan `AbortSignal` para cancelar.
 
 **Wiring:**
 - Cada feature se registra en `src/popup/features.js` (objeto + import del `render`).
@@ -165,12 +187,25 @@ Comandos generales:
 - ✅ **Pipeline de release corporativo:** `.crx` firmado + política local + ZIP autocontenido para distribución (`scripts/build-installer.mjs`)
 - ✅ **Debug API modular** (`window.__extLgeCl`) con registro por feature y logger con niveles persistentes
 - ✅ **Content script multi-frame** (`all_frames: true`) con resolución de carrera entre frames
-- ✅ Feature "Colocar TAGs" — etapa 1: detector + parser + diagnose + vista que muestra filtros y productos capturados de GP1
-- ⏳ Pendiente: etapa 2 de "Colocar TAGs" — lógica para aplicar los tags (el usuario va a explicar el flujo)
+- ✅ Feature "Colocar TAGs" — etapa 1: detector + parser + diagnose + vista de filtros/grid
+- ✅ Feature "Colocar TAGs" — etapa 2 (Tag de Delivery): flow end-to-end con streaming por port, persistencia de config, progreso por SKU, cancelación
+- ✅ Capa `shared/dom` con primitivas reutilizables (`waitFor`, `setInputValue`, `clickEl`, `setChecked`, etc.)
+- ✅ Driver del UI L-* de GP1 (`modal`, `messagebox`, `combobox`) aislado del flow
+- ✅ Sub-router de secciones dentro del popup (Lectura | Tag Delivery | Tag Producto)
+- ⏳ Pendiente: Feature "Colocar TAGs" — Tag de Producto (estructura ya lista, falta definir pasos)
 - ⏳ Pendiente: tests en `tests/unit/*.test.js`
-- ⚠️ Bloqueo activo de detección de MIM en GP1 que estamos depurando con `__extLgeCl.colocarTags.diagnose()` — pendiente identificar si la pantalla vive en iframe cross-origin o si cambió algún selector
 
-## Feature: Colocar TAGs (estado actual — etapa 1)
+## Comunicación popup ↔ content
+
+- **One-shot:** `chrome.tabs.sendMessage` con `MESSAGES.<NAME>` (ej. `colocar-tags:get-page-data`). Respuesta única, sin streaming.
+- **Streaming con cancelación:** `chrome.tabs.connect(tabId, { name: PORTS.<NAME> })`. Protocolo:
+  - Popup → content: `{ type: 'start', config }` o `{ type: 'cancel' }`.
+  - Content → popup: `{ type: 'progress', sku, index, total, status, step, detail?, reason? }`, `{ type: 'done' }`, `{ type: 'cancelled' }`, `{ type: 'error', reason }`.
+  - Cierre del port desde el popup aborta el loop en el content (via `AbortController` + `port.onDisconnect`).
+
+Sólo el frame que detecta la pantalla acepta el `onConnect`. Los demás frames (con `all_frames: true`) ignoran silenciosamente.
+
+## Feature: Colocar TAGs (estado actual — etapa 2)
 
 Pantalla objetivo: **Marketing Info Mapping** dentro de GP1 (SPA).
 
@@ -188,6 +223,21 @@ Pantalla objetivo: **Marketing Info Mapping** dentro de GP1 (SPA).
 **Estados de Model:** ACTIVE / INACTIVE / DISCONTINUED. El que interesa para los tags es ACTIVE.
 
 **Mensaje único:** `colocar-tags:get-page-data` → responde `{ ok, data?, reason?, diag? }`. Cuando falla la detección incluye el diagnóstico completo que el popup renderiza en un `<details>` desplegable.
+
+**Tag de Delivery — flujo (etapa 2):**
+
+1. Popup recolecta: `skus[]`, `tagLabel` (default "Despacho Gratis RM"), `beginDay/Time`, `endDay/Time`, `skipProd` (default true).
+2. Popup abre port `colocar-tags:delivery-run` y envía `start` con la config. Persiste config en `chrome.storage.local`.
+3. Content (en el frame que detecta MIM) itera SKUs:
+   - `searchProductBySku(sku)`: setea `#productId`, click `#btnSearch-button`, espera fila cuya celda `.L-grid-col-salesModel` matchee exactamente, click su botón `.L-grid-button` (`fncModelPopup(N)`), espera modal `#dialog2`.
+   - `applyDeliveryTag(...)`: marca `#deliveryTagChk`, selecciona el tag via `cb2-button`/`cb2-listbox`, marca `#deliveryTagUseFlag`, setea `#deliveryTagUserType=ALL`, setea las 4 inputs de fecha/hora, click `formSubmit()`, confirma YES, ack OK. Si no skipProd → `formSubmitProd()` + confirm + ack.
+4. Cada paso emite `progress` por el port. El popup actualiza la lista con icono y `step`.
+5. Errores: el SKU queda en estado `error` con `reason` y el loop continúa con el siguiente.
+
+**Texto de messageboxes usado para distinguir confirm vs success:**
+- Confirm STG/PROD: "all selected rows of information"
+- Success STG: "successfully saved to STG"
+- Success PROD: "successfully saved to PROD"
 
 **Comandos debug expuestos** (todos bajo `__extLgeCl.colocarTags.`):
 - `diagnose()` — diagnóstico completo del frame.
