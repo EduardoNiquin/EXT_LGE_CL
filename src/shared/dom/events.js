@@ -30,16 +30,27 @@ export function setSelectValue(el, value) {
   return el;
 }
 
-/** Marca/desmarca un checkbox respetando el estado deseado. Solo dispara el cambio si hace falta. */
+/**
+ * Marca/desmarca un checkbox respetando el estado deseado. Solo dispara el
+ * cambio si hace falta.
+ *
+ * Usamos `el.click()` nativo (no `dispatchEvent`) porque en checkboxes el
+ * navegador es quien toggle-a el state y dispara los eventos en el orden
+ * real: `click` → `input` → `change`. Es la única forma de que jQuery
+ * handlers y el dirty-tracking de GP1 vean la secuencia "como si un usuario
+ * hubiera hecho click". `dispatchEvent(new MouseEvent('click'))` no toggle-a
+ * el state ni dispara `change` y deja a GP1 con un dirty-flag inconsistente
+ * (síntoma: el modal queda visualmente con los valores correctos pero
+ * `formSubmit()` reporta "No changes were made.").
+ */
 export function setChecked(el, checked) {
   if (!el) throw new Error('setChecked: elemento nulo');
   if (el.checked === checked) return el;
-  el.checked = checked;
-  el.dispatchEvent(new Event('change', { bubbles: true }));
-  // Algunos widgets escuchan click en vez de change; mejor disparamos ambos.
-  el.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window }));
-  // Si el click toggle-ó algo distinto a lo deseado, forzar al estado pedido.
+  el.focus();
+  el.click();
   if (el.checked !== checked) {
+    // Algún handler hizo preventDefault o el click no toggle-ó (browser quirk).
+    // Forzamos el estado y disparamos change para que al menos los listeners corran.
     el.checked = checked;
     el.dispatchEvent(new Event('change', { bubbles: true }));
   }

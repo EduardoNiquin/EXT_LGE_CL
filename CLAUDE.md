@@ -261,7 +261,15 @@ Pantalla objetivo: **Marketing Info Mapping** dentro de GP1 (SPA).
      - Si `!skipProd`: SAVE PROD + confirm + ack. GP1 cierra el modal solo tras el último OK.
 4. Mismo protocolo de progreso por SKU que delivery; los pasos del flujo de cada tag llevan `detail.tagIndex` para que el popup pinte "Tag 1 — Setteando Type" / "Tag 2 — …".
 
-**Quirk crítico — orden de checkboxes en Product Tag:** Si se marca `#productTag<N>Chk` ANTES de llenar los campos de la fila, `formSubmit()` reporta "No changes were made." aunque visualmente los campos hayan quedado bien seteados. El row chk hay que marcarlo DESPUÉS de todo el resto (ver FASE 3 arriba). Síntoma: el flow corre sin errores, los fields se ven correctos en el modal, pero el messagebox de éxito nunca llega y aparece "No changes were made." en su lugar.
+**Quirk crítico — "No changes were made." con retry automático:** GP1 reporta "No changes were made." al primer `formSubmit()` aunque los campos estén llenos correctamente. Comprobado por el usuario: si se cierra ese popup a mano y se vuelve a clickear "SAVE TO STG" SIN tocar nada, el save funciona. Sospechamos que el dirty-tracking de GP1 depende del orden o trust de eventos sintéticos que no logramos satisfacer al 100% con `dispatchEvent`. **Solución pragmática**: `performSave` (en `flows/product-tag.js`) race-detecta el outcome del save:
+  - Si aparece el confirm box ("all selected rows of information") → flujo normal YES → OK.
+  - Si aparece "No changes were made." → click OK, espera 300 ms, **reintenta el save una vez**. Emula exactamente la acción manual del usuario que destraba el bug.
+  - Si tras el retry persiste → throw con mensaje claro.
+
+**Otros mitigantes que se aplican antes de cada save:**
+1. El row chk (`#productTag<N>Chk`) se marca AL FINAL, en FASE 3 (ver flujo arriba). Si se marca antes de los campos, GP1 toma snapshot del estado vacío y el dirty-tracking falla más seguido.
+2. `setChecked` (`src/shared/dom/events.js`) usa `el.click()` nativo en vez de `dispatchEvent(MouseEvent('click'))` para que los eventos `click → input → change` se disparen en el orden real del navegador y el state del checkbox se toggle vía el motor del browser (no manualmente). Es lo más cercano a un click real sin tener `isTrusted: true`.
+3. `performSave` hace `document.activeElement.blur()` antes de clickear SAVE para forzar el commit perezoso de datepickers/inputs que aún tienen focus.
 
 **Quirk — Type pisado por handler de cat2:** Si la combinación es `cat1='Promotion' + cat2='Product'` (o `cat2='Promotion'`), `productTagCategory2.on('change')` (líneas 11691-11713 de Pedida.md) fuerza `productTag1Type` a un valor concreto y pisa lo que hayamos seteado al llenar la fila 1. Por eso la FASE 2 re-aplica los Type al final, después de que ambas categorías estén comprometidas.
 

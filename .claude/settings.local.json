@@ -11,7 +11,8 @@
       "PowerShell(Get-Content *)",
       "Bash(npm test *)",
       "Bash(awk 'length\\($0\\) <= 250' \"C:\\\\Users\\\\eniquin\\\\Desktop\\\\Proyectos\\\\LG\\\\EXT_LGE_CL\\\\Pedida.md\")",
-      "Bash(npx eslint *)"
+      "Bash(npx eslint *)",
+      "Bash(npx vite *)"
     ]
   }
 }

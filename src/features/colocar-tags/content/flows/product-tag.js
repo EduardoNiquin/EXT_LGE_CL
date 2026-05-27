@@ -28,11 +28,13 @@ import {
   PRODUCT_TAG_MAX,
 } from '../../constants.js';
 import { setChecked, setSelectValue } from '../../../../shared/dom/events.js';
-import { sleep, waitForElement } from '../../../../shared/dom/wait.js';
+import { sleep, waitFor, waitForElement } from '../../../../shared/dom/wait.js';
 import { selectComboboxByInput, ComboboxOptionNotFoundError } from '../gp1/combobox.js';
 import {
   clickMessageboxButton,
   waitForNoMessagebox,
+  getTopMessagebox,
+  getMessageboxBodyText,
 } from '../gp1/messagebox.js';
 import { waitForModalClosed } from '../gp1/modal.js';
 import { setDateRange } from '../gp1/daterange.js';
@@ -100,15 +102,15 @@ export async function applyProductTags(args) {
   await sleep(200, signal);
 
   // === STG ===
-  onStep(STEPS.PROD_SAVE_STG);
-  const saveStg = await waitForElement(SELECTORS.saveStg, { signal });
-  saveStg.click();
-
-  onStep(STEPS.PROD_CONFIRM_STG);
-  await clickMessageboxButton('YES', { bodyContains: MSGBOX_TEXTS.CONFIRM_SAVE, signal });
-
-  onStep(STEPS.PROD_ACK_STG);
-  await clickMessageboxButton('OK', { bodyContains: MSGBOX_TEXTS.SUCCESS_STG, signal });
+  await performSave({
+    saveBtnSelector: SELECTORS.saveStg,
+    successText: MSGBOX_TEXTS.SUCCESS_STG,
+    stepSave: STEPS.PROD_SAVE_STG,
+    stepConfirm: STEPS.PROD_CONFIRM_STG,
+    stepAck: STEPS.PROD_ACK_STG,
+    onStep,
+    signal,
+  });
 
   // === PROD ===
   if (skipProd) {
@@ -118,15 +120,15 @@ export async function applyProductTags(args) {
 
   await waitForNoMessagebox({ signal, timeout: 5000 }).catch(() => null);
 
-  onStep(STEPS.PROD_SAVE_PROD);
-  const saveProd = await waitForElement(SELECTORS.saveProd, { signal });
-  saveProd.click();
-
-  onStep(STEPS.PROD_CONFIRM_PROD);
-  await clickMessageboxButton('YES', { bodyContains: MSGBOX_TEXTS.CONFIRM_SAVE, signal });
-
-  onStep(STEPS.PROD_ACK_PROD);
-  await clickMessageboxButton('OK', { bodyContains: MSGBOX_TEXTS.SUCCESS_PROD, signal });
+  await performSave({
+    saveBtnSelector: SELECTORS.saveProd,
+    successText: MSGBOX_TEXTS.SUCCESS_PROD,
+    stepSave: STEPS.PROD_SAVE_PROD,
+    stepConfirm: STEPS.PROD_CONFIRM_PROD,
+    stepAck: STEPS.PROD_ACK_PROD,
+    onStep,
+    signal,
+  });
 
   // El modal se cierra solo tras el último OK; lo confirmamos para no chocar
   // con el siguiente SKU.
@@ -199,6 +201,90 @@ async function fillTagRow({ tagIndex, tag, userType, onStep, signal }) {
   setChecked(useChk, true);
 
   onStep(STEPS.PROD_TAG_DONE, { tagIndex });
+}
+
+// Texto que aparece en el messagebox cuando GP1 considera que no hay cambios.
+// Lo dejamos en lower-case porque comparamos con includes case-insensitive.
+const NO_CHANGES_TEXT = 'no changes were made';
+
+/**
+ * Espera a que aparezca uno de los 2 messageboxes posibles después de clickear
+ * SAVE: el de CONFIRM (los "all selected rows of information" → YES/NO) o el
+ * de "No changes were made." (sólo OK).
+ */
+async function waitForSaveOutcomeMessagebox({ signal, timeout = 15000 }) {
+  return waitFor(
+    () => {
+      const box = getTopMessagebox();
+      if (!box) return null;
+      const text = getMessageboxBodyText(box).toLowerCase();
+      if (text.includes(MSGBOX_TEXTS.CONFIRM_SAVE.toLowerCase())) {
+        return { kind: 'confirm' };
+      }
+      if (text.includes(NO_CHANGES_TEXT)) {
+        return { kind: 'nochange' };
+      }
+      return null;
+    },
+    { description: 'messagebox post-save (confirm | nochange)', timeout, signal },
+  );
+}
+
+/**
+ * Click SAVE → maneja el outcome con retry para el caso "No changes were made.".
+ *
+ * Background: GP1 a veces reporta "No changes were made." en el primer
+ * `formSubmit()` aunque los campos estén llenos correctamente (el usuario
+ * verificó que un click manual en SAVE inmediatamente después funciona).
+ * Sospechamos que el dirty-tracking de GP1 depende del orden/trust de los
+ * eventos sintéticos. La solución pragmática: si aparece ese messagebox,
+ * lo cerramos y reintentamos una vez — emula exactamente lo que hace el
+ * usuario para destrabarlo.
+ */
+async function performSave({
+  saveBtnSelector,
+  successText,
+  stepSave,
+  stepConfirm,
+  stepAck,
+  onStep,
+  signal,
+  maxRetries = 1,
+}) {
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    // Blur del elemento activo: en Chrome el blur de algunos widgets sólo
+    // se ejecuta cuando el focus se mueve. Si el último campo seteado quedó
+    // enfocado, el commit de su value puede ser perezoso.
+    if (document.activeElement && typeof document.activeElement.blur === 'function') {
+      try { document.activeElement.blur(); } catch { /* noop */ }
+    }
+    await sleep(150, signal);
+
+    onStep(stepSave, attempt > 0 ? { retry: attempt } : undefined);
+    const saveBtn = await waitForElement(saveBtnSelector, { signal });
+    saveBtn.click();
+
+    const outcome = await waitForSaveOutcomeMessagebox({ signal });
+
+    if (outcome.kind === 'confirm') {
+      onStep(stepConfirm);
+      await clickMessageboxButton('YES', { bodyContains: MSGBOX_TEXTS.CONFIRM_SAVE, signal });
+      onStep(stepAck);
+      await clickMessageboxButton('OK', { bodyContains: successText, signal });
+      return;
+    }
+
+    // outcome.kind === 'nochange' → cerrar y reintentar (excepto si fue el último intento).
+    await clickMessageboxButton('OK', { bodyContains: NO_CHANGES_TEXT, signal });
+    await sleep(300, signal);
+
+    if (attempt === maxRetries) {
+      throw new Error(
+        'GP1 reportó "No changes were made." de forma persistente — ' +
+        'el modal quedó visualmente con los campos correctos pero el save no se commiteó.',
+      );
+    }
+  }
 }
 
 function validateTags(tags) {
