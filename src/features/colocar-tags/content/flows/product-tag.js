@@ -98,6 +98,20 @@ export async function applyProductTags(args) {
     await sleep(150, signal);
   }
 
+  // FASE 4 — "dirty trigger" sobre #productTag2Chk.
+  //
+  // Bug observado de GP1: marcar `#productTag1Chk` (y llenar la fila 1) no le
+  // alcanza al dirty-tracking de `formSubmit()` para reconocer cambios — sigue
+  // saliendo "No changes were made.". Pero si se toca `#productTag2Chk`, GP1
+  // SÍ reconoce los cambios y guarda la fila 1 normal. Lo descubrió el
+  // usuario probando manualmente.
+  //
+  // Estrategia: toggle de `productTag2Chk` (ON→OFF si estaba off, o OFF→ON si
+  // ya estaba on porque hay 2 tags). El estado final queda igual que antes
+  // del toggle, así que no agregamos ni quitamos data — solo destrabamos el
+  // dirty flag.
+  await dirtyTriggerTag2({ signal });
+
   // Pequeño respiro extra para que los datepickers comitearon sus valores.
   await sleep(200, signal);
 
@@ -206,6 +220,23 @@ async function fillTagRow({ tagIndex, tag, userType, onStep, signal }) {
 // Texto que aparece en el messagebox cuando GP1 considera que no hay cambios.
 // Lo dejamos en lower-case porque comparamos con includes case-insensitive.
 const NO_CHANGES_TEXT = 'no changes were made';
+
+/**
+ * Toggle de `#productTag2Chk` (ON↔OFF↔ON o OFF↔ON↔OFF) para forzar el
+ * dirty-tracking de GP1 sin alterar el estado final del checkbox.
+ *
+ * Ver bug en CLAUDE.md → "Quirk crítico — dirty trigger via productTag2Chk".
+ * Si el elemento no existe (modal en estado inesperado), retorna silencioso.
+ */
+async function dirtyTriggerTag2({ signal }) {
+  const tag2Chk = await waitForElement(PT.chk(2), { signal, timeout: 1500 }).catch(() => null);
+  if (!tag2Chk) return;
+  const wasChecked = tag2Chk.checked;
+  setChecked(tag2Chk, !wasChecked);
+  await sleep(120, signal);
+  setChecked(tag2Chk, wasChecked);
+  await sleep(150, signal);
+}
 
 /**
  * Espera a que aparezca uno de los 2 messageboxes posibles después de clickear
