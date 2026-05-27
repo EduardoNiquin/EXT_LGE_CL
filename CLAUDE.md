@@ -270,6 +270,8 @@ Pantalla objetivo: **Marketing Info Mapping** dentro de GP1 (SPA).
 
 **Validación de fechas centralizada.** `content/validators.js#validateDateTimeRange` chequea formato (YYYY-MM-DD / HH:MM) **y semántica** (beginDay ≤ endDay; si mismo día, beginTime ≤ endTime). Lo usan tanto el flow de Delivery como el de Product Tag — antes había dos validaciones distintas.
 
+**Quirk del `keyup` sintético en comboboxes GP1:** `setInputValue` (`src/shared/dom/events.js`) tiene que despachar el `keyup` como `KeyboardEvent` con `key` definido (usamos `'Unidentified'`). Si se despacha como `Event` genérico, `event.key` es `undefined` y el handler de GP1 `ComboboxAutocomplete.onComboboxKeyUp` → `isPrintableCharacter` crashea haciendo `event.key.length`. Síntoma observado: el `<select id="productTagNType">` queda a medio popular (solo `Line` + `pointer-events:none`), `setSelectValue` no encuentra `gradient`/`solid` y aparece el messagebox "No changes were made.". `'Unidentified'` no es printable (length ≠ 1) así que no dispara la búsqueda de autocomplete.
+
 **Quirk del datepicker GP1 — orden de seteo de rangos:** GP1 valida en tiempo real "From ≤ To" en los inputs de fecha. Si el producto ya tenía un tag con `endDay` viejo y la nueva configuración tiene un `beginDay` posterior a ese viejo `endDay`, el front rechaza el set transitorio y dispara *"The From Date is earlier than To Date can not be input"*. `gp1/daterange.js#setDateRange` evita el rebote: primero empuja `endDay/endTime` a un sentinel (`2099-12-31 / 23:30`) para destrabar la constraint previa, después setea begin y por último end con los valores reales. Lo usan tanto el flow de Delivery como el de Product Tag.
 
 **Limitaciones reportadas por el usuario:**

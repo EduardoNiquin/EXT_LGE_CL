@@ -12,7 +12,12 @@ export function setInputValue(el, value) {
   el.value = value;
   el.dispatchEvent(new Event('input',  { bubbles: true }));
   el.dispatchEvent(new Event('change', { bubbles: true }));
-  el.dispatchEvent(new Event('keyup',  { bubbles: true }));
+  // keyup tiene que ser KeyboardEvent con `key` definido: GP1 escucha keyup en
+  // los <input> de comboboxes (ComboboxAutocomplete.onComboboxKeyUp) y hace
+  // `event.key.length`. Un Event genérico tiene `key === undefined` y crashea,
+  // lo cual a su vez deja al <select> de Type del Product Tag a medio popular
+  // (sólo "Line" + pointer-events:none → "No changes were made").
+  el.dispatchEvent(new KeyboardEvent('keyup', { bubbles: true, key: 'Unidentified' }));
   el.dispatchEvent(new Event('blur',   { bubbles: true }));
   return el;
 }
