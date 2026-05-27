@@ -27,7 +27,7 @@ import {
   PRODUCT_TAG_TYPES,
   PRODUCT_TAG_MAX,
 } from '../../constants.js';
-import { setChecked, setInputValue, setSelectValue } from '../../../../shared/dom/events.js';
+import { setChecked, setSelectValue } from '../../../../shared/dom/events.js';
 import { sleep, waitForElement } from '../../../../shared/dom/wait.js';
 import { selectComboboxByInput, ComboboxOptionNotFoundError } from '../gp1/combobox.js';
 import {
@@ -35,6 +35,7 @@ import {
   waitForNoMessagebox,
 } from '../gp1/messagebox.js';
 import { waitForModalClosed } from '../gp1/modal.js';
+import { setDateRange } from '../gp1/daterange.js';
 import { validateDateTimeRange } from '../validators.js';
 
 // Re-export para que el handler que captura errores por SKU pueda
@@ -159,16 +160,14 @@ async function fillTagRow({ tagIndex, tag, userType, onStep, signal }) {
   const userTypeSel = await waitForElement(PT.userType(tagIndex), { signal });
   setSelectValue(userTypeSel, userType);
 
-  // 8. Schedule
+  // 8. Schedule — vía setDateRange para evitar el rebote por orden de seteo
+  // (ver gp1/daterange.js).
   onStep(STEPS.PROD_DATES, { tagIndex, beginDay, beginTime, endDay, endTime });
   const beginDayEl  = await waitForElement(PT.beginDay(tagIndex),  { signal });
   const beginTimeEl = await waitForElement(PT.beginTime(tagIndex), { signal });
   const endDayEl    = await waitForElement(PT.endDay(tagIndex),    { signal });
   const endTimeEl   = await waitForElement(PT.endTime(tagIndex),   { signal });
-  setInputValue(beginDayEl,  beginDay);
-  setInputValue(beginTimeEl, beginTime);
-  setInputValue(endDayEl,    endDay);
-  setInputValue(endTimeEl,   endTime);
+  setDateRange({ beginDayEl, beginTimeEl, endDayEl, endTimeEl, beginDay, beginTime, endDay, endTime });
 
   onStep(STEPS.PROD_TAG_DONE, { tagIndex });
 }

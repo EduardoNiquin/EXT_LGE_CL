@@ -1,5 +1,5 @@
 import { SELECTORS, STEPS, MSGBOX_TEXTS } from '../../constants.js';
-import { setInputValue, setChecked, setSelectValue } from '../../../../shared/dom/events.js';
+import { setChecked, setSelectValue } from '../../../../shared/dom/events.js';
 import { waitForElement, sleep } from '../../../../shared/dom/wait.js';
 import { selectComboboxOption } from '../gp1/combobox.js';
 import {
@@ -7,6 +7,7 @@ import {
   waitForNoMessagebox,
 } from '../gp1/messagebox.js';
 import { waitForModalClosed } from '../gp1/modal.js';
+import { setDateRange } from '../gp1/daterange.js';
 import { validateDateTimeRange } from '../validators.js';
 
 /**
@@ -74,10 +75,7 @@ export async function applyDeliveryTag(args) {
   const beginTimeEl = await waitForElement(SELECTORS.deliveryBeginTime, { signal });
   const endDayEl    = await waitForElement(SELECTORS.deliveryEndDay,    { signal });
   const endTimeEl   = await waitForElement(SELECTORS.deliveryEndTime,   { signal });
-  setInputValue(beginDayEl,  beginDay);
-  setInputValue(beginTimeEl, beginTime);
-  setInputValue(endDayEl,    endDay);
-  setInputValue(endTimeEl,   endTime);
+  setDateRange({ beginDayEl, beginTimeEl, endDayEl, endTimeEl, beginDay, beginTime, endDay, endTime });
 
   // Le damos un respiro al widget de fechas (datePick) por si tiene validación async.
   await sleep(200, signal);
