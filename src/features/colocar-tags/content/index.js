@@ -9,6 +9,7 @@ import { isMarketingModalOpen, waitForModalClosed } from './gp1/modal.js';
 import { waitForNoMessagebox, clickMessageboxButton, getTopMessagebox } from './gp1/messagebox.js';
 import { logger } from '../../../shared/utils/logger.js';
 import { WaitAbortedError, sleep } from '../../../shared/dom/wait.js';
+import { clickEl } from '../../../shared/dom/events.js';
 
 const log = logger('colocar-tags');
 
@@ -227,7 +228,12 @@ async function runSkuBatch({ config, port, signal, runner }) {
         reason: err?.message || String(err),
       });
       if (isMarketingModalOpen()) {
-        log.warn('modal quedó abierto tras error, intentaré cerrarlo antes del próximo SKU');
+        log.warn('modal quedó abierto tras error, intentando cerrar ahora');
+        // Cierre inmediato (best effort) — así el usuario no se queda con el
+        // modal pegado en pantalla al terminar el run, especialmente si era
+        // el último SKU. Si falla silencioso, el pre-flight del siguiente
+        // SKU lo vuelve a intentar.
+        await ensureCleanModalState(signal).catch(() => {});
       }
     }
   }
@@ -271,10 +277,14 @@ async function ensureCleanModalState(signal) {
   }
   await waitForNoMessagebox({ signal, timeout: 1500 }).catch(() => {});
 
-  // 2) Si el modal sigue abierto, intentar cerrarlo por su botón Close.
+  // 2) Si el modal sigue abierto, intentar cerrarlo por su botón Close
+  // (`<a class="container-close">` en el header del modal). Usamos clickEl
+  // para disparar mousedown+mouseup+click — algunos handlers de RUI sólo
+  // responden a la secuencia completa.
   if (isMarketingModalOpen()) {
-    const closeBtn = document.querySelector('a.container-close');
-    if (closeBtn) closeBtn.click();
+    const closeBtn = document.querySelector('#dialog2 a.container-close')
+      || document.querySelector('a.container-close');
+    if (closeBtn) clickEl(closeBtn);
     await waitForModalClosed({ signal, timeout: 2000 }).catch(() => {});
   }
   if (isMarketingModalOpen()) {

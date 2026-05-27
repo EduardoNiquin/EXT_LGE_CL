@@ -22,6 +22,9 @@
 
 import { waitFor, waitForElement } from '../../../../shared/dom/wait.js';
 import { clickEl, findByText, setInputValue } from '../../../../shared/dom/events.js';
+import { logger } from '../../../../shared/utils/logger.js';
+
+const log = logger('colocar-tags:combobox');
 
 const MAX_SAMPLE = 8;
 
@@ -124,6 +127,10 @@ export async function selectComboboxByInput({
   timeout = 5000,
 } = {}) {
   const input = await waitForElement(inputSelector, { signal, description: `combobox ${inputSelector}` });
+  log.debug(`[byInput] ${inputSelector} — buscando container`, {
+    inputValueInicial: input.value,
+    target: label,
+  });
   const container = input.closest('.combobox.combobox-list');
   if (!container) throw new Error(`Combobox container no encontrado para ${inputSelector}`);
   const button  = container.querySelector('button');
@@ -131,6 +138,11 @@ export async function selectComboboxByInput({
   if (!button || !listbox) {
     throw new Error(`Combobox incompleto para ${inputSelector} (button=${!!button}, listbox=${!!listbox})`);
   }
+  log.debug(`[byInput] ${inputSelector} — container resuelto`, {
+    button: button.id || button.className,
+    listbox: listbox.id || listbox.className,
+    liCountInicial: listbox.querySelectorAll('li').length,
+  });
 
   clickEl(button);
   // Esperar a que el listbox tenga opciones. Los combos están encadenados
@@ -141,7 +153,14 @@ export async function selectComboboxByInput({
     { signal, timeout, interval: 100, description: `opciones del combobox ${inputSelector}` },
   );
 
-  return commitComboboxSelection({ input, listbox, label, inputSelector });
+  const liCount = listbox.querySelectorAll('li').length;
+  log.debug(`[byInput] ${inputSelector} — listbox poblado`, { liCount });
+
+  const result = commitComboboxSelection({ input, listbox, label, inputSelector });
+  log.info(`[byInput] ${inputSelector} = "${label}" (match=${result.matchType})`, {
+    inputValueFinal: input.value,
+  });
+  return result;
 }
 
 /**

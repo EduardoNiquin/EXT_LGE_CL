@@ -35,6 +35,40 @@ register('colocarTags', {
     ),
     'checkProductTagRow(1|2) — estado de los selectores de la fila i de Product Tag',
   ),
+  snapshotProductTags: cmd(
+    () => {
+      const rows = [];
+      for (let i = 1; i <= 2; i++) {
+        const get = (sel) => document.querySelector(sel);
+        const chk      = get(PRODUCT_TAG_SELECTORS.chk(i));
+        const catSel   = get(PRODUCT_TAG_SELECTORS.categorySel(i));
+        const groupIn  = get(PRODUCT_TAG_SELECTORS.groupInput(i));
+        const valueIn  = get(PRODUCT_TAG_SELECTORS.valueInput(i));
+        const typeSel  = get(PRODUCT_TAG_SELECTORS.typeSel(i));
+        const useFlag  = get(PRODUCT_TAG_SELECTORS.useFlag(i));
+        const userType = get(PRODUCT_TAG_SELECTORS.userType(i));
+        rows.push({
+          tagIndex: i,
+          rowChk:      chk      ? chk.checked     : '<missing>',
+          category:    catSel   ? catSel.value    : '<missing>',
+          group:       groupIn  ? groupIn.value   : '<missing>',
+          tag:         valueIn  ? valueIn.value   : '<missing>',
+          type:        typeSel  ? typeSel.value   : '<missing>',
+          typeOptions: typeSel  ? Array.from(typeSel.options).map((o) => o.value + (o.hidden ? '(hidden)' : '')) : '<missing>',
+          typePtrEv:   typeSel  ? (typeSel.style.pointerEvents || '<default>') : '<missing>',
+          useFlag:     useFlag  ? useFlag.checked : '<missing>',
+          userType:    userType ? userType.value  : '<missing>',
+          beginDay:    get(PRODUCT_TAG_SELECTORS.beginDay(i))?.value  ?? '<missing>',
+          beginTime:   get(PRODUCT_TAG_SELECTORS.beginTime(i))?.value ?? '<missing>',
+          endDay:      get(PRODUCT_TAG_SELECTORS.endDay(i))?.value    ?? '<missing>',
+          endTime:     get(PRODUCT_TAG_SELECTORS.endTime(i))?.value   ?? '<missing>',
+        });
+      }
+      console.table(rows);
+      return rows;
+    },
+    'snapshotProductTags() — snapshot completo de las 2 filas de Product Tag (DOM actual)',
+  ),
   find: cmd(
     (key) => {
       const sel = SELECTORS[key];

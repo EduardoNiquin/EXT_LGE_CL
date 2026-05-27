@@ -152,6 +152,27 @@ debe diferenciar entre top y iframe (ver patrón en `colocar-tags/content/index.
 si el frame detecta la pantalla, responde sincrónicamente; si no, espera unos ms y responde
 con un diagnóstico, dándole prioridad a otros frames que sí detecten.
 
+## Logs por scope (`Ajustes`)
+
+El logger soporta habilitar/deshabilitar logs por scope (módulo). Cada vez que un archivo hace `logger('foo')`, el scope `foo` queda registrado y aparece en la UI de Ajustes (`features/ajustes`).
+
+**Cómo funciona:**
+- `src/shared/log-config/index.js` mantiene la cache de scopes habilitados en memoria y la persiste en `chrome.storage.local` con la key `log-config:scopes`. Cross-context vía `chrome.storage.onChanged`.
+- `src/shared/utils/logger.js` chequea `isScopeEnabled(scope)` antes de emitir cada log. Si el scope está apagado, no se imprime nada (independiente del nivel global).
+- Default: todos los scopes habilitados. El usuario los apaga uno a uno (o todos) desde la UI.
+- `Ajustes` lista todos los scopes registrados + un fallback hardcoded para que aparezcan aunque no se hayan invocado todavía. Toggle individual + botones "Habilitar/Deshabilitar todos".
+
+**Scopes actuales:**
+- `colocar-tags` — handler central del feature (content script).
+- `colocar-tags:product` — flow de Tag de Producto (logs MUY detallados: snapshot por fase, estado de cada checkbox, comboboxes, etc.).
+- `colocar-tags:combobox` — driver del combobox L-* (selección de tag/group/category).
+- `lead-times` — flow Magento (state machine, parsers, filtros).
+- `content` — content script genérico.
+- `debug` — instalación de la API de debug en `window.__extLgeCl`.
+- `popup` — popup root.
+
+Cualquier feature nueva puede crear su propio scope con `logger('mi-scope')` y aparecerá automáticamente en Ajustes.
+
 ## Debug API (`window.__extLgeCl`)
 
 Existe tanto en el contexto del content script como del popup. En DevTools hay
@@ -263,7 +284,7 @@ Pantalla objetivo: **Marketing Info Mapping** dentro de GP1 (SPA).
 
 **Quirk crítico — dirty trigger via `#productTag2Chk` (descubierto manualmente por el usuario):** GP1 tiene un bug en su dirty-tracking: marcar `#productTag1Chk` (y llenar todos los campos de la fila 1) NO le alcanza a `formSubmit()` para detectar cambios — sigue saliendo "No changes were made.". Pero si se toca `#productTag2Chk` (incluso aunque la fila 2 esté vacía), GP1 SÍ reconoce los cambios y guarda la fila 1. Mismo síntoma se observó: cerrar el modal y reabrirlo "destraba" el dirty-tracking porque GP1 re-considera los datos como recién cargados.
 
-**Workaround implementado** (`flows/product-tag.js → dirtyTriggerTag2`, FASE 4 del orquestador): después de marcar los `#productTagNChk` y antes del save, hacemos un toggle ON↔OFF↔ON (o OFF↔ON↔OFF si ya estaba marcado por tener 2 tags) sobre `#productTag2Chk`. El estado final queda igual que antes del toggle (no agregamos ni quitamos data) pero el dirty flag de GP1 queda triggered. Esto evita el "No changes were made." en el caso típico.
+**Workaround implementado** (`flows/product-tag.js → dirtyTriggerTag2`, FASE 4 del orquestador): después de marcar los `#productTagNChk` y antes del save, **marcamos `#productTag2Chk` y lo dejamos marcado**. Si ya estaba marcado por tener 2 tags, hacemos OFF→ON para que el último change event tenga la transición unchecked→checked que GP1 detecta. **Importante**: un toggle que vuelva al estado original NO funciona — GP1 compara estado actual vs snapshot inicial; si vuelve a unchecked, no detecta cambios. Por eso lo dejamos marcado. GP1 ignora silenciosamente las filas con `productTag2Chk` marcado pero sin tag value, así que dejarlo marcado con campos vacíos es seguro (confirmado por el usuario manualmente).
 
 **Quirk crítico — "No changes were made." con retry automático (defense in depth):** GP1 reporta "No changes were made." al primer `formSubmit()` aunque los campos estén llenos correctamente. Comprobado por el usuario: si se cierra ese popup a mano y se vuelve a clickear "SAVE TO STG" SIN tocar nada, el save funciona. Sospechamos que el dirty-tracking de GP1 depende del orden o trust de eventos sintéticos que no logramos satisfacer al 100% con `dispatchEvent`. **Solución pragmática**: `performSave` (en `flows/product-tag.js`) race-detecta el outcome del save:
   - Si aparece el confirm box ("all selected rows of information") → flujo normal YES → OK.
@@ -307,6 +328,8 @@ Pantalla objetivo: **Marketing Info Mapping** dentro de GP1 (SPA).
 - `frameInfo()` — `{ url, title, isTopFrame }`.
 - `parse()` — corre el parser y devuelve el resultado.
 - `selectors()` — copia del mapa de selectores.
+- `checkProductTagRow(i)` — estado de los selectores de la fila i (1 o 2).
+- `snapshotProductTags()` — **muy útil para debug del "No changes were made.":** imprime `console.table` con el estado completo de ambas filas (rowChk, category, group, tag, type, useFlag, userType, fechas). Llamarlo a mano en la consola DESPUÉS de que el flow termine para inspeccionar qué quedó vs qué se esperaba.
 
 Pendiente etapa 2: documentar el flujo de cómo se aplican los tags (el usuario lo va a explicar).
 
