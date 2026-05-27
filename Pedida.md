@@ -1,227 +1,11627 @@
-Ahora vamos a continuar con la implementación de la automatización para la colocación de los tags en los productos, ya tenemos el de "Tag de Delivery", ahora iremos con el "Tag de Producto".
+Ahora llena todos los campos correctamente pero me sale:
+<div id="L-gen261" class="L-overlay L-dialog L-simple-dialog L-panel L-panel-container messagebox" style="width: 300px; left: 758px; top: 511px; z-index: 6;"><div class="hd" id="messagebox_h" style="cursor: move;">Information</div><div class="bd">No changes were made.<form name="frm_messagebox" id="L-gen264"></form></div><div class="ft"><span class="button-group"><span id="L-gen263" class="L-button default"><span class="first-child"><button id="L-gen263-button" type="button">OK</button></span></span></span></div></div>
 
-1- En Marketing Info Mapping, colocamos el SKU (Product ID) exacto a buscar.
-Por ejemplo:
+Y pues falla, yo creo que, después de rellenar los campos correcpondientes, recién entonces marcar el primer checkbox, ese indica qué fila de información se guardará en stg o prod.
 
-<form action=""id="aform"method="post"name="aform"><div id="LblockSearch"><div class="LblockRow"><label for="typeCode"class="label required">Site</label><div class="L-fixed L-form-field L-radio-group"id="typeCode"style="width:542px"><div class="L-fixed L-form-field L-radio-panel"id="L-gen10"><input class="L-instance"id="L-gen11"name="L-gen9"type="radio"value="B2C"><label for="L-gen11"class="L-label">B2C</label></div><div class="L-fixed L-form-field L-radio-panel"id="L-gen12"><input class="L-instance"id="L-gen13"name="L-gen9"type="radio"value="B2B"><label for="L-gen13"class="L-label">B2B</label></div></div></div><div class="LblockRow"id="L-gen293"><label for="superCategoryCode">Category</label><div class="L-fixed L-form-field L-combo"id="superCategoryCode"style="width:178.4px"><input class="L-display-field empty"id="L-gen20"style="width:147.4px"readonly><input class="L-instance L-hidden-field"id="L-gen21"name="superCategoryCode"type="hidden"><div class="icon"id="L-gen22"></div></div><div class="L-fixed L-form-field L-combo"id="categoryCode"style="width:178.4px"><input class="L-display-field empty"id="L-gen25"style="width:147.4px"readonly><input class="L-instance L-hidden-field"id="L-gen26"name="categoryCode"type="hidden"><div class="icon"id="L-gen27"></div></div><div class="L-fixed L-form-field L-combo"id="subCategoryCode"style="width:178.4px"><input class="L-display-field empty"id="L-gen30"style="width:147.4px"readonly><input class="L-instance L-hidden-field"id="L-gen31"name="subCategoryCode"type="hidden"><div class="icon"id="L-gen32"></div></div></div><div class="LblockRow"><label for="salesModel">Sales Model</label><div class="L-fixed L-form-field L-textbox"id="salesModel"style="width:178.4px"><input class="L-instance L-display-field"id="L-gen44"name="salesModel"style="width:168.4px"></div><label for="modelName"class="al-right w-medium">Model Name</label><div class="L-fixed L-form-field L-textbox"id="modelName"style="width:178.4px"><input class="L-instance L-display-field"id="L-gen45"name="modelName"style="width:168.4px"></div></div><div class="LblockRow"><label for="productId">Product ID</label><div class="L-fixed L-form-field L-textbox"id="productId"style="width:178.4px"><input class="L-instance L-display-field"id="L-gen46"name="productId"style="width:168.4px"></div><label for="queryModelStatus"class="al-right w-medium">Model Status</label><div class="L-fixed L-form-field L-combo"id="queryModelStatus"style="width:178.4px"><input class="L-display-field empty"id="L-gen40"style="width:147.4px"readonly><input class="L-instance L-hidden-field"id="L-gen41"name="queryModelStatus"type="hidden"><div class="icon"id="L-gen42"></div></div></div><div class="LblockRow"><label for="modelTypeCode">Model Type</label><div class="L-fixed L-form-field L-combo"id="modelTypeCode"style="width:178.4px"><input class="L-display-field empty"id="L-gen15"style="width:147.4px"readonly><input class="L-instance L-hidden-field"id="L-gen16"name="modelTypeCode"type="hidden"><div class="icon"id="L-gen17"></div></div><label for="promotionId"class="al-right w-medium">Promotion ID</label><div class="L-fixed L-form-field L-textbox"id="promotionId"style="width:178.4px"><input class="L-instance L-display-field"id="L-gen47"name="promotionId"style="width:168.4px"></div></div><div class="LblockRow"><label for="queryMessagePublishFlag">Publish</label><div class="L-fixed L-form-field L-combo"id="queryMessagePublishFlag"style="width:178.4px"><input class="L-display-field empty"id="L-gen35"style="width:147.4px"readonly><input class="L-instance L-hidden-field"id="L-gen36"name="queryMessagePublishFlag"type="hidden"><div class="icon"id="L-gen37"></div></div><span class="L-button lower-blk"id="btnSearch"><span class="first-child"><button id="btnSearch-button"type="button">SEARCH</button></span></span></div></div></form>
+Igualmente, si encuentras algo te dejo los logs de consola:
+connect start
+index.js:1 [EXT_LGE_CL][debug] API disponible en window.__extLgeCl (contexto: content) — usa __extLgeCl.help() para ver comandos
+index.js:2 [EXT_LGE_CL][colocar-tags] content script inicializado {url: 'https://admin.gp1.aws.lge.com/admin/products/retri…ingList.lg?topMenuId=MN04000000&menuId=MN04012400', isTopFrame: false}isTopFrame: falseurl: "https://admin.gp1.aws.lge.com/admin/products/retrieveOfferModelMappingList.lg?topMenuId=MN04000000&menuId=MN04012400"[[Prototype]]: Objectconstructor: ƒ Object()hasOwnProperty: ƒ hasOwnProperty()isPrototypeOf: ƒ isPrototypeOf()propertyIsEnumerable: ƒ propertyIsEnumerable()toLocaleString: ƒ toLocaleString()toString: ƒ toString()valueOf: ƒ valueOf()__defineGetter__: ƒ __defineGetter__()__defineSetter__: ƒ __defineSetter__()__lookupGetter__: ƒ __lookupGetter__()__lookupSetter__: ƒ __lookupSetter__()__proto__: (...)get __proto__: ƒ __proto__()set __proto__: ƒ __proto__()
+index.js:2 [EXT_LGE_CL][content] content script cargado {url: 'https://admin.gp1.aws.lge.com/admin/products/retri…ingList.lg?topMenuId=MN04000000&menuId=MN04012400', isTopFrame: false}isTopFrame: falseurl: "https://admin.gp1.aws.lge.com/admin/products/retrieveOfferModelMappingList.lg?topMenuId=MN04000000&menuId=MN04012400"[[Prototype]]: Objectconstructor: ƒ Object()hasOwnProperty: ƒ hasOwnProperty()isPrototypeOf: ƒ isPrototypeOf()propertyIsEnumerable: ƒ propertyIsEnumerable()toLocaleString: ƒ toLocaleString()toString: ƒ toString()valueOf: ƒ valueOf()__defineGetter__: ƒ __defineGetter__()__defineSetter__: ƒ __defineSetter__()__lookupGetter__: ƒ __lookupGetter__()__lookupSetter__: ƒ __lookupSetter__()__proto__: (...)get __proto__: ƒ __proto__()set __proto__: ƒ __proto__()
+leftMenu.lg?topMenuId=MN04000000:94 gLocaleCd = CL | session = CL
+index.js:2 [EXT_LGE_CL][colocar-tags] port conectado {name: 'colocar-tags:product-run'}
+index.js:2 [EXT_LGE_CL][colocar-tags] run start [product] {count: 1}
+offerRetrieveModelList.js:1526 jsonParams {"modelId":"MD08719748","bizType":"B2C","localeCode":"CL","row":0,"superCategoryId":"CT52000099","superCategoryName":"Appliances","categoryId":"CT52000102","categoryName":"Laundry","subCategoryId":"CT52006504","subCategoryName":"WashTower™","promotionTagFlag":"","energyLabelFlag":"","obsMessageFlag":"","pdpLabelUseFlag":"","obsAdditionalDisclaimerTextUseFlag":"Y","catalogueUse":"","mwoPanelUse":"","mwoPanelCategoryId":"","exclusionModel":null,"modelInfo":{"superCategoryId":"CT52000099","categoryId":"CT52000102","subCategoryId":"CT52006504","modelStatusCode":"ACTIVE","wtbExternalLinkName":null,"energyLabelCategory":null,"energyLabel":null,"wtEnergyLabelCategory":null,"wtEnergyLabel":null,"migDataFlag":null,"exclusionModel":null,"bizType":"B2C","modelType":"PDP","wtbOfflineUseFlag":null,"wtbOnlineUseFlag":null,"wtbDirectfromUseFlag":null,"shopCode":"B2C"},"dataSetMap":{"modelStatus":[{"commonCodeId":"ACTIVE","commonCodeName":"ACTIVE"},{"commonCodeId":"DISCONTINUED","commonCodeName":"DISCONTINUED"},{"commonCodeId":"SUSPENDED","commonCodeName":"SUSPENDED"},{"commonCodeId":"HIDDEN","commonCodeName":"HIDDEN"}],"ctaName":[{"commonCodeId":"ATT","commonCodeName":"ATT"},{"commonCodeId":"Trouver un détaillant","commonCodeName":"Trouver un détaillant"},{"commonCodeId":"Pre-Order","commonCodeName":"Pre-Order"},{"commonCodeId":"Notify Me","commonCodeName":"Notify Me"},{"commonCodeId":"Sign Up","commonCodeName":"Sign Up"},{"commonCodeId":"Buy Now","commonCodeName":"Buy Now"},{"commonCodeId":"Find A Dealer","commonCodeName":"Find a Dealer"},{"commonCodeId":"Request information","commonCodeName":"Request information"},{"commonCodeId":"Build your Own","commonCodeName":"Build your Own"},{"commonCodeId":"Water & Air Filter Finder","commonCodeName":"Water & Air Filter Finder"},{"commonCodeId":"Localisateur de filtre","commonCodeName":"Localisateur de filtre"},{"commonCodeId":"Where to Buy","commonCodeName":"Where to Buy"}],"energyLabelCategory":[{"commonCodeId":"EL_CAT_01","commonCodeName":"Refrigerator"},{"commonCodeId":"EL_CAT_02","commonCodeName":"Washing Machine"},{"commonCodeId":"EL_CAT_03","commonCodeName":"Dish Washer"},{"commonCodeId":"EL_CAT_04","commonCodeName":"Display(TV,Monitor)"},{"commonCodeId":"EL_CAT_05","commonCodeName":"Washer Dryer"},{"commonCodeId":"EL_CAT_06","commonCodeName":"Air Conditioner up to 12KW"},{"commonCodeId":"EL_CAT_07","commonCodeName":"Space and Combination heater (AWHP)"},{"commonCodeId":"EL_CAT_08","commonCodeName":"Dryer"},{"commonCodeId":"EL_CAT_09","commonCodeName":"Oven"},{"commonCodeId":"EL_CAT_10","commonCodeName":"Water heater,Water tank"},{"commonCodeId":"EL_CAT_11","commonCodeName":"Packages of solar device and heater"}],"energyLabel":[{"commonCodeId":"1","commonCodeName":"A+++"},{"commonCodeId":"2","commonCodeName":"A++"},{"commonCodeId":"3","commonCodeName":"A+"},{"commonCodeId":"4","commonCodeName":"A"},{"commonCodeId":"5","commonCodeName":"B"},{"commonCodeId":"6","commonCodeName":"C"},{"commonCodeId":"7","commonCodeName":"D"},{"commonCodeId":"8","commonCodeName":"E"},{"commonCodeId":"9","commonCodeName":"F"},{"commonCodeId":"10","commonCodeName":"G"}],"productTag":[{"commonCodeId":"Coming soon","commonCodeName":"Coming soon"},{"commonCodeId":"Pre order","commonCodeName":"Pre order"},{"commonCodeId":"New","commonCodeName":"New"},{"commonCodeId":"Award","commonCodeName":"Award"},{"commonCodeId":"Sale","commonCodeName":"Sale"},{"commonCodeId":"Best seller","commonCodeName":"Best seller"},{"commonCodeId":"Recommend","commonCodeName":"Recommend"},{"commonCodeId":"Online Only","commonCodeName":"Online Only"},{"commonCodeId":"Member Only","commonCodeName":"Member Only"},{"commonCodeId":"VIP Only","commonCodeName":"VIP Only"},{"commonCodeId":"Promotion","commonCodeName":"Promotion"},{"commonCodeId":"Coupon Available","commonCodeName":"Coupon Available"},{"commonCodeId":"Bundle","commonCodeName":"Bundle"},{"commonCodeId":"Limited quantity","commonCodeName":"Limited quantity"},{"commonCodeId":"Warehouse Sale","commonCodeName":"Warehouse Sale"},{"commonCodeId":"Clearance","commonCodeName":"Clearance"},{"commonCodeId":"Time deal","commonCodeName":"Time deal"},{"commonCodeId":"Package Deal","commonCodeName":"Package Deal"},{"commonCodeId":"Redemption","commonCodeName":"Redemption"},{"commonCodeId":"Black Friday Offer","commonCodeName":"Black Friday Offer"},{"commonCodeId":"Holiday Offer","commonCodeName":"Holiday Offer"},{"commonCodeId":"Christmas Offer","commonCodeName":"Christmas Offer"},{"commonCodeId":"Boxing Day Offer","commonCodeName":"Boxing Day Offer"},{"commonCodeId":"New Year Offer","commonCodeName":"New Year Offer"},{"commonCodeId":"Seasonal Offer","commonCodeName":"Seasonal Offer"},{"commonCodeId":"Weekend offer","commonCodeName":"Weekend offer"},{"commonCodeId":"One Day Offer","commonCodeName":"One Day Offer"},{"commonCodeId":"Cyber day","commonCodeName":"Cyber day"},{"commonCodeId":"Mother's Day Offer","commonCodeName":"Mother's Day Offer"},{"commonCodeId":"Father's Day Offer
+VM841:183 (47) [{…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}]0: {code: 'Despacho Gratis RM', value: 'Despacho Gratis RM', groupName: 'DeliveryTag', sortNo: '0'}1: {code: 'ENVÍO 24HRS', value: 'ENVÍO 24HRS', groupName: 'DeliveryTag', sortNo: '0'}2: {code: 'Express Delivery', value: 'Express Delivery', groupName: 'DeliveryTag', sortNo: '0'}3: {code: 'Floor Delivery', value: 'Floor Delivery', groupName: 'DeliveryTag', sortNo: '0'}4: {code: 'FREE 1 YEAR AMC', value: 'FREE 1 YEAR AMC', groupName: 'DeliveryTag', sortNo: '0'}5: {code: 'Free delivery', value: 'Free delivery', groupName: 'DeliveryTag', sortNo: '0'}6: {code: 'Free Delivery', value: 'Free Delivery', groupName: 'DeliveryTag', sortNo: '0'}7: {code: 'Free delivery/installation/disposal', value: 'Free delivery/installation/disposal', groupName: 'DeliveryTag', sortNo: '0'}8: {code: 'Free Express Delivery', value: 'Free Express Delivery', groupName: 'DeliveryTag', sortNo: '0'}9: {code: 'FREE INSTALLATION', value: 'FREE INSTALLATION', groupName: 'DeliveryTag', sortNo: '0'}10: {code: 'Free Installation', value: 'Free Installation', groupName: 'DeliveryTag', sortNo: '0'}11: {code: 'Free Premium Delivery', value: 'Free Premium Delivery', groupName: 'DeliveryTag', sortNo: '0'}12: {code: 'Free Premium Delivery*', value: 'Free Premium Delivery*', groupName: 'DeliveryTag', sortNo: '0'}13: {code: 'FREE SHIPPING', value: 'FREE SHIPPING', groupName: 'DeliveryTag', sortNo: '0'}14: {code: 'Free Shipping', value: 'Free Shipping', groupName: 'DeliveryTag', sortNo: '0'}15: {code: 'FREE SHIPPING INSTALLATION', value: 'FREE SHIPPING INSTALLATION', groupName: 'DeliveryTag', sortNo: '0'}16: {code: 'Gratis transport och installation', value: 'Gratis transport och installation', groupName: 'DeliveryTag', sortNo: '0'}17: {code: 'Incluye instalación VIP', value: 'Incluye instalación VIP', groupName: 'DeliveryTag', sortNo: '0'}18: {code: 'INST.PARED GRATIS', value: 'INST.PARED GRATIS', groupName: 'DeliveryTag', sortNo: '0'}19: {code: 'Instalacion Basica Gratuita', value: 'Instalacion Basica Gratuita', groupName: 'DeliveryTag', sortNo: '0'}20: {code: 'Instalación Básica Gratuita', value: 'Instalación Básica Gratuita', groupName: 'DeliveryTag', sortNo: '0'}21: {code: 'INSTALACJA GRATIS', value: 'INSTALACJA GRATIS', groupName: 'DeliveryTag', sortNo: '0'}22: {code: 'Installation gratuite', value: 'Installation gratuite', groupName: 'DeliveryTag', sortNo: '0'}23: {code: 'Livraison gratuite', value: 'Livraison gratuite', groupName: 'DeliveryTag', sortNo: '0'}24: {code: 'Livraison prioritaire', value: 'Livraison prioritaire', groupName: 'DeliveryTag', sortNo: '0'}25: {code: '尊榮安裝', value: '尊榮安裝', groupName: 'DeliveryTag', sortNo: '0'}26: {code: 'REGALO INSTALACIÓN', value: 'REGALO INSTALACIÓN', groupName: 'DeliveryTag', sortNo: '0'}27: {code: 'WNIESIENIE GRATIS', value: 'WNIESIENIE GRATIS', groupName: 'DeliveryTag', sortNo: '0'}28: {code: 'Despacho Gratis RM', value: 'Despacho Gratis RM', groupName: 'DeliveryTag', sortNo: '0'}29: {code: 'FREE 1 YEAR AMC', value: 'FREE 1 YEAR AMC', groupName: 'DeliveryTag', sortNo: '0'}30: {code: 'Despacho Gratis', value: 'Despacho Gratis', groupName: 'DeliveryTag', sortNo: '0'}31: {code: 'Instalación Básica Gratuita', value: 'Instalación Básica Gratuita', groupName: 'DeliveryTag', sortNo: '0'}32: {code: 'test', value: 'test', groupName: 'DeliveryTag', sortNo: '1'}33: {code: 'Livraison gratuite*', value: 'Livraison gratuite*', groupName: 'DeliveryTag', sortNo: '1'}34: {code: 'Free Delivery*', value: 'Free Delivery*', groupName: 'DeliveryTag', sortNo: '1'}35: {code: 'Premium Shipping and Installation', value: 'Premium Shipping and Installation', groupName: 'DeliveryTag', sortNo: '1'}36: {code: 'Free Elite Shipping and Installation', value: 'Free Elite Shipping and Installation', groupName: 'DeliveryTag', sortNo: '1'}37: {code: 'Free Delivery / Installation', value: 'Free Delivery / Installation.', groupName: 'DeliveryTag', sortNo: '10'}38: {code: 'Free Delivery, Wall Mount & Disposal', value: 'Free Delivery, Wall Mount & Disposal', groupName: 'DeliveryTag', sortNo: '11'}39: {code: 'Бесплатная доставка', value: 'Бесплатная доставка', groupName: 'DeliveryTag', sortNo: '1'}40: {code: 'Frete Grátis Para Capitais', value: 'Frete Grátis Para Capitais', groupName: 'DeliveryTag', sortNo: '0'}41: {code: 'Últimas unidades', value: 'Últimas unidades', groupName: 'DeliveryTag', sortNo: '0'}42: {code: 'Adicione LG Instala Plus', value: 'Adicione LG Instala Plus', groupName: 'DeliveryTag', sortNo: '0'}43: {code: 'CONS_MONTH', value: 'Mês do Consumidor', groupName: 'DeliveryTag', sortNo: '0'}44: {code: 'REV_DOOR', value: 'Porta Reversível', groupName: 'DeliveryTag', sortNo: '0'}45: {code: 'Instalación Gratis', value: 'Instalación Gratis', groupName: 'DeliveryTag', sortNo: '0'}46: {code: 'Envió Gratis', value: 'Envió Gratis', groupName: 'DeliveryTag', sortNo: '0'}length: 47[[Prototype]]: Array(0) ':: tagArray.Delivery'
 
-Y le damos al botón "SEARCH".
 
-2- Entonces seleccionamos en la TabView la fila donde tengamos el product exacto, Podemos guiarnos por la columna "Sales Model".
-Ejemplo:
+Igual, el error me lo da aquí:
+Uncaught TypeError: Cannot read properties of undefined (reading '')
+    at eval (eval at success (offerRetrieveModelList.js:1540:12), <anonymous>:406:21)
+    at VM710 rui_base.js:2651:30
 
-<div id="tabView"><div class="L-navset L-tabview"id="L-gen62"style="height:472px;overflow:hidden"><div class="L-nav-scroll"id="L-gen63"><div class="L-nav-spin-left"id="L-gen65"></div><div class="L-nav-spin"id="L-gen66"><ul class="L-nav"id="L-gen64"><li class="L-nav-selected"id="L-gen91"><a href="#"><em id="L-gen69">STG</em></a><li id="L-gen94"><a href="#"><em id="L-gen92">PROD</em></a></ul></div><div class="L-nav-spin-right"id="L-gen67"></div></div><div class="L-content"id="L-gen68"style="height:416px"><div class="L-content-tab"id="L-gen70"><div><label>Model List (Selected : <span id="mSelectCount">0</span> / Total : <span id="mStgListCount">1</span>)</label></div><div id="divGrid_stg"><div class="L-gen59 L-grid-panel L-overlay L-panel L-panel-container"id="L-gen71"style="height:371.2px;overflow:hidden;z-index:2"><div class="bd"id="L-gen72"style="width:100%;height:371px"><div class="L-editable L-fixed L-grid"id="L-gen76"style="width:1795px;position:relative"><div class="L-grid-header"id="L-gen313"><div class="L-grid-header-offset"id="L-gen314"style="width:1800px"><ul class="L-grid-ul"><li class="L-grid-li-first"><table cellpadding="0"cellspacing="0"border="0"class="L-grid-header-table"id="L-gen324"><thead><tr class="L-grid-header-row L-grid-header-row-first L-grid-header-row-last"></thead></table><li class="L-grid-li-last"><table cellpadding="0"cellspacing="0"style="width:1772px"border="0"class="L-grid-header-table"id="L-gen325"><thead><tr class="L-grid-header-row L-grid-header-row-first L-grid-header-row-last"><td class="L-grid-cell L-grid-header-cell L-grid-cell-first L-grid-cell-selection"colspan="1"rowspan="1"style="width:27px"><div class="L-grid-header-inner L-grid-header-selection"><a class="L-grid-header-btn"><div class="L-grid-header-checkBox"style="width:20px"></div></a><img class="L-grid-sort-icon"src="/rui/resources/images/default/s.gif"></div><td class="L-grid-cell L-grid-header-cell L-grid-cell-num"colspan="1"rowspan="1"style="width:34px"><div class="L-grid-header-inner L-grid-header-num"><a class="L-grid-header-btn">No.</a><img class="L-grid-sort-icon"src="/rui/resources/images/default/s.gif"></div><td class="L-grid-cell L-grid-header-cell L-grid-cell-sortable L-grid-cell-salesModelName"colspan="1"rowspan="1"style="width:165px"><div class="L-grid-header-inner L-grid-header-salesModelName"><a class="L-grid-header-btn">Sales Model</a><img class="L-grid-sort-icon"src="/rui/resources/images/default/s.gif"></div><td class="L-grid-cell L-grid-header-cell L-grid-cell-sortable L-grid-cell-modelName"colspan="1"rowspan="1"style="width:165px"><div class="L-grid-header-inner L-grid-header-modelName"><a class="L-grid-header-btn">Model Name</a><img class="L-grid-sort-icon"src="/rui/resources/images/default/s.gif"></div><td class="L-grid-cell L-grid-header-cell L-grid-cell-sku"colspan="1"rowspan="1"style="width:223px"><div class="L-grid-header-inner L-grid-header-sku"><a class="L-grid-header-btn">Product ID</a><img class="L-grid-sort-icon"src="/rui/resources/images/default/s.gif"></div><td class="L-grid-cell L-grid-header-cell L-grid-cell-pimSku"colspan="1"rowspan="1"style="width:223px"><div class="L-grid-header-inner L-grid-header-pimSku"><a class="L-grid-header-btn">PIM SKU</a><img class="L-grid-sort-icon"src="/rui/resources/images/default/s.gif"></div><td class="L-grid-cell L-grid-header-cell L-grid-cell-superCategory"colspan="1"rowspan="1"style="width:165px"id="L-gen339"><div class="L-grid-header-inner L-grid-header-superCategory"id="L-gen338"><a class="L-grid-header-btn">Super Category</a><img class="L-grid-sort-icon"src="/rui/resources/images/default/s.gif"></div><td class="L-grid-cell L-grid-header-cell L-grid-cell-category"colspan="1"rowspan="1"style="width:165px"><div class="L-grid-header-inner L-grid-header-category"><a class="L-grid-header-btn">Category</a><img class="L-grid-sort-icon"src="/rui/resources/images/default/s.gif"></div><td class="L-grid-cell L-grid-header-cell L-grid-cell-subCategory"colspan="1"rowspan="1"style="width:165px"id="L-gen337"><div class="L-grid-header-inner L-grid-header-subCategory"id="L-gen336"><a class="L-grid-header-btn">Sub Category</a><img class="L-grid-sort-icon"src="/rui/resources/images/default/s.gif"></div><td class="L-grid-cell L-grid-header-cell L-grid-cell-modelStatusCode"colspan="1"rowspan="1"style="width:110px"id="L-gen335"><div class="L-grid-header-inner L-grid-header-modelStatusCode"id="L-gen334"><a class="L-grid-header-btn">Model Status</a><img class="L-grid-sort-icon"src="/rui/resources/images/default/s.gif"></div><td class="L-grid-cell L-grid-header-cell L-grid-cell-modelType"colspan="1"rowspan="1"style="width:110px"><div class="L-grid-header-inner L-grid-header-modelType"><a class="L-grid-header-btn">Model Type</a><img class="L-grid-sort-icon"src="/rui/resources/images/default/s.gif"></div><td class="L-grid-cell L-grid-header-cell L-grid-cell-editView"colspan="1"rowspan="1"style="width:124px"><div class="L-grid-header-inner L-grid-header-editView"><a class="L-grid-header-btn">Marketing Info</a><img class="L-grid-sort-icon"src="/rui/resources/images/default/s.gif"></div><td class="L-grid-cell L-grid-header-cell L-grid-cell-last L-grid-cell-messagePublishFlag"colspan="1"rowspan="1"style="width:94px"><div class="L-grid-header-inner L-grid-header-messagePublishFlag"><a class="L-grid-header-btn">Publish</a><img class="L-grid-sort-icon"src="/rui/resources/images/default/s.gif"></div></thead></table></ul></div><div class="L-grid-header-tool L-hide-display"><span class="L-grid-header-tool-icon"></span></div></div><div class="L-ignore-event L-grid-scroller L-scroller"id="L-gen315"style="height:338px"><div class="L-scroll"id="L-gen321"style="width:1778px;height:338px"><div class="L-grid-body L-grid-col-line L-scroll-content"id="L-gen316"style="width:1783px"><ul class="L-grid-ul"><li class="L-grid-li-first"><table cellpadding="0"cellspacing="0"style="width:100px"></table><li class="L-grid-li-last"id="L-gen331"><table cellpadding="0"cellspacing="0"style="width:1772px"><tr class="L-grid-row L-grid-row-editable L-grid-row-first L-grid-row-odd L-grid-row-r2810 L-grid-row-selected"style="width:1772px"><td class="L-grid-cell L-grid-col L-grid-cell-selection"colspan=""rowspan=""style="width:27px;text-align:center"><div class="L-grid-cell-inner L-grid-col-selection"><div class="L-grid-row-checkBox L-grid-row-checkBox"style="width:16px"></div></div><td class="L-grid-cell L-grid-col L-grid-cell-num"colspan=""rowspan=""style="width:34px;text-align:right"><div class="L-grid-cell-inner L-grid-col-num">1</div><td class="L-grid-cell L-grid-col L-grid-cell-salesModelName"colspan=""rowspan=""style="width:165px"><div class="L-grid-cell-inner L-grid-col-salesModelName">WK22BS6.ABLPECL</div><td class="L-grid-cell L-grid-col L-grid-cell-modelName"colspan=""rowspan=""style="width:165px"><div class="L-grid-cell-inner L-grid-col-modelName">WK22BS6</div><td class="L-grid-cell L-grid-col L-grid-cell-sku"colspan=""rowspan=""style="width:223px"><div class="L-grid-cell-inner L-grid-col-sku">WK22BS6.ABLPECL.ESCL.CL.C</div><td class="L-grid-cell L-grid-col L-grid-cell-pimSku"colspan=""rowspan=""style="width:223px"><div class="L-grid-cell-inner L-grid-col-pimSku">WK22BS6.ABLPECL.ESCL.C</div><td class="L-grid-cell L-grid-col L-grid-cell-superCategory"colspan=""rowspan=""style="width:165px"><div class="L-grid-cell-inner L-grid-col-superCategory">Appliances</div><td class="L-grid-cell L-grid-col L-grid-cell-category"colspan=""rowspan=""style="width:165px"><div class="L-grid-cell-inner L-grid-col-category">Laundry</div><td class="L-grid-cell L-grid-col L-grid-cell-subCategory"colspan=""rowspan=""style="width:165px"><div class="L-grid-cell-inner L-grid-col-subCategory">WashTower™</div><td class="L-grid-cell L-grid-col L-grid-cell-modelStatusCode"colspan=""rowspan=""style="width:110px;text-align:center"><div class="L-grid-cell-inner L-grid-col-modelStatusCode"id="L-gen333">ACTIVE</div><td class="L-grid-cell L-grid-col L-grid-cell-modelType"colspan=""rowspan=""style="width:110px;text-align:center"><div class="L-grid-cell-inner L-grid-col-modelType"id="L-gen332">PDP</div><td class="L-grid-cell L-grid-col L-grid-cell-editView L-grid-cell-selected"colspan=""rowspan=""style="width:124px;text-align:center"><div class="L-grid-cell-inner L-grid-col-editView"><span style="float:center"><button class="L-grid-button"onclick="fncModelPopup(0)"style="width:50px"type="button">Edit</button></span></div><td class="L-grid-cell L-grid-col L-grid-cell-messagePublishFlag"colspan=""rowspan=""style="width:94px;text-align:center"><div class="L-grid-cell-inner L-grid-col-messagePublishFlag">Y</div></table></ul></div></div><div class="L-ignore-event L-scrollbar-y"id="L-gen322"style="height:338px"><div class="L-scrollbar-y-content"id="L-gen323"style="height:0"> </div></div><a class="L-grid-focus"id="L-gen317"style="position:absolute"tabindex="-1"></a></div><div class="L-grid-resize-proxy"id="L-gen318"> </div><div class="L-grid-dd-proxy"id="L-gen319"><div> </div></div><div class="L-grid-dd-target"id="L-gen320"> </div></div></div><div class="L-grid-resize-monitor"style="height:0;overflow:hidden"><iframe frameborder="0"scrolling="no"style="width:90%;height:0"></iframe></div></div></div></div><div class="L-content-tab L-nav-hidden"id="L-gen93"><div><label>Model List (Total : <span id="mProdListCount">0</span>)</label></div><div id="divGrid_prod"></div></div></div><div class="L-grid-resize-monitor"style="height:0;overflow:hidden"><iframe frameborder="0"scrolling="no"style="width:90%;height:0"></iframe></div></div></div>
+Es en esta parte:
+tagArray[category2][group2].forEach( (tag) => {
+        console.log(tag);
+        const liEl = document.createElement('li');
+        liEl.id = 'cb2-' + tag.value;
+        liEl.setAttribute('role', 'option');
+        liEl.setAttribute('aria-selected', 'false');
+        liEl.textContent = tag.value;
+        $('#productTag2').parent().parent().find('[role=listbox]').append(liEl);
+    }
 
-
-3- Entonces le damos a "Edit" en la columna "Marketing Info".
-Y se abrirá el modal, ejemplo:
-
-<div class="L-overlay L-panel L-panel-container L-dialog L-gen133"id="dialog2"style="width:1400px;left:208px;top:186px;z-index:4"><div class="hd"style="cursor:auto">Marketing Info Edit</div><div id="dialog2Html"><link href="/resource/images/favicon.ico"rel="shortcut icon"type="image/x-icon"><link href="/rui/resources/rui.css"rel="stylesheet"><link href="/rui/resources/rui_ie6.css"rel="stylesheet"><link href="/rui/plugins/ui/LPager.css"rel="stylesheet"><link href="/rui/plugins/ui/LLoadPage.css"rel="stylesheet"><link href="/rui/plugins/ui/LTooltip.css"rel="stylesheet"><link href="/rui/plugins/ui/LFileUploadDialog.css"rel="stylesheet"><link href="/rui/plugins/ui/grid/LGridStatusBar.css"rel="stylesheet"><link href="/rui/plugins/ui/grid/LHeaderContextMenu.css"rel="stylesheet"><link href="/rui/plugins/ui/form/LFileBox.css"rel="stylesheet"><link href="/rui/plugins/ui/form/LMultiCombo.css"rel="stylesheet"><link href="/rui/plugins/ui/form/LDateTimeBox.css"rel="stylesheet"><link href="/rui/plugins/menu/rui_menu.css"rel="stylesheet"><link href="/rui/plugins/tree/rui_tree.css"rel="stylesheet"><link href="/rui/plugins/tab/rui_tab.css"rel="stylesheet"><link href="/rui/resources/page_layout.css"rel="stylesheet"><link href="/rui/resources/page_style.css"rel="stylesheet"><link href="/gp1/css/gp1_style.css"rel="stylesheet"><script language="text/javascript"src="/platform/js/jquery/jquery.min.js"></script><script language="text/javascript"src="/platform/js/jquery/jquery-ui.min.js"></script><script language="text/javascript"src="/platform/js/jquery/jquery.tmpl.js"></script><script language="text/javascript"src="/platform/js/jquery/modal.js"></script><script language="text/javascript"src="/platform/js/jquery/jquery.form.js"></script><script language="text/javascript"src="/rui/js/rui_base.js"></script><script language="text/javascript"src="/rui/js/rui_core.js"></script><script language="text/javascript"src="/rui/js/rui_ui.js"></script><script language="text/javascript"src="/rui/js/rui_form.js"></script><script language="text/javascript"src="/rui/js/rui_grid.js"></script><script language="text/javascript"src="/rui/js/rui_bootstrap.js"></script><script language="text/javascript"src="/rui/resources/rui_config.js"></script><script language="text/javascript"src="/rui/resources/rui_license.js"></script><script language="text/javascript"src="/rui/resources/rui_lge_header.js"></script><script language="text/javascript"src="/rui/plugins/tab/rui_tab.js"></script><script language="text/javascript"src="/rui/plugins/tree/rui_tree.js"></script><script language="text/javascript"src="/rui/plugins/data/LDataSetView.js"></script><script language="text/javascript"src="/rui/plugins/menu/rui_menu.js"></script><script language="text/javascript"src="/rui/plugins/ui/grid/LEditButtonColumn.js"></script><script language="text/javascript"src="/rui/plugins/ui/grid/LGridView.js"></script><script language="text/javascript"src="/rui/plugins/ui/grid/LGridPanelExt.js"></script><script language="text/javascript"src="/rui/plugins/ui/grid/LGridStatusBar.js"></script><script language="text/javascript"src="/rui/plugins/ui/grid/LHeaderContextMenu.js"></script><script language="text/javascript"src="/rui/plugins/ui/form/LMultiCombo.js"></script><script language="text/javascript"src="/rui/plugins/ui/form/LFileBox.js"></script><script language="text/javascript"src="/rui/plugins/ui/LLoadPage.js"></script><script language="text/javascript"src="/rui/plugins/ui/LPager.js"></script><script language="text/javascript"src="/rui/plugins/ui/LTooltip.js"></script><script language="text/javascript"src="/rui/plugins/ui/LFrameDialog.js"></script><script language="text/javascript"src="/rui/plugins/ui/LFileUploadDialog.js"></script><script language="text/javascript"src="/rui/plugins/ui/form/LDateTimeBox.js"></script><script language="text/javascript"src="/resource/js/commonUtil.js"></script><script>var gContextPath="",gLocaleCd="CL",gJavaLocale="es_CL",gCountryCode="CL",gUserId="eduardo.niquin",gMm=Rui.getMessageManager();gMm.setLocale("en_US"),$(window).focus(function(e){console.log("gLocaleCd = "+gLocaleCd+" | session = CL"),$.ajax({type:"GET",dataType:"json",url:gContextPath+"/common/sessionChangeCheck.lgajax",async:!1,success:function(e,o,a){gLocaleCd!=e.currentLocale&&(parent.topFrame.location.reload(!0),parent.leftFrame.location.reload(!0))}})}),document.oncontextmenu=function(){return!1}</script><link href="/gp1/css/combobox-autocomplete.css"rel="stylesheet"><style>.icon_group{display:flex;align-items:center;padding-left:20px}.icon_group .icon_img{padding-right:5px}.icon_group img{width:32px;height:32px}.icon_group .icon_name{padding-right:20px}.date_input_wrap input[type=text].time_picker{width:5rem}.tooltip-icon{display:inline-block;width:12px;height:12px;background-color:#666;color:#fff;border-radius:50%;text-align:center;line-height:12px;font-size:10px;margin-left:5px;cursor:help;position:relative;vertical-align:middle}.tooltip-icon:hover::after{content:attr(data-tooltip);position:absolute;left:120%;top:50%;transform:translateY(-50%);background-color:#fff;color:#333;padding:15px 20px;border-radius:6px;white-space:pre-line;z-index:1000;font-size:12px;border:1px solid #ddd;box-shadow:0 4px 12px rgba(0,0,0,.15);max-width:600px;min-width:500px;text-align:left;line-height:1.4}.tooltip-icon:hover::before{content:'';position:absolute;left:-10px;top:50%;transform:translateY(-50%);border:8px solid transparent;border-right-color:#fff}</style><script>var volumeDcUseShop = "";
-var valueDcUseShop  = ""; // LGCOMRB-4189
+Este es el código complete de VM841:
+var volumeDcUseShop = "";
+var valueDcUseShop = "";
+// LGCOMRB-4189
 var schema = "save";
 var localeCode = "CL";
-var modelId = "MD07551161";
+var modelId = "MD08719748";
 var shopCode = "B2C";
-var mtsModelSyncFlag = "N"; // LGCOMRB-3604
+var mtsModelSyncFlag = "N";
+// LGCOMRB-3604
 var offerPromotionDataSet;
-var mtsShopCodeDataSet; // LGCOMRB-3604
-const mktTagData = [{"commonCodeGroupName":"DeliveryTag","sortNo":"0","code":"Despacho Gratis RM","value":"Despacho Gratis RM","a":0},{"commonCodeGroupName":"DeliveryTag","sortNo":"0","code":"ENVÍO 24HRS","value":"ENVÍO 24HRS","a":0},{"commonCodeGroupName":"DeliveryTag","sortNo":"0","code":"Express Delivery","value":"Express Delivery","a":0},{"commonCodeGroupName":"DeliveryTag","sortNo":"0","code":"Floor Delivery","value":"Floor Delivery","a":0},{"commonCodeGroupName":"DeliveryTag","sortNo":"0","code":"FREE 1 YEAR AMC","value":"FREE 1 YEAR AMC","a":0},{"commonCodeGroupName":"DeliveryTag","sortNo":"0","code":"Free delivery","value":"Free delivery","a":0},{"commonCodeGroupName":"DeliveryTag","sortNo":"0","code":"Free Delivery","value":"Free Delivery","a":0},{"commonCodeGroupName":"DeliveryTag","sortNo":"0","code":"Free delivery/installation/disposal","value":"Free delivery/installation/disposal","a":0},{"commonCodeGroupName":"DeliveryTag","sortNo":"0","code":"Free Express Delivery","value":"Free Express Delivery","a":0},{"commonCodeGroupName":"DeliveryTag","sortNo":"0","code":"FREE INSTALLATION","value":"FREE INSTALLATION","a":0},{"commonCodeGroupName":"DeliveryTag","sortNo":"0","code":"Free Installation","value":"Free Installation","a":0},{"commonCodeGroupName":"DeliveryTag","sortNo":"0","code":"Free Premium Delivery","value":"Free Premium Delivery","a":0},{"commonCodeGroupName":"DeliveryTag","sortNo":"0","code":"Free Premium Delivery*","value":"Free Premium Delivery*","a":0},{"commonCodeGroupName":"DeliveryTag","sortNo":"0","code":"FREE SHIPPING","value":"FREE SHIPPING","a":0},{"commonCodeGroupName":"DeliveryTag","sortNo":"0","code":"Free Shipping","value":"Free Shipping","a":0},{"commonCodeGroupName":"DeliveryTag","sortNo":"0","code":"FREE SHIPPING INSTALLATION","value":"FREE SHIPPING INSTALLATION","a":0},{"commonCodeGroupName":"DeliveryTag","sortNo":"0","code":"Gratis transport och installation","value":"Gratis transport och installation","a":0},{"commonCodeGroupName":"DeliveryTag","sortNo":"0","code":"Incluye instalación VIP","value":"Incluye instalación VIP","a":0},{"commonCodeGroupName":"DeliveryTag","sortNo":"0","code":"INST.PARED GRATIS","value":"INST.PARED GRATIS","a":0},{"commonCodeGroupName":"DeliveryTag","sortNo":"0","code":"Instalacion Basica Gratuita","value":"Instalacion Basica Gratuita","a":0},{"commonCodeGroupName":"DeliveryTag","sortNo":"0","code":"Instalación Básica Gratuita","value":"Instalación Básica Gratuita","a":0},{"commonCodeGroupName":"DeliveryTag","sortNo":"0","code":"INSTALACJA GRATIS","value":"INSTALACJA GRATIS","a":0},{"commonCodeGroupName":"DeliveryTag","sortNo":"0","code":"Installation gratuite","value":"Installation gratuite","a":0},{"commonCodeGroupName":"DeliveryTag","sortNo":"0","code":"Livraison gratuite","value":"Livraison gratuite","a":0},{"commonCodeGroupName":"DeliveryTag","sortNo":"0","code":"Livraison prioritaire","value":"Livraison prioritaire","a":0},{"commonCodeGroupName":"DeliveryTag","sortNo":"0","code":"尊榮安裝","value":"尊榮安裝","a":0},{"commonCodeGroupName":"DeliveryTag","sortNo":"0","code":"REGALO INSTALACIÓN","value":"REGALO INSTALACIÓN","a":0},{"commonCodeGroupName":"DeliveryTag","sortNo":"0","code":"WNIESIENIE GRATIS","value":"WNIESIENIE GRATIS","a":0},{"commonCodeGroupName":"ProductTag Editor","sortNo":"0","code":"Grab Noww","value":"Grab Noww","a":0},{"commonCodeGroupName":"ProductTag Exclusive","sortNo":"0","code":"TYLKO U NAS","value":"TYLKO U NAS","a":0},{"commonCodeGroupName":"ProductTag Stock","sortNo":"0","code":"PRZEDSPRZEDAŻ","value":"PRZEDSPRZEDAŻ","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"CASHBACK 1500 PLN","value":"CASHBACK 1500 PLN","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"CASHBACK 2500 PLN","value":"CASHBACK 2500 PLN","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"CASHBACK 750 PLN","value":"CASHBACK 750 PLN","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"WYPRZEDAŻ","value":"WYPRZEDAŻ","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"DOSTĘPNY KUPON","value":"DOSTĘPNY KUPON","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"KUPON 100 PLN","value":"KUPON 100 PLN","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"KUPON 1000 PLN","value":"KUPON 1000 PLN","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"KUPON 1300 PLN","value":"KUPON 1300 PLN","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"KUPON 150 PLN","value":"KUPON 150 PLN","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"KUPON 1500 PLN","value":"KUPON 1500 PLN","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"KUPON 1800 PLN","value":"KUPON 1800 PLN","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"KUPON 200 PLN","value":"KUPON 200 PLN","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"KUPON 2000 PLN","value":"KUPON 2000 PLN","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"KUPON 250 PLN","value":"KUPON 250 PLN","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"KUPON 2500 PLN","value":"KUPON 2500 PLN","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"KUPON 300  PLN","value":"KUPON 300  PLN","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"KUPON 350 PLN","value":"KUPON 350 PLN","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"KUPON 400 PLN","value":"KUPON 400 PLN","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"KUPON 4000 PLN","value":"KUPON 4000 PLN","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"KUPON 50 PLN","value":"KUPON 50 PLN","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"KUPON 500 PLN","value":"KUPON 500 PLN","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"KUPON 5000 PLN","value":"KUPON 5000 PLN","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"KUPON 600 PLN","value":"KUPON 600 PLN","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"KUPON 700 PLN","value":"KUPON 700 PLN","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"KUPON 800 PLN","value":"KUPON 800 PLN","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"HOT OFERTA","value":"HOT OFERTA","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"OFERTA DNIA","value":"OFERTA DNIA","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"OFERTA LIMITOWANA","value":"OFERTA LIMITOWANA","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"OFERTA WEEKENDOWA","value":"OFERTA WEEKENDOWA","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"OSTATNIA SZANSA","value":"OSTATNIA SZANSA","a":0},{"commonCodeGroupName":"ProductTag Exclusive","sortNo":"0","code":"En ligne seulement","value":"En ligne seulement","a":0},{"commonCodeGroupName":"ProductTag Exclusive","sortNo":"0","code":"Exclusive","value":"Exclusive","a":0},{"commonCodeGroupName":"ProductTag Exclusive","sortNo":"0","code":"Exclusive offer","value":"Exclusive offer","a":0},{"commonCodeGroupName":"ProductTag Exclusive","sortNo":"0","code":"Exclusive only LG.com","value":"Exclusive only LG.com","a":0},{"commonCodeGroupName":"ProductTag Exclusive","sortNo":"0","code":"Exclusivo","value":"Exclusivo","a":0},{"commonCodeGroupName":"ProductTag Exclusive","sortNo":"0","code":"Exclusivo Online","value":"Exclusivo Online","a":0},{"commonCodeGroupName":"ProductTag Exclusive","sortNo":"0","code":"LG Online Exclusive","value":"LG Online Exclusive","a":0},{"commonCodeGroupName":"ProductTag Exclusive","sortNo":"0","code":"LG WEBÁRUHÁZ","value":"LG WEBÁRUHÁZ","a":0},{"commonCodeGroupName":"ProductTag Exclusive","sortNo":"0","code":"Exclusivo Loja Online","value":"Exclusivo Loja Online","a":0},{"commonCodeGroupName":"ProductTag Exclusive","sortNo":"0","code":"Online exclusive","value":"Online exclusive","a":0},{"commonCodeGroupName":"ProductTag Exclusive","sortNo":"0","code":"Online Only","value":"Online Only","a":0},{"commonCodeGroupName":"ProductTag Exclusive","sortNo":"0","code":"Only at LG.com","value":"Only at LG.com","a":0},{"commonCodeGroupName":"ProductTag Exclusive","sortNo":"0","code":"Only on LG.ca","value":"Only on LG.ca","a":0},{"commonCodeGroupName":"ProductTag Exclusive","sortNo":"0","code":"Only on LG.com","value":"Only on LG.com","a":0},{"commonCodeGroupName":"ProductTag Exclusive","sortNo":"0","code":"Pouze na LG.cz","value":"Pouze na LG.cz","a":0},{"commonCodeGroupName":"ProductTag Exclusive","sortNo":"0","code":"Producto exclusivo","value":"Producto exclusivo","a":0},{"commonCodeGroupName":"ProductTag Exclusive","sortNo":"0","code":"Solo en LG.com","value":"Solo en LG.com","a":0},{"commonCodeGroupName":"ProductTag Exclusive","sortNo":"0","code":"Thai only LG.com","value":"Thai only LG.com","a":0},{"commonCodeGroupName":"ProductTag Exclusive","sortNo":"0","code":"Uniquement en ligne","value":"Uniquement en ligne","a":0},{"commonCodeGroupName":"ProductTag Exclusive","sortNo":"0","code":"官網限定","value":"官網限定","a":0},{"commonCodeGroupName":"ProductTag Stock","sortNo":"0","code":"À venir","value":"À venir","a":0},{"commonCodeGroupName":"ProductTag Stock","sortNo":"0","code":"Reserva ahora","value":"Reserva ahora","a":0},{"commonCodeGroupName":"ProductTag Stock","sortNo":"0","code":"Bientôt disponible","value":"Bientôt disponible","a":0},{"commonCodeGroupName":"ProductTag Stock","sortNo":"0","code":"by Will.I.Am","value":"by Will.I.Am","a":0},{"commonCodeGroupName":"ProductTag Stock","sortNo":"0","code":"Coming soon","value":"Coming soon","a":0},{"commonCodeGroupName":"ProductTag Stock","sortNo":"0","code":"Em breve","value":"Em breve","a":0},{"commonCodeGroupName":"ProductTag Stock","sortNo":"0","code":"Coming Soon","value":"Coming Soon","a":0},{"commonCodeGroupName":"ProductTag Stock","sortNo":"0","code":"Discontinued","value":"Discontinued","a":0},{"commonCodeGroupName":"ProductTag Stock","sortNo":"0","code":"ELŐRENDELÉS","value":"ELŐRENDELÉS","a":0},{"commonCodeGroupName":"ProductTag Stock","sortNo":"0","code":"Hamarosan","value":"Hamarosan","a":0},{"commonCodeGroupName":"ProductTag Stock","sortNo":"0","code":"LANÇAMENTO","value":"LANÇAMENTO","a":0},{"commonCodeGroupName":"ProductTag Stock","sortNo":"0","code":"Lanzamiento","value":"Lanzamiento","a":0},{"commonCodeGroupName":"ProductTag Stock","sortNo":"0","code":"Launching soon","value":"Launching soon","a":0},{"commonCodeGroupName":"ProductTag Stock","sortNo":"0","code":"aunchingSoon-StayTuned","value":"aunchingSoon-StayTuned","a":0},{"commonCodeGroupName":"ProductTag Stock","sortNo":"0","code":"Low stock","value":"Low stock","a":0},{"commonCodeGroupName":"ProductTag Stock","sortNo":"0","code":"New","value":"New","a":0},{"commonCodeGroupName":"ProductTag Stock","sortNo":"0","code":"Novo","value":"Novo","a":0},{"commonCodeGroupName":"ProductTag Stock","sortNo":"0","code":"Nouveau","value":"Nouveau","a":0},{"commonCodeGroupName":"ProductTag Stock","sortNo":"0","code":"Pre order","value":"Pre order","a":0},{"commonCodeGroupName":"ProductTag Stock","sortNo":"0","code":"Précommander","value":"Précommander","a":0},{"commonCodeGroupName":"ProductTag Stock","sortNo":"0","code":"Pre-Order","value":"Pre-Order","a":0},{"commonCodeGroupName":"ProductTag Stock","sortNo":"0","code":"PRÉ-VENDA","value":"PRÉ-VENDA","a":0},{"commonCodeGroupName":"ProductTag Stock","sortNo":"0","code":"PRE-VENTA","value":"PRE-VENTA","a":0},{"commonCodeGroupName":"ProductTag Stock","sortNo":"0","code":"Új","value":"Új","a":0},{"commonCodeGroupName":"ProductTag Stock","sortNo":"0","code":"Very soon","value":"Very soon","a":0},{"commonCodeGroupName":"ProductTag Stock","sortNo":"0","code":"新產品","value":"新產品","a":0},{"commonCodeGroupName":"ProductTag Stock","sortNo":"0","code":"預購","value":"預購","a":0},{"commonCodeGroupName":"ProductTag Stock","sortNo":"0","code":"即將推出","value":"即將推出","a":0},{"commonCodeGroupName":"ProductTag Editor","sortNo":"0","code":"¡Gracias Chile!","value":"¡Gracias Chile!","a":0},{"commonCodeGroupName":"ProductTag Editor","sortNo":"0","code":"Affectionate Intelligence","value":"Affectionate Intelligence","a":0},{"commonCodeGroupName":"ProductTag Editor","sortNo":"0","code":"AI","value":"AI","a":0},{"commonCodeGroupName":"ProductTag Editor","sortNo":"0","code":"Always good price","value":"Always good price","a":0},{"commonCodeGroupName":"ProductTag Editor","sortNo":"0","code":"Attention","value":"Attention","a":0},{"commonCodeGroupName":"ProductTag Editor","sortNo":"0","code":"Award","value":"Award","a":0},{"commonCodeGroupName":"ProductTag Editor","sortNo":"0","code":"BEST PRICE","value":"BEST PRICE","a":0},{"commonCodeGroupName":"ProductTag Editor","sortNo":"0","code":"Best product","value":"Best product","a":0},{"commonCodeGroupName":"ProductTag Editor","sortNo":"0","code":"Best seller","value":"Best seller","a":0},{"commonCodeGroupName":"ProductTag Editor","sortNo":"0","code":"BEST SELLER","value":"BEST SELLER","a":0},{"commonCodeGroupName":"ProductTag Editor","sortNo":"0","code":"Best Seller","value":"Best Seller","a":0},{"commonCodeGroupName":"ProductTag Editor","sortNo":"0","code":"Mais vendido","value":"Mais vendido","a":0},{"commonCodeGroupName":"ProductTag Editor","sortNo":"0","code":"Melhor Compra","value":"Melhor Compra","a":0},{"commonCodeGroupName":"ProductTag Editor","sortNo":"0","code":"Check item dimensions","value":"Check item dimensions","a":0},{"commonCodeGroupName":"ProductTag Editor","sortNo":"0","code":"Copo Stanley!","value":"Copo Stanley!","a":0},{"commonCodeGroupName":"ProductTag Editor","sortNo":"0","code":"Craft Ice Function","value":"Craft Ice Function","a":0},{"commonCodeGroupName":"ProductTag Editor","sortNo":"0","code":"FLASH SALE","value":"FLASH SALE","a":0},{"commonCodeGroupName":"ProductTag Editor","sortNo":"0","code":"dTest award","value":"dTest award","a":0},{"commonCodeGroupName":"ProductTag Editor","sortNo":"0","code":"Enegiebewust","value":"Enegiebewust","a":0},{"commonCodeGroupName":"ProductTag Editor","sortNo":"0","code":"節能商品","value":"節能商品","a":0},{"commonCodeGroupName":"ProductTag Editor","sortNo":"0","code":"Expert Choice","value":"Expert Choice","a":0},{"commonCodeGroupName":"ProductTag Editor","sortNo":"0","code":"Featured","value":"Featured","a":0},{"commonCodeGroupName":"ProductTag Editor","sortNo":"0","code":"KPOP","value":"KPOP","a":0},{"commonCodeGroupName":"ProductTag Editor","sortNo":"0","code":"LG\u0027s Choice","value":"LG\u0027s Choice","a":0},{"commonCodeGroupName":"ProductTag Editor","sortNo":"0","code":"Magic Remote","value":"Magic Remote","a":0},{"commonCodeGroupName":"ProductTag Editor","sortNo":"0","code":"MÁS VENDIDO","value":"MÁS VENDIDO","a":0},{"commonCodeGroupName":"ProductTag Editor","sortNo":"0","code":"NEW 2025","value":"NEW 2025","a":0},{"commonCodeGroupName":"ProductTag Editor","sortNo":"0","code":"NEW TAG TESTING","value":"NEW TAG TESTING","a":0},{"commonCodeGroupName":"ProductTag Editor","sortNo":"0","code":"NEW2024","value":"NEW2024","a":0},{"commonCodeGroupName":"ProductTag Editor","sortNo":"0","code":"New2024","value":"New2024","a":0},{"commonCodeGroupName":"ProductTag Editor","sortNo":"0","code":"No.1 en ventas","value":"No.1 en ventas","a":0},{"commonCodeGroupName":"ProductTag Editor","sortNo":"0","code":"No.2 en ventas","value":"No.2 en ventas","a":0},{"commonCodeGroupName":"ProductTag Editor","sortNo":"0","code":"No.3 en ventas","value":"No.3 en ventas","a":0},{"commonCodeGroupName":"ProductTag Editor","sortNo":"0","code":"Nos Adelantamos","value":"Nos Adelantamos","a":0},{"commonCodeGroupName":"ProductTag Editor","sortNo":"0","code":"Nuevo 2025","value":"Nuevo 2025","a":0},{"commonCodeGroupName":"ProductTag Editor","sortNo":"0","code":"OFERTA MIESIĄCA","value":"OFERTA MIESIĄCA","a":0},{"commonCodeGroupName":"ProductTag Editor","sortNo":"0","code":"PERFECT MATCH","value":"PERFECT MATCH","a":0},{"commonCodeGroupName":"ProductTag Editor","sortNo":"0","code":"POLECAMY","value":"POLECAMY","a":0},{"commonCodeGroupName":"ProductTag Editor","sortNo":"0","code":"Precio más bajo","value":"Precio más bajo","a":0},{"commonCodeGroupName":"ProductTag Editor","sortNo":"0","code":"PRODUCT OF THE YEAR","value":"PRODUCT OF THE YEAR","a":0},{"commonCodeGroupName":"ProductTag Editor","sortNo":"0","code":"Product Review","value":"Product Review","a":0},{"commonCodeGroupName":"ProductTag Editor","sortNo":"0","code":"Producto del día","value":"Producto del día","a":0},{"commonCodeGroupName":"ProductTag Editor","sortNo":"0","code":"Producto del mes","value":"Producto del mes","a":0},{"commonCodeGroupName":"ProductTag Editor","sortNo":"0","code":"Quiet Mark","value":"Quiet Mark","a":0},{"commonCodeGroupName":"ProductTag Editor","sortNo":"0","code":"Recomendado","value":"Recomendado","a":0},{"commonCodeGroupName":"ProductTag Editor","sortNo":"0","code":"Recommend","value":"Recommend","a":0},{"commonCodeGroupName":"ProductTag Editor","sortNo":"0","code":"網紅推薦","value":"網紅推薦","a":0},{"commonCodeGroupName":"ProductTag Editor","sortNo":"0","code":"Santa\u0027s Favorites","value":"Santa\u0027s Favorites","a":0},{"commonCodeGroupName":"ProductTag Editor","sortNo":"0","code":"Thai Best selling products","value":"Thai Best selling products","a":0},{"commonCodeGroupName":"ProductTag Editor","sortNo":"0","code":"Thai Good selling products","value":"Thai Good selling products","a":0},{"commonCodeGroupName":"ProductTag Editor","sortNo":"0","code":"Thai Recommended products","value":"Thai Recommended products","a":0},{"commonCodeGroupName":"ProductTag Editor","sortNo":"0","code":"Titanium*","value":"Titanium*","a":0},{"commonCodeGroupName":"ProductTag Editor","sortNo":"0","code":"Produto Recomendado","value":"Produto Recomendado","a":0},{"commonCodeGroupName":"ProductTag Editor","sortNo":"0","code":"TOP SELLER","value":"TOP SELLER","a":0},{"commonCodeGroupName":"ProductTag Editor","sortNo":"0","code":"Top Seller","value":"Top Seller","a":0},{"commonCodeGroupName":"ProductTag Editor","sortNo":"0","code":"熱銷冠軍","value":"熱銷冠軍","a":0},{"commonCodeGroupName":"ProductTag Editor","sortNo":"0","code":"熱銷經典色","value":"熱銷經典色","a":0},{"commonCodeGroupName":"ProductTag Editor","sortNo":"0","code":"Unidad exterior","value":"Unidad exterior","a":0},{"commonCodeGroupName":"ProductTag Editor","sortNo":"0","code":"Unidad interior","value":"Unidad interior","a":0},{"commonCodeGroupName":"ProductTag Editor","sortNo":"0","code":"VERSION 2025","value":"VERSION 2025","a":0},{"commonCodeGroupName":"ProductTag Editor","sortNo":"0","code":"年度最低","value":"年度最低","a":0},{"commonCodeGroupName":"ProductTag Editor","sortNo":"0","code":"إختيار الخبراء","value":"إختيار الخبراء","a":0},{"commonCodeGroupName":"ProductTag Editor","sortNo":"0","code":"暢銷產品","value":"暢銷產品","a":0},{"commonCodeGroupName":"ProductTag Editor","sortNo":"0","code":"推薦產品","value":"推薦產品","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"£1,000 Cashback","value":"£1,000 Cashback","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"£1,000.00 Cashback","value":"£1,000.00 Cashback","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"£100 Cashback","value":"£100 Cashback","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"£100 off at checkout","value":"£100 off at checkout","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"£1000 Cashback","value":"£1000 Cashback","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"£150 Cashback","value":"£150 Cashback","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"£200 Cashback","value":"£200 Cashback","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"£200 off","value":"£200 off","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"£2000 Cashback","value":"£2000 Cashback","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"£250 Cashback","value":"£250 Cashback","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"£300 Cashback","value":"£300 Cashback","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"£300 off","value":"£300 off","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"£300 off at checkout","value":"£300 off at checkout","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"£400 Cashback","value":"£400 Cashback","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"£50 off at checkout","value":"£50 off at checkout","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"£500 Cashback","value":"£500 Cashback","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"£700 Cashback","value":"£700 Cashback","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"£75 Cashback","value":"£75 Cashback","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"€100 Cashback","value":"€100 Cashback","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"€100 Korting","value":"€100 Korting","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"€1000 Korting","value":"€1000 Korting","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"€120 Inruilkorting","value":"€120 Inruilkorting","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"€150 Cashback","value":"€150 Cashback","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"€150 Korting","value":"€150 Korting","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"€160 Inruilkorting","value":"€160 Inruilkorting","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"€20 Korting","value":"€20 Korting","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"€200 Cashback","value":"€200 Cashback","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"€200 Korting","value":"€200 Korting","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"€30 Korting","value":"€30 Korting","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"€300 Cashback","value":"€300 Cashback","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"€300 Korting","value":"€300 Korting","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"€350 Korting","value":"€350 Korting","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"€50 Korting","value":"€50 Korting","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"€60 Korting","value":"€60 Korting","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"€600 Korting","value":"€600 Korting","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"€75 Korting","value":"€75 Korting","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"€900 Korting","value":"€900 Korting","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"10 % de rabais","value":"10 % de rabais","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"10 % Korting","value":"10 % Korting","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"10 off at checkout","value":"10 off at checkout","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"10% DISCOUNT","value":"10% DISCOUNT","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"10% discount in checkout","value":"10% discount in checkout","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"10% dscto. adicional Santander","value":"10% dscto. adicional Santander","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"10% DTO","value":"10% DTO","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"10% extra på parat produkt","value":"10% extra på parat produkt","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"10％ OFF","value":"10％ OFF","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"10% OFF","value":"10% OFF","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"10% off","value":"10% off","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"10% OFF at checkout","value":"10% OFF at checkout","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"10% off at checkout","value":"10% off at checkout","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"10% Rabatt mit GAMING10","value":"10% Rabatt mit GAMING10","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"10% SCONTO A CARRELLO","value":"10% SCONTO A CARRELLO","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"10% SLEVA V KOŠÍKU","value":"10% SLEVA V KOŠÍKU","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"100 CASHBACK","value":"100 CASHBACK","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"100€ CASHBACK","value":"100€ CASHBACK","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"100€ REMBOURSÉS","value":"100€ REMBOURSÉS","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"100€ Direktrabatt","value":"100€ Direktrabatt","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"1000 CASHBACK","value":"1000 CASHBACK","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"1000 Off","value":"1000 Off","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"1000€ REMBOURSÉS","value":"1000€ REMBOURSÉS","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"10000 Discount in check out","value":"10000 Discount in check out","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"1000kr rabatt i kassan","value":"1000kr rabatt i kassan","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"10500 Discount in check out","value":"10500 Discount in check out","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"11% OFF","value":"11% OFF","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"11000 Discount in check out","value":"11000 Discount in check out","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"11500 Discount in check out","value":"11500 Discount in check out","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"12% discount in checkout","value":"12% discount in checkout","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"12% off at checkout","value":"12% off at checkout","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"12000 Discount in check out","value":"12000 Discount in check out","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"12500 Discount in check out","value":"12500 Discount in check out","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"130€ Cashback","value":"130€ Cashback","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"13000 Discount in check out","value":"13000 Discount in check out","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"13500 Discount in check out","value":"13500 Discount in check out","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"14000 Discount in check out","value":"14000 Discount in check out","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"14500 Discount in check out","value":"14500 Discount in check out","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"15 % de rabais","value":"15 % de rabais","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"15% Direktabzug","value":"15% Direktabzug","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"15% DISCOUNT","value":"15% DISCOUNT","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"15% DISCOUNT IN CART","value":"15% DISCOUNT IN CART","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"15% discount in checkout","value":"15% discount in checkout","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"15% DTO EXTRA","value":"15% DTO EXTRA","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"15% extra discount on matching TV","value":"15% extra discount on matching TV","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"15% extra på parat produkt","value":"15% extra på parat produkt","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"15% Korting","value":"15% Korting","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"15% OFF","value":"15% OFF","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"15% off","value":"15% off","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"15% off at checkout","value":"15% off at checkout","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"15% SCONTO A CARRELLO","value":"15% SCONTO A CARRELLO","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"15% SLEVA V KOŠÍKU","value":"15% SLEVA V KOŠÍKU","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"150 CASHBACK","value":"150 CASHBACK","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"150 off at checkout","value":"150 off at checkout","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"150€ REMBOURSÉS","value":"150€ REMBOURSÉS","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"150€ Direktrabatt","value":"150€ Direktrabatt","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"150€ dto en el pago","value":"150€ dto en el pago","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"1500 Off","value":"1500 Off","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"15000 Discount in check out","value":"15000 Discount in check out","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"1500kr rabatt i kassan","value":"1500kr rabatt i kassan","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"15500 Discount in check out","value":"15500 Discount in check out","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"160€ CASHBACK","value":"160€ CASHBACK","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"16000 Discount in check out","value":"16000 Discount in check out","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"16500 Discount in check out","value":"16500 Discount in check out","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"17000 Discount in check out","value":"17000 Discount in check out","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"17500 Discount in check out","value":"17500 Discount in check out","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"180€ Direktrabatt","value":"180€ Direktrabatt","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"18000 Discount in check out","value":"18000 Discount in check out","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"18500 Discount in check out","value":"18500 Discount in check out","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"19% Discount","value":"19% Discount","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"19000 Discount in check out","value":"19000 Discount in check out","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"19500 Discount in check out","value":"19500 Discount in check out","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"2% off","value":"2% off","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"20 % de rabais","value":"20 % de rabais","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"20 % Korting","value":"20 % Korting","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"20 CASHBACK","value":"20 CASHBACK","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"20 off at checkout","value":"20 off at checkout","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"20% DISCOUNT","value":"20% DISCOUNT","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"20% DISCOUNT IN CART","value":"20% DISCOUNT IN CART","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"20% discount in checkout","value":"20% discount in checkout","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"20% OFF","value":"20% OFF","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"20% off","value":"20% off","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"20% off at checkout","value":"20% off at checkout","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"20% SLEVA V KOŠÍKU","value":"20% SLEVA V KOŠÍKU","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"20€ CASHBACK","value":"20€ CASHBACK","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"20€ Direktrabatt","value":"20€ Direktrabatt","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"200 CASHBACK","value":"200 CASHBACK","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"200 off at checkout","value":"200 off at checkout","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"200€ CASHBACK","value":"200€ CASHBACK","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"200€ REMBOURSÉS","value":"200€ REMBOURSÉS","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"200€ Direktrabatt","value":"200€ Direktrabatt","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"2000 Discount in check out","value":"2000 Discount in check out","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"2000 Off","value":"2000 Off","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"20000 Discount in check out","value":"20000 Discount in check out","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"25% DISCOUNT","value":"25% DISCOUNT","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"25% discount in checkout","value":"25% discount in checkout","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"25% OFF","value":"25% OFF","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"25% SLEVA V KOŠÍKU","value":"25% SLEVA V KOŠÍKU","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"250 CASHBACK","value":"250 CASHBACK","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"250 off at checkout","value":"250 off at checkout","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"250€ CASHBACK","value":"250€ CASHBACK","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"250€ REMBOURSÉS","value":"250€ REMBOURSÉS","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"250€ Direktrabatt","value":"250€ Direktrabatt","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"250€ dto en el pago","value":"250€ dto en el pago","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"2500 Discount in check out","value":"2500 Discount in check out","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"2500 Off","value":"2500 Off","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"270€ Direktrabatt","value":"270€ Direktrabatt","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"29% extra på parat produkt","value":"29% extra på parat produkt","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"30 CASHBACK","value":"30 CASHBACK","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"30 mesi Tasso 0%","value":"30 mesi Tasso 0%","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"30 off at checkout","value":"30 off at checkout","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"30% DISCOUNT","value":"30% DISCOUNT","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"30% discount in checkout","value":"30% discount in checkout","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"30% dto","value":"30% dto","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"30% OFF","value":"30% OFF","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"30% SLEVA V KOŠÍKU","value":"30% SLEVA V KOŠÍKU","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"30€ CASHBACK","value":"30€ CASHBACK","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"30€ Direktrabatt","value":"30€ Direktrabatt","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"30€ REMBOURSES","value":"30€ REMBOURSES","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"300 CASHBACK","value":"300 CASHBACK","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"300€ CASHBACK","value":"300€ CASHBACK","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"300€ REMBOURSÉS","value":"300€ REMBOURSÉS","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"300€ Direktrabatt","value":"300€ Direktrabatt","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"3000 Discount in check out","value":"3000 Discount in check out","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"3000 Off","value":"3000 Off","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"32% extra på parat produkt","value":"32% extra på parat produkt","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"35 % Korting","value":"35 % Korting","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"35% DISCOUNT","value":"35% DISCOUNT","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"35% discount in checkout","value":"35% discount in checkout","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"35% dto","value":"35% dto","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"35% OFF","value":"35% OFF","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"350€ CASHBACK","value":"350€ CASHBACK","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"350€ REMBOURSÉS","value":"350€ REMBOURSÉS","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"3500 Discount in check out","value":"3500 Discount in check out","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"3500 Off","value":"3500 Off","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"40 % Korting","value":"40 % Korting","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"40 CASHBACK","value":"40 CASHBACK","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"40 off at checkout","value":"40 off at checkout","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"40% DISCOUNT","value":"40% DISCOUNT","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"40% discount in checkout","value":"40% discount in checkout","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"40% extra på parat produkt","value":"40% extra på parat produkt","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"40% OFF","value":"40% OFF","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"40€ CASHBACK","value":"40€ CASHBACK","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"40€ Direktrabatt","value":"40€ Direktrabatt","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"40€ REMBOURSES","value":"40€ REMBOURSES","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"400 off at checkout","value":"400 off at checkout","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"400€ CASHBACK","value":"400€ CASHBACK","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"400€ REMBOURSÉS","value":"400€ REMBOURSÉS","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"400€ Direktrabatt","value":"400€ Direktrabatt","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"4000 Discount in check out","value":"4000 Discount in check out","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"4000 Off","value":"4000 Off","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"41% extra på parat produkt","value":"41% extra på parat produkt","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"45% DISCOUNT","value":"45% DISCOUNT","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"45% discount in checkout","value":"45% discount in checkout","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"45% OFF","value":"45% OFF","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"450€ CASHBACK","value":"450€ CASHBACK","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"450€ REMBOURSÉS","value":"450€ REMBOURSÉS","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"4500 Discount in check out","value":"4500 Discount in check out","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"4500 Off","value":"4500 Off","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"5% discount in checkout","value":"5% discount in checkout","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"5% DTO EXTRA","value":"5% DTO EXTRA","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"5% dto extra en carrito","value":"5% dto extra en carrito","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"5% Korting","value":"5% Korting","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"5% OFF","value":"5% OFF","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"5% off","value":"5% off","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"5% Off at checkout","value":"5% Off at checkout","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"5% SCONTO A CARRELLO","value":"5% SCONTO A CARRELLO","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"5% SLEVA V KOŠÍKU","value":"5% SLEVA V KOŠÍKU","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"50 CASHBACK","value":"50 CASHBACK","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"50% DISCOUNT","value":"50% DISCOUNT","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"50% discount in checkout","value":"50% discount in checkout","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"50% OFF","value":"50% OFF","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"50% SLEVA V KOŠÍKU","value":"50% SLEVA V KOŠÍKU","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"50€ CASHBACK","value":"50€ CASHBACK","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"50€ REMBOURSÉS","value":"50€ REMBOURSÉS","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"50€ Direktrabatt","value":"50€ Direktrabatt","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"500 CASHBACK","value":"500 CASHBACK","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"500 Off","value":"500 Off","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"500 off at checkout","value":"500 off at checkout","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"500€ CASHBACK","value":"500€ CASHBACK","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"500€ REMBOURSÉS","value":"500€ REMBOURSÉS","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"500€ Direktrabatt","value":"500€ Direktrabatt","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"5000 Discount in check out","value":"5000 Discount in check out","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"5000 Off","value":"5000 Off","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"500kr rabatt i kassan","value":"500kr rabatt i kassan","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"55% discount in checkout","value":"55% discount in checkout","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"55% OFF","value":"55% OFF","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"5500 Discount in check out","value":"5500 Discount in check out","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"60% discount in checkout","value":"60% discount in checkout","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"60% discount on Soundbar","value":"60% discount on Soundbar","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"60% OFF","value":"60% OFF","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"60€ Direktrabatt","value":"60€ Direktrabatt","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"600€ REMBOURSÉS","value":"600€ REMBOURSÉS","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"6000 Discount in check out","value":"6000 Discount in check out","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"65% OFF","value":"65% OFF","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"6500 Discount in check out","value":"6500 Discount in check out","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"70 CASHBACK","value":"70 CASHBACK","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"70% discount on Soundbar","value":"70% discount on Soundbar","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"70% OFF","value":"70% OFF","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"70€ CASHBACK","value":"70€ CASHBACK","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"70€ REMBOURSÉS","value":"70€ REMBOURSÉS","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"70€ Direktrabatt","value":"70€ Direktrabatt","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"700€ REMBOURSÉS","value":"700€ REMBOURSÉS","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"7000 Discount in check out","value":"7000 Discount in check out","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"75% OFF","value":"75% OFF","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"75€ CASHBACK","value":"75€ CASHBACK","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"7500 Discount in check out","value":"7500 Discount in check out","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"80% OFF","value":"80% OFF","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"80€ REMBOURSÉS","value":"80€ REMBOURSÉS","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"80€ Direktrabatt","value":"80€ Direktrabatt","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"800€ REMBOURSÉS","value":"800€ REMBOURSÉS","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"8000 Discount in check out","value":"8000 Discount in check out","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"85% OFF","value":"85% OFF","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"8500 Discount in check out","value":"8500 Discount in check out","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"90% discount on Soundbar","value":"90% discount on Soundbar","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"90% OFF","value":"90% OFF","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"900€ REMBOURSÉS","value":"900€ REMBOURSÉS","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"9000 Discount in check out","value":"9000 Discount in check out","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"9500 Discount in check out","value":"9500 Discount in check out","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Add Filter, Get 50% Off Filter","value":"Add Filter, Get 50% Off Filter","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Add Filter, Save 50% on Filter","value":"Add Filter, Save 50% on Filter","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Additional Discount 10%","value":"Additional Discount 10%","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Additional Discount 15%","value":"Additional Discount 15%","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Apply 10% off code at checkout","value":"Apply 10% off code at checkout","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Apply 20% off code at checkout","value":"Apply 20% off code at checkout","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Apply 5% off code at checkout","value":"Apply 5% off code at checkout","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Apply code at checkout for 10% off","value":"Apply code at checkout for 10% off","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Apply code at checkout for 20% off","value":"Apply code at checkout for 20% off","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Apply code at checkout for 5% off","value":"Apply code at checkout for 5% off","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Barre de son 1€","value":"Barre de son 1€","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Barre de son -15%","value":"Barre de son -15%","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Barre de son -20%","value":"Barre de son -20%","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Barre de son -25%","value":"Barre de son -25%","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Barre de son -30%","value":"Barre de son -30%","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Barre de son -35%","value":"Barre de son -35%","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Barre de son -40%","value":"Barre de son -40%","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Barre de son -45%","value":"Barre de son -45%","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Barre de son -50%","value":"Barre de son -50%","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Barre de son -60%","value":"Barre de son -60%","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Barre de son -70%","value":"Barre de son -70%","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Barre de son -80%","value":"Barre de son -80%","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Barre de son -90%","value":"Barre de son -90%","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Buy 2, Save 10%","value":"Buy 2, Save 10%","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Buy 2, Save 5%","value":"Buy 2, Save 5%","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"CASHBACK","value":"CASHBACK","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Cashback £1000","value":"Cashback £1000","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Cashback 10 000 Kč","value":"Cashback 10 000 Kč","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Cashback 10%","value":"Cashback 10%","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"CASHBACK 10%","value":"CASHBACK 10%","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"CASHBACK 100","value":"CASHBACK 100","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"CASHBACK 1000","value":"CASHBACK 1000","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Cashback 1000","value":"Cashback 1000","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Cashback 1000 Kč","value":"Cashback 1000 Kč","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"CASHBACK 1000€","value":"CASHBACK 1000€","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"CASHBACK 1050","value":"CASHBACK 1050","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Cashback 1100","value":"Cashback 1100","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Cashback 12 500 Kč","value":"Cashback 12 500 Kč","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"CASHBACK 120","value":"CASHBACK 120","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Cashback 1200","value":"Cashback 1200","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"CASHBACK 1200","value":"CASHBACK 1200","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Cashback 1250 Kč","value":"Cashback 1250 Kč","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Cashback 1300","value":"Cashback 1300","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"CASHBACK 1400","value":"CASHBACK 1400","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Cashback 15 000 Kč","value":"Cashback 15 000 Kč","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"CASHBACK 15%","value":"CASHBACK 15%","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Cashback 150","value":"Cashback 150","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Cashback 1500","value":"Cashback 1500","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Cashback 1500 Kč","value":"Cashback 1500 Kč","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Cashback 16 000 Kč","value":"Cashback 16 000 Kč","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"CASHBACK 1600","value":"CASHBACK 1600","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Cashback 17 500 Kč","value":"Cashback 17 500 Kč","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Cashback 1700","value":"Cashback 1700","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"CASHBACK 1800","value":"CASHBACK 1800","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Cashback 20 000 Kč","value":"Cashback 20 000 Kč","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"CASHBACK 20%","value":"CASHBACK 20%","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"CASHBACK 200","value":"CASHBACK 200","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"CASHBACK 2000","value":"CASHBACK 2000","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Cashback 2000 Kč","value":"Cashback 2000 Kč","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"CASHBACK 2200","value":"CASHBACK 2200","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"CASHBACK 2400","value":"CASHBACK 2400","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"CASHBACK 25","value":"CASHBACK 25","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Cashback 25 000 Kč","value":"Cashback 25 000 Kč","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"CASHBACK 25%","value":"CASHBACK 25%","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Cashback 250","value":"Cashback 250","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"CASHBACK 2500","value":"CASHBACK 2500","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Cashback 2500 Kč","value":"Cashback 2500 Kč","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"CASHBACK 2600","value":"CASHBACK 2600","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"CASHBACK 2800","value":"CASHBACK 2800","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Cashback 30 000 Kč","value":"Cashback 30 000 Kč","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"CASHBACK 30%","value":"CASHBACK 30%","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"CASHBACK 300","value":"CASHBACK 300","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"CASHBACK 3000","value":"CASHBACK 3000","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Cashback 3000 Kč","value":"Cashback 3000 Kč","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"CASHBACK 3200","value":"CASHBACK 3200","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"CASHBACK 3400","value":"CASHBACK 3400","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"CASHBACK 35%","value":"CASHBACK 35%","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Cashback 350","value":"Cashback 350","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"CASHBACK 3600","value":"CASHBACK 3600","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Cashback 3750 Kč","value":"Cashback 3750 Kč","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"CASHBACK 3800","value":"CASHBACK 3800","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"CASHBACK 40%","value":"CASHBACK 40%","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"CASHBACK 400","value":"CASHBACK 400","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"CASHBACK 4000","value":"CASHBACK 4000","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Cashback 4000 Kč","value":"Cashback 4000 Kč","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"CASHBACK 4200","value":"CASHBACK 4200","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"CASHBACK 4400","value":"CASHBACK 4400","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Cashback 450","value":"Cashback 450","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Cashback 4500 Kč","value":"Cashback 4500 Kč","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"CASHBACK 4600","value":"CASHBACK 4600","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"CASHBACK 4800","value":"CASHBACK 4800","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"CASHBACK 5%","value":"CASHBACK 5%","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Cashback 50 000 Kč","value":"Cashback 50 000 Kč","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"CASHBACK 500","value":"CASHBACK 500","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"CASHBACK 5000","value":"CASHBACK 5000","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Cashback 5000 Kč","value":"Cashback 5000 Kč","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Cashback 550","value":"Cashback 550","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"CASHBACK 60","value":"CASHBACK 60","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"CASHBACK 600","value":"CASHBACK 600","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Cashback 650","value":"Cashback 650","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Cashback 6500 Kč","value":"Cashback 6500 Kč","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"CASHBACK 700","value":"CASHBACK 700","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Cashback 7000","value":"Cashback 7000","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Cashback 7000 Kč","value":"Cashback 7000 Kč","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"CASHBACK 75","value":"CASHBACK 75","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Cashback 750","value":"Cashback 750","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Cashback 7500 Kč","value":"Cashback 7500 Kč","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"CASHBACK 800","value":"CASHBACK 800","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Cashback 8000 Kč","value":"Cashback 8000 Kč","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Cashback 850","value":"Cashback 850","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"CASHBACK 90","value":"CASHBACK 90","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"CASHBACK 900","value":"CASHBACK 900","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Cashback 950","value":"Cashback 950","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Clearance","value":"Clearance","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Dcto 12%","value":"Dcto 12%","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Dcto 15%","value":"Dcto 15%","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Dcto 2%","value":"Dcto 2%","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Dcto 20%","value":"Dcto 20%","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Dcto 5%","value":"Dcto 5%","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Descuento","value":"Descuento","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Direktabzug","value":"Direktabzug","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Discount at checkout","value":"Discount at checkout","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Discount code available at checkout","value":"Discount code available at checkout","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"DOUBLE YOUR CASHBACK","value":"DOUBLE YOUR CASHBACK","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Extra £40 off","value":"Extra £40 off","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Extra £50 off","value":"Extra £50 off","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Extra 10% off","value":"Extra 10% off","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"10% no Carrinho","value":"10% no Carrinho","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Extra 15% off","value":"Extra 15% off","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"15% no Carrinho","value":"15% no Carrinho","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Extra 20% off","value":"Extra 20% off","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"20% no Carrinho","value":"20% no Carrinho","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Extra 25% off","value":"Extra 25% off","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Extra 30% off","value":"Extra 30% off","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Extra 40% off","value":"Extra 40% off","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Extra discount at checkout","value":"Extra discount at checkout","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Extra Rabatt im Warenkorb","value":"Extra Rabatt im Warenkorb","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Get 10% extra for paired product","value":"Get 10% extra for paired product","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Instant Cashback 100","value":"Instant Cashback 100","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Instant Cashback 1000","value":"Instant Cashback 1000","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Instant Cashback 1050","value":"Instant Cashback 1050","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Instant Cashback 1100","value":"Instant Cashback 1100","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Instant Cashback 150","value":"Instant Cashback 150","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Instant Cashback 200","value":"Instant Cashback 200","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Instant Cashback 250","value":"Instant Cashback 250","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Instant Cashback 300","value":"Instant Cashback 300","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Instant Cashback 350","value":"Instant Cashback 350","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Instant Cashback 400","value":"Instant Cashback 400","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Instant Cashback 450","value":"Instant Cashback 450","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Instant Cashback 50","value":"Instant Cashback 50","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Instant Cashback 500","value":"Instant Cashback 500","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Instant Cashback 5000","value":"Instant Cashback 5000","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Instant Cashback 550","value":"Instant Cashback 550","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Instant Cashback 600","value":"Instant Cashback 600","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Instant Cashback 650","value":"Instant Cashback 650","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Instant Cashback 700","value":"Instant Cashback 700","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Instant Cashback 7000","value":"Instant Cashback 7000","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Instant Cashback 750","value":"Instant Cashback 750","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Instant Cashback 800","value":"Instant Cashback 800","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Instant Cashback 850","value":"Instant Cashback 850","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Instant Cashback 900","value":"Instant Cashback 900","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Instant Cashback 9000","value":"Instant Cashback 9000","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Instant Cashback 950","value":"Instant Cashback 950","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Lege 3 in den Warenkorb und zahl 2","value":"Lege 3 in den Warenkorb und zahl 2","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Max 10,000yen Cashback","value":"Max 10,000yen Cashback","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Max 15,000yen Cashback","value":"Max 15,000yen Cashback","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Max 20,000yen Cashback","value":"Max 20,000yen Cashback","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Max 25,000yen Cashback","value":"Max 25,000yen Cashback","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Max 30,000yen Cashback","value":"Max 30,000yen Cashback","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Max 35,000yen Cashback","value":"Max 35,000yen Cashback","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Max 5,000yen Cashback","value":"Max 5,000yen Cashback","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Max 50,000yen Cashback","value":"Max 50,000yen Cashback","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Oferta","value":"Oferta","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"OFFRE DE REMBOURSEMENT","value":"OFFRE DE REMBOURSEMENT","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"OLD TO NEW 10%","value":"OLD TO NEW 10%","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"OLD TO NEW 5%","value":"OLD TO NEW 5%","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Pack - 20%","value":"Pack - 20%","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Pack -15%","value":"Pack -15%","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Pack -25%","value":"Pack -25%","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Pack -30%","value":"Pack -30%","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Pack -35%","value":"Pack -35%","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Pack -40%","value":"Pack -40%","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Pack -45%","value":"Pack -45%","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Pack -50%","value":"Pack -50%","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"REPRISE 10%","value":"REPRISE 10%","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Reprise 10€","value":"Reprise 10€","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Reprise 100€","value":"Reprise 100€","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Reprise 125€","value":"Reprise 125€","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"REPRISE 15%","value":"REPRISE 15%","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Reprise 150€","value":"Reprise 150€","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Reprise 175€","value":"Reprise 175€","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"REPRISE 20%","value":"REPRISE 20%","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Reprise 20€","value":"Reprise 20€","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Reprise 200€","value":"Reprise 200€","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"REPRISE 25%","value":"REPRISE 25%","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Reprise 250€","value":"Reprise 250€","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"REPRISE 30%","value":"REPRISE 30%","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Reprise 30€","value":"Reprise 30€","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Reprise 300€","value":"Reprise 300€","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Reprise 350€","value":"Reprise 350€","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Reprise 40€","value":"Reprise 40€","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Reprise 400€","value":"Reprise 400€","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Reprise 450€","value":"Reprise 450€","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"REPRISE 5%","value":"REPRISE 5%","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Reprise 50€","value":"Reprise 50€","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Reprise 500€","value":"Reprise 500€","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Reprise 60€","value":"Reprise 60€","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Reprise 600€","value":"Reprise 600€","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Reprise 70€","value":"Reprise 70€","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Reprise 700€","value":"Reprise 700€","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Reprise 75€","value":"Reprise 75€","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Reprise 80€","value":"Reprise 80€","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Reprise 800€","value":"Reprise 800€","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Reprise 90€","value":"Reprise 90€","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Reprise 900€","value":"Reprise 900€","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Sale","value":"Sale","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Save £600","value":"Save £600","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"SLEVA 1 000 KČ V KOŠÍKU","value":"SLEVA 1 000 KČ V KOŠÍKU","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"SLEVA 1 500 KČ V KOŠÍKU","value":"SLEVA 1 500 KČ V KOŠÍKU","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"SLEVA 10%","value":"SLEVA 10%","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"SLEVA 15%","value":"SLEVA 15%","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"SLEVA 2 000 KČ V KOŠÍKU","value":"SLEVA 2 000 KČ V KOŠÍKU","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"SLEVA 2 500 KČ V KOŠÍKU","value":"SLEVA 2 500 KČ V KOŠÍKU","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"SLEVA 20%","value":"SLEVA 20%","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"SLEVA 25%","value":"SLEVA 25%","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"SLEVA 30%","value":"SLEVA 30%","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"SLEVA 35%","value":"SLEVA 35%","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"SLEVA 40%","value":"SLEVA 40%","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"SLEVA 5%","value":"SLEVA 5%","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"100€ extra Sconto","value":"100€ extra Sconto","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"100€ Trade In","value":"100€ Trade In","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"1000€ Trade In","value":"1000€ Trade In","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"150€ extra Sconto","value":"150€ extra Sconto","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"200€ extra Sconto","value":"200€ extra Sconto","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"200€ Trade In","value":"200€ Trade In","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"30€ extra Sconto","value":"30€ extra Sconto","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"300€ extra Sconto","value":"300€ extra Sconto","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"50€ extra Sconto","value":"50€ extra Sconto","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Cashback 100€","value":"Cashback 100€","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Cashback 200€","value":"Cashback 200€","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Cashback 300€","value":"Cashback 300€","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Cashback 400€","value":"Cashback 400€","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Cashback 50€","value":"Cashback 50€","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Cashback 500€","value":"Cashback 500€","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Cashback fino a 150€","value":"Cashback fino a 150€","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Cashback fino a 500€","value":"Cashback fino a 500€","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"10% al Checkout","value":"10% al Checkout","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"15% al Checkout","value":"15% al Checkout","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"20% al Checkout","value":"20% al Checkout","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"5% al Checkout","value":"5% al Checkout","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"TRADE IN","value":"TRADE IN","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Trade Up 100€","value":"Trade Up 100€","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Trade Up 150€","value":"Trade Up 150€","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Trade Up 200€","value":"Trade Up 200€","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Trade Up 250€","value":"Trade Up 250€","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Trade Up 300€","value":"Trade Up 300€","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Trade Up 50€","value":"Trade Up 50€","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Trade up","value":"Trade up","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Trade-In","value":"Trade-In","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Trade-in discount","value":"Trade-in discount","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Trade-up 1 000 kr","value":"Trade-up 1 000 kr","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Trade-up 2 000 kr","value":"Trade-up 2 000 kr","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Trade-up 3 000 kr","value":"Trade-up 3 000 kr","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Trade-up 4 000 kr","value":"Trade-up 4 000 kr","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Trade-up 5 000 kr","value":"Trade-up 5 000 kr","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Trade-up bonus 10 000Kč","value":"Trade-up bonus 10 000Kč","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Trade-up bonus 1000Kč","value":"Trade-up bonus 1000Kč","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Trade-up bonus 15 000Kč","value":"Trade-up bonus 15 000Kč","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Trade-up bonus 1500Kč","value":"Trade-up bonus 1500Kč","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Trade-up bonus 2000Kč","value":"Trade-up bonus 2000Kč","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Trade-up bonus 2500Kč","value":"Trade-up bonus 2500Kč","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Trade-up bonus 30 000Kč","value":"Trade-up bonus 30 000Kč","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Trade-up bonus 3000Kč","value":"Trade-up bonus 3000Kč","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Trade-up bonus 4000Kč","value":"Trade-up bonus 4000Kč","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Trade-up bonus 5000Kč","value":"Trade-up bonus 5000Kč","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Trade-up bonus 6000Kč","value":"Trade-up bonus 6000Kč","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Trade-up bonus 7000Kč","value":"Trade-up bonus 7000Kč","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Trade-up bonus 8000Kč","value":"Trade-up bonus 8000Kč","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Trade-up bonus 9000Kč","value":"Trade-up bonus 9000Kč","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Trade-Up for £100 off","value":"Trade-Up for £100 off","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Trade-Up for £125 off","value":"Trade-Up for £125 off","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Trade-Up for £150 off","value":"Trade-Up for £150 off","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Trade-Up for £200 off","value":"Trade-Up for £200 off","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Trade-Up for £250 off","value":"Trade-Up for £250 off","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Trade-Up for £300 off","value":"Trade-Up for £300 off","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Trade-Up for £350 off","value":"Trade-Up for £350 off","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Trade-Up for £400 off","value":"Trade-Up for £400 off","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Trade-Up for £50 off","value":"Trade-Up for £50 off","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Trade-Up for £500 off","value":"Trade-Up for £500 off","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Trade-Up for £70 off","value":"Trade-Up for £70 off","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Trade-Up for £75 off","value":"Trade-Up for £75 off","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Trade-Up for £80 off","value":"Trade-Up for £80 off","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Trade-Up for 30 off","value":"Trade-Up for 30 off","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Up to 25% Discount","value":"Up to 25% Discount","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Upgrade for 1 000 kr off","value":"Upgrade for 1 000 kr off","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Upgrade for 2 000 kr off","value":"Upgrade for 2 000 kr off","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Upgrade for 500 kr off","value":"Upgrade for 500 kr off","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"W SPRZEDAŻY","value":"W SPRZEDAŻY","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"استرجاع نقدي %10","value":"استرجاع نقدي %10","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"清貨促銷","value":"清貨促銷","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"£200 off at checkout","value":"£200 off at checkout","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"₹1000 Gift Voucher","value":"₹1000 Gift Voucher","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"₹1500 Gift Voucher","value":"₹1500 Gift Voucher","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"₹2000 Gift Voucher","value":"₹2000 Gift Voucher","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"₹3000 Gift Voucher","value":"₹3000 Gift Voucher","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"₹4000 Gift Voucher","value":"₹4000 Gift Voucher","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"₹500 Gift Voucher","value":"₹500 Gift Voucher","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"+ Play Mobil","value":"+ Play Mobil","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"inc.1an Zattoo Ulti.","value":"inc.1an Zattoo Ulti.","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"1.200TL Pluxee hediye çeki","value":"1.200TL Pluxee hediye çeki","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"1.800TL Pluxee hediye çeki","value":"1.800TL Pluxee hediye çeki","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"-10 000 FT KUPON","value":"-10 000 FT KUPON","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"10% Additional Off Using Code","value":"10% Additional Off Using Code","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"10% KUPON","value":"10% KUPON","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"10% off with code 24BTS10","value":"10% off with code 24BTS10","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"-100 000 FT KUPON","value":"-100 000 FT KUPON","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"100 Gift Card","value":"100 Gift Card","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"1000 TL Kupon Hediye","value":"1000 TL Kupon Hediye","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"11% KUPON","value":"11% KUPON","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"11.000 TL Yakıt Puan Hediyeli","value":"11.000 TL Yakıt Puan Hediyeli","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"110€ CASHBACK","value":"110€ CASHBACK","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"12 Months OSN+","value":"12 Months OSN+","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"-125 000 FT Coupon","value":"-125 000 FT Coupon","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"12M APPLE TV+","value":"12M APPLE TV+","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"13.000 TL Yakıt Puan Hediyeli","value":"13.000 TL Yakıt Puan Hediyeli","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"-15 000 FT KUPON","value":"-15 000 FT KUPON","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"15% KUPON","value":"15% KUPON","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"15.000 TL Yakıt Puan Hediyeli","value":"15.000 TL Yakıt Puan Hediyeli","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"-150 000 FT KUPON","value":"-150 000 FT KUPON","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"150€ CASHBACK","value":"150€ CASHBACK","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"2.400TL Pluxee hediye çeki","value":"2.400TL Pluxee hediye çeki","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"-20 000 FT KUPON","value":"-20 000 FT KUPON","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"20.000 TL Yakıt Puan Hediyeli","value":"20.000 TL Yakıt Puan Hediyeli","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"2000 TL Kupon Hediye","value":"2000 TL Kupon Hediye","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"-25 000 FT KUPON","value":"-25 000 FT KUPON","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"3 Meses de Apple Music","value":"3 Meses de Apple Music","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"3 Monate Apple TV+ inklusive","value":"3 Monate Apple TV+ inklusive","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"3 Months OSN+","value":"3 Months OSN+","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"-30 000 FT KUPON","value":"-30 000 FT KUPON","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"300.000 CLP de REGALO","value":"300.000 CLP de REGALO","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"3000 TL Kupon Hediye","value":"3000 TL Kupon Hediye","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"35.000 TL Yakıt Puan Hediyeli","value":"35.000 TL Yakıt Puan Hediyeli","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"3500 TL Kupon Hediye","value":"3500 TL Kupon Hediye","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"3M APPLE TV+","value":"3M APPLE TV+","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"-40 000 FT KUPON","value":"-40 000 FT KUPON","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"400.000 CLP de REGALO","value":"400.000 CLP de REGALO","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"4000 TL Kupon Hediye","value":"4000 TL Kupon Hediye","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"4500 TL Kupon Hediye","value":"4500 TL Kupon Hediye","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"-5 000 FT KUPON","value":"-5 000 FT KUPON","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"5% KUPON","value":"5% KUPON","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"5.000 TL Yakıt Puan Hediyeli","value":"5.000 TL Yakıt Puan Hediyeli","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"-50 000 FT KUPON","value":"-50 000 FT KUPON","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"50% off soundbar","value":"50% off soundbar","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"500 TL Kupon Hediye","value":"500 TL Kupon Hediye","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"500.000 CLP de REGALO","value":"500.000 CLP de REGALO","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"5000 TL Kupon Hediye","value":"5000 TL Kupon Hediye","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"5500 TL Kupon Hediye","value":"5500 TL Kupon Hediye","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"6 mths free tabs","value":"6 mths free tabs","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"-60 000 FT Coupon","value":"-60 000 FT Coupon","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"60天試用期","value":"60天試用期","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"600.000 CLP de REGALO","value":"600.000 CLP de REGALO","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"6000 TL Kupon Hediye","value":"6000 TL Kupon Hediye","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"6200 TL Kupon Hediye","value":"6200 TL Kupon Hediye","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"6M APPLE TV+","value":"6M APPLE TV+","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"7.000 TL Yakıt Puan Hediyeli","value":"7.000 TL Yakıt Puan Hediyeli","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"7000 TL Kupon Hediye","value":"7000 TL Kupon Hediye","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"-75 000 FT KUPON","value":"-75 000 FT KUPON","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"7500 TL Kupon Hediye","value":"7500 TL Kupon Hediye","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"8.000 TL Yakıt Puan Hediyeli","value":"8.000 TL Yakıt Puan Hediyeli","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"8000 TL Kupon Hediye","value":"8000 TL Kupon Hediye","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"-85 000 FT Coupon","value":"-85 000 FT Coupon","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"9000 TL Kupon Hediye","value":"9000 TL Kupon Hediye","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Abonnement cadeau","value":"Abonnement cadeau","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"ACCESSOIRE OFFERT","value":"ACCESSOIRE OFFERT","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Apple Music","value":"Apple Music","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"APPLE MUSIC","value":"APPLE MUSIC","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Apple Music Gratis","value":"Apple Music Gratis","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Apple TV+","value":"Apple TV+","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"applicable for gift campaign","value":"applicable for gift campaign","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"ARB10","value":"ARB10","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Avec le bon d\u0027achat Philips Hue","value":"Avec le bon d\u0027achat Philips Hue","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Barra valorada en 799€","value":"Barra valorada en 799€","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"BGS10","value":"BGS10","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"BGS20","value":"BGS20","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"BONUS FLEXI TOOL KIT","value":"BONUS FLEXI TOOL KIT","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Bonus Gift","value":"Bonus Gift","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"BONUS STACKING KIT","value":"BONUS STACKING KIT","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"BONUS Standbyme Speaker","value":"BONUS Standbyme Speaker","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"BONUS WATER FILTER","value":"BONUS WATER FILTER","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"BONUS WINE","value":"BONUS WINE","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"BONUS WOWCAST","value":"BONUS WOWCAST","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"BUY 2, SAVE 15%","value":"BUY 2, SAVE 15%","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"BUY 5, SAVE 20%","value":"BUY 5, SAVE 20%","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"CASHBACK 1100 PLN","value":"CASHBACK 1100 PLN","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"CASHBACK 125","value":"CASHBACK 125","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"CASHBACK 1300 PLN","value":"CASHBACK 1300 PLN","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"CASHBACK 150 PLN","value":"CASHBACK 150 PLN","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"CASHBACK 1700 PLN","value":"CASHBACK 1700 PLN","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"CASHBACK 1900 PLN","value":"CASHBACK 1900 PLN","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"CASHBACK 250 PLN","value":"CASHBACK 250 PLN","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"CASHBACK 350 PLN","value":"CASHBACK 350 PLN","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"CASHBACK 3500 PLN","value":"CASHBACK 3500 PLN","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"CASHBACK 450 PLN","value":"CASHBACK 450 PLN","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"CASHBACK 4500 PLN","value":"CASHBACK 4500 PLN","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"CASHBACK 50 PLN","value":"CASHBACK 50 PLN","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"CASHBACK 550 PLN","value":"CASHBACK 550 PLN","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"CASHBACK 650 PLN","value":"CASHBACK 650 PLN","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"CASHBACK 850 PLN","value":"CASHBACK 850 PLN","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"CASHBACK 950 PLN","value":"CASHBACK 950 PLN","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Claim your free gift","value":"Claim your free gift","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Claim your Free Gift*","value":"Claim your Free Gift*","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Combo","value":"Combo","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Compre e Ganhe","value":"Compre e Ganhe","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Comprend un cadeau","value":"Comprend un cadeau","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"CoTamara10","value":"CoTamara10","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"CoTamara15","value":"CoTamara15","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"CoTamara20","value":"CoTamara20","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"COUPON 10%","value":"COUPON 10%","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Cupom 10% OFF","value":"Cupom 10% OFF","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"COUPON 10€","value":"COUPON 10€","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"COUPON 100€","value":"COUPON 100€","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"COUPON 1000","value":"COUPON 1000","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"COUPON 1000€","value":"COUPON 1000€","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"COUPON 10000","value":"COUPON 10000","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"COUPON 100000","value":"COUPON 100000","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Coupon 110€","value":"Coupon 110€","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"COUPON 1100€","value":"COUPON 1100€","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"COUPON 12%","value":"COUPON 12%","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"COUPON 120€","value":"COUPON 120€","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Coupon 120€","value":"Coupon 120€","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"COUPON 1200€","value":"COUPON 1200€","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Coupon 130€","value":"Coupon 130€","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Coupon 140€","value":"Coupon 140€","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"COUPON 15%","value":"COUPON 15%","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Cupom 15% OFF","value":"Cupom 15% OFF","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"COUPON 150€","value":"COUPON 150€","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"COUPON 15000","value":"COUPON 15000","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Coupon 160€","value":"Coupon 160€","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Coupon 170€","value":"Coupon 170€","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Coupon 180€","value":"Coupon 180€","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Coupon 190€","value":"Coupon 190€","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"COUPON 20%","value":"COUPON 20%","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Cupom 20% OFF","value":"Cupom 20% OFF","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"COUPON 20€","value":"COUPON 20€","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"COUPON 200€","value":"COUPON 200€","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"COUPON 2000","value":"COUPON 2000","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"COUPON 20000","value":"COUPON 20000","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"COUPON 200000","value":"COUPON 200000","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Coupon 210€","value":"Coupon 210€","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Coupon 220€","value":"Coupon 220€","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Coupon 230€","value":"Coupon 230€","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Coupon 240€","value":"Coupon 240€","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"COUPON 25%","value":"COUPON 25%","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"COUPON 250€","value":"COUPON 250€","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"COUPON 25000","value":"COUPON 25000","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Coupon 260€","value":"Coupon 260€","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Coupon 270€","value":"Coupon 270€","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Coupon 280€","value":"Coupon 280€","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Coupon 290€","value":"Coupon 290€","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"COUPON 30%","value":"COUPON 30%","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"COUPON 30€","value":"COUPON 30€","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"COUPON 300€","value":"COUPON 300€","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"COUPON 3000","value":"COUPON 3000","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"COUPON 30000","value":"COUPON 30000","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Coupon 310€","value":"Coupon 310€","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Coupon 320€","value":"Coupon 320€","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Coupon 330€","value":"Coupon 330€","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Coupon 340€","value":"Coupon 340€","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"COUPON 35%","value":"COUPON 35%","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"COUPON 350€","value":"COUPON 350€","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Coupon 360€","value":"Coupon 360€","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Coupon 370€","value":"Coupon 370€","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Coupon 380€","value":"Coupon 380€","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Coupon 390€","value":"Coupon 390€","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"COUPON 40%","value":"COUPON 40%","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"COUPON 40€","value":"COUPON 40€","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"COUPON 400€","value":"COUPON 400€","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"COUPON 4000","value":"COUPON 4000","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"COUPON 40000","value":"COUPON 40000","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Coupon 410€","value":"Coupon 410€","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Coupon 420€","value":"Coupon 420€","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Coupon 430€","value":"Coupon 430€","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Coupon 440€","value":"Coupon 440€","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"COUPON 45%","value":"COUPON 45%","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"COUPON 450€","value":"COUPON 450€","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Coupon 460€","value":"Coupon 460€","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Coupon 470€","value":"Coupon 470€","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Coupon 480€","value":"Coupon 480€","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Coupon 490€","value":"Coupon 490€","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"COUPON 5%","value":"COUPON 5%","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"COUPON 50%","value":"COUPON 50%","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"COUPON 50€","value":"COUPON 50€","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"COUPON 500€","value":"COUPON 500€","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"COUPON 5000","value":"COUPON 5000","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"COUPON 50000","value":"COUPON 50000","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Coupon 510€","value":"Coupon 510€","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Coupon 520€","value":"Coupon 520€","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Coupon 530€","value":"Coupon 530€","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Coupon 540€","value":"Coupon 540€","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"COUPON 55%","value":"COUPON 55%","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"COUPON 550€","value":"COUPON 550€","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"COUPON 55000","value":"COUPON 55000","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Coupon 560€","value":"Coupon 560€","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Coupon 570€","value":"Coupon 570€","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Coupon 580€","value":"Coupon 580€","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Coupon 590€","value":"Coupon 590€","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"COUPON 60%","value":"COUPON 60%","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"COUPON 60€","value":"COUPON 60€","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"COUPON 600€","value":"COUPON 600€","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"COUPON 6000","value":"COUPON 6000","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Coupon 610€","value":"Coupon 610€","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Coupon 620€","value":"Coupon 620€","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Coupon 630€","value":"Coupon 630€","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Coupon 640€","value":"Coupon 640€","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"COUPON 65%","value":"COUPON 65%","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"COUPON 650€","value":"COUPON 650€","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Coupon 660€","value":"Coupon 660€","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Coupon 670€","value":"Coupon 670€","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Coupon 680€","value":"Coupon 680€","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Coupon 690€","value":"Coupon 690€","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"COUPON 70%","value":"COUPON 70%","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"COUPON 70€","value":"COUPON 70€","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"COUPON 700€","value":"COUPON 700€","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"COUPON 7000","value":"COUPON 7000","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Coupon 710€","value":"Coupon 710€","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Coupon 720€","value":"Coupon 720€","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Coupon 730€","value":"Coupon 730€","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Coupon 740€","value":"Coupon 740€","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"COUPON 75%","value":"COUPON 75%","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"COUPON 750€","value":"COUPON 750€","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Coupon 760€","value":"Coupon 760€","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Coupon 770€","value":"Coupon 770€","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Coupon 780€","value":"Coupon 780€","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Coupon 790€","value":"Coupon 790€","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"COUPON 80%","value":"COUPON 80%","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"COUPON 80€","value":"COUPON 80€","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"COUPON 800€","value":"COUPON 800€","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"COUPON 8000","value":"COUPON 8000","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Coupon 810€","value":"Coupon 810€","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Coupon 820€","value":"Coupon 820€","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Coupon 830€","value":"Coupon 830€","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Coupon 840€","value":"Coupon 840€","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"COUPON 850€","value":"COUPON 850€","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Coupon 860€","value":"Coupon 860€","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Coupon 870€","value":"Coupon 870€","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Coupon 880€","value":"Coupon 880€","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Coupon 890€","value":"Coupon 890€","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"COUPON 90€","value":"COUPON 90€","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"COUPON 900€","value":"COUPON 900€","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"COUPON 9000","value":"COUPON 9000","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Coupon 910€","value":"Coupon 910€","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Coupon 920€","value":"Coupon 920€","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Coupon 930€","value":"Coupon 930€","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Coupon 940€","value":"Coupon 940€","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"COUPON 950€","value":"COUPON 950€","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Coupon 960€","value":"Coupon 960€","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Coupon 970€","value":"Coupon 970€","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Coupon 980€","value":"Coupon 980€","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Coupon 990€","value":"Coupon 990€","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Coupon Available","value":"Coupon Available","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"CUPOM DISPONÍVEL","value":"CUPOM DISPONÍVEL","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"CUPÓN 200€","value":"CUPÓN 200€","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"CUPÓN EXTRA","value":"CUPÓN EXTRA","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Descuento TV + barra","value":"Descuento TV + barra","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Disponible con cupón","value":"Disponible con cupón","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"DRUHÝ ZA 1/2","value":"DRUHÝ ZA 1/2","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Exclusive Gift","value":"Exclusive Gift","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Exclusive Kit","value":"Exclusive Kit","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Exclusive Offer","value":"Exclusive Offer","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Exclusive Voucher","value":"Exclusive Voucher","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Fletcher Hotel Deal","value":"Fletcher Hotel Deal","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"FREE ACCESSORY","value":"FREE ACCESSORY","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Free Accessory","value":"Free Accessory","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Free Amazon Prime Video","value":"Free Amazon Prime Video","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"FREE APPLE TV+","value":"FREE APPLE TV+","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"FREE BRACKET","value":"FREE BRACKET","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"FREE Detergent","value":"FREE Detergent","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Free Dust Bag Included","value":"Free Dust Bag Included","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Free Fairy Detergent","value":"Free Fairy Detergent","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"FREE Filter","value":"FREE Filter","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"FREE GIFT","value":"FREE GIFT","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"FREE Microwave","value":"FREE Microwave","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Free Mop Head Included","value":"Free Mop Head Included","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"FREE PACKAGING DISPOSAL","value":"FREE PACKAGING DISPOSAL","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Free Pedestal","value":"Free Pedestal","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Monitor +View Gratis","value":"Monitor +View Gratis","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"FREE RETURN","value":"FREE RETURN","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"FREE SHAHID 12M","value":"FREE SHAHID 12M","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"FREE SHAHID 3M","value":"FREE SHAHID 3M","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"FREE SHAHID 6M","value":"FREE SHAHID 6M","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"FRETE GRÁTIS","value":"FRETE GRÁTIS","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Free Soundbar","value":"Free soundbar","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"FREE SOUNDBAR","value":"FREE SOUNDBAR","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Free soundbar - £1699","value":"Free soundbar - £1699","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Free soundbar - £199","value":"Free soundbar - £199","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Free soundbar - £249","value":"Free soundbar - £249","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Free soundbar - £299","value":"Free soundbar - £299","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Free soundbar - £399","value":"Free soundbar - £399","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Free soundbar - £699","value":"Free soundbar - £699","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Free soundbar - £799","value":"Free soundbar - £799","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Free soundbar - £899","value":"Free soundbar - £899","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Free soundbar - £929","value":"Free soundbar - £929","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Free soundbar - £999","value":"Free soundbar - £999","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Barra de Sonido gratis","value":"Barra de Sonido gratis","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Free speaker - £129","value":"Free speaker - £129","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Free speaker - £169","value":"Free speaker - £169","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Free speaker - £199","value":"Free speaker - £199","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"FREE SPEAKR","value":"FREE SPEAKR","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Free Stainless Steel Bottle","value":"Free Stainless Steel Bottle","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Free Stand \u0026 Sleeve","value":"Free Stand \u0026 Sleeve","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"FREE STARZPLAY","value":"FREE STARZPLAY","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"FREE TV","value":"FREE TV","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Free Wall Mount Bracket Included","value":"Free wall mount bracket ","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Free Water Filter","value":"Free water filter","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Free with LG G2 TV","value":"Free with LG G2 TV","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Free XO3","value":"Free XO3","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Free XO3 Speaker","value":"Free XO3 speaker","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Get $100 prepaid card","value":"Get $100 prepaid card","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Get $100 Prepaid Card*","value":"Get $100 Prepaid Card*","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Get $1000 prepaid card","value":"Get $1000 prepaid card","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Get $1000 Prepaid Card*","value":"Get $1000 Prepaid Card*","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Get $1200 prepaid card","value":"Get $1200 prepaid card","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Get $1200 Prepaid Card*","value":"Get $1200 Prepaid Card*","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Get $150 prepaid card","value":"Get $150 prepaid card","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Get $150 Prepaid Card*","value":"Get $150 Prepaid Card*","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Get $200 prepaid card","value":"Get $200 prepaid card","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Get $200 Prepaid Card*","value":"Get $200 Prepaid Card*","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Get $300 prepaid card","value":"Get $300 prepaid card","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Get $300 Prepaid Card*","value":"Get $300 Prepaid Card*","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Get $400 prepaid card","value":"Get $400 prepaid card","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Get $400 Prepaid Card*","value":"Get $400 Prepaid Card*","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Get $500 Prepaid Card*","value":"Get $500 Prepaid Card*","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Get $600 prepaid card","value":"Get $600 prepaid card","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Get $600 Prepaid Card*","value":"Get $600 Prepaid Card*","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Get $800 prepaid card","value":"Get $800 prepaid card","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Get $800 Prepaid Card*","value":"Get $800 Prepaid Card*","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"gift campaign","value":"gift campaign","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Gift with Purchase","value":"Gift with Purchase","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Gratis magnetron","value":"Gratis magnetron","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"INCLUDES A GIFT","value":"INCLUDES A GIFT","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Incluidos 3 meses de Apple Music","value":"Incluidos 3 meses de Apple Music","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Incluye regalo","value":"Incluye regalo","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Ink.1Jahr Zatto Ulti.","value":"Ink.1Jahr Zatto Ulti.","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Inkl. 1 Jahr Zattoo Ultimate","value":"Inkl. 1 Jahr Zattoo Ultimate","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Instalación gratis","value":"Instalación gratis","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Kit Esclusivo","value":"Kit Esclusivo","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"KUPON 1100 PLN","value":"KUPON 1100 PLN","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"KUPON 1200 PLN","value":"KUPON 1200 PLN","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"KUPON 1400 PLN","value":"KUPON 1400 PLN","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"KUPON 1600 PLN","value":"KUPON 1600 PLN","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"KUPON 1700 PLN","value":"KUPON 1700 PLN","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"KUPON 1900 PLN","value":"KUPON 1900 PLN","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"KUPON 3000 PLN","value":"KUPON 3000 PLN","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"KUPON 3500 PLN","value":"KUPON 3500 PLN","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"KUPON 450 PLN","value":"KUPON 450 PLN","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"KUPON 4500 PLN","value":"KUPON 4500 PLN","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"KUPON 550 PLN","value":"KUPON 550 PLN","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"KUPON 650 PLN","value":"KUPON 650 PLN","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"KUPON 750 PLN","value":"KUPON 750 PLN","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"KUPON 850 PLN","value":"KUPON 850 PLN","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"KUPON 900 PLN","value":"KUPON 900 PLN","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"KUPON 950 PLN","value":"KUPON 950 PLN","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Pontos Livelo","value":"Pontos Livelo","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"MICRÓFONO GRATIS","value":"MICRÓFONO GRATIS","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Microwave offer","value":"Microwave offer","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Mit Philips Hue Gutschein","value":"Mit Philips Hue Gutschein","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Monitor-TV de regalo","value":"Monitor-TV de regalo","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Obsequio Trípode","value":"Obsequio Trípode","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Oferta Especial","value":"Oferta Especial","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"OFFER","value":"OFFER","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"OFFRE APPLE TV+","value":"OFFRE APPLE TV+","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"OFFRE DISNEY+","value":"OFFRE DISNEY+","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"OFFRE NETFLIX","value":"OFFRE NETFLIX","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Quà Tặng","value":"Quà Tặng","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"RECEPTION10","value":"RECEPTION10","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Recibe 3 meses de Apple Music","value":"Recibe 3 meses de Apple Music","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Recibe obsequio","value":"Recibe obsequio","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Redemption","value":"Redemption","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Regalo en compra","value":"Regalo en compra","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"REGALO MONITOR 24GS50F-B","value":"REGALO MONITOR 24GS50F-B","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"REGALO MONITOR 27GS75Q-B","value":"REGALO MONITOR 27GS75Q-B","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"REGALO NATULIM","value":"REGALO NATULIM","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Regalo Natulium","value":"Regalo Natulium","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Set cocina","value":"Set cocina","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"SOUNDBAR DEAL","value":"SOUNDBAR DEAL","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Soundbar offer","value":"Soundbar offer","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Soundbar offer \u0026 Bracket inc.","value":"Soundbar offer \u0026 Bracket inc.","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Special Coupon","value":"Special Coupon","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Special Voucher","value":"Special Voucher","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Subscription Gift","value":"Subscription Gift","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"10% coupon","value":"10% coupon","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Extra garanzia","value":"Extra garanzia","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Premio in regalo","value":"Premio in regalo","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Promo Apple TV+","value":"Promo Apple TV+","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"送禮首選","value":"送禮首選","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"TV 32\" de regalo","value":"TV 32\" de regalo","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"TV 43\" de regalo","value":"TV 43\" de regalo","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"TV 48\" de regalo","value":"TV 48\" de regalo","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Up to 200€ Voucher","value":"Up to 200€ Voucher","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Use code Alinma10","value":"Use code Alinma10","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Use code ARB10","value":"Use code ARB10","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Use code Bank10","value":"Use code Bank10","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Use Code Big10","value":"Use Code Big10","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Use Code Big15","value":"Use Code Big15","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Use Code Eid10","value":"Use Code Eid10","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Use code L10","value":"Use code L10","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"USE CODE LG10","value":"USE CODE LG10","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"USE CODE LG15","value":"USE CODE LG15","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"USE CODE LG20","value":"USE CODE LG20","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"USE CODE LG25","value":"USE CODE LG25","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"USE CODE LG30","value":"USE CODE LG30","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"USE CODE LG35","value":"USE CODE LG35","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"USE CODE LG40","value":"USE CODE LG40","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"USE CODE LG45","value":"USE CODE LG45","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"USE CODE LG50","value":"USE CODE LG50","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Use code Mada10","value":"Use code Mada10","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Use Code Mega10","value":"Use Code Mega10","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Use Code ND10","value":"Use Code ND10","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Use Code ND15","value":"Use Code ND15","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Use code Riyadh10","value":"Use code Riyadh10","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Use Code SALE10","value":"Use Code SALE10","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Use Code SALE15","value":"Use Code SALE15","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Use Code Summer10","value":"Use Code Summer10","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Use code Tamara10","value":"Use code Tamara10","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Use code Visa10","value":"Use code Visa10","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Use Code WF10","value":"Use Code WF10","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Use Code WF15","value":"Use Code WF15","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Use code: LGGAMINGWEEK10","value":"Use code: LGGAMINGWEEK10","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Use code: LGGAMINGWEEK20","value":"Use code: LGGAMINGWEEK20","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Use code: LGGAMINGWEEK5","value":"Use code: LGGAMINGWEEK5","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"VISA10","value":"VISA10","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Voucher Code","value":"Voucher Code","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Voucher de R$1000","value":"Voucher de R$1000","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Voucher de R$15.000","value":"Voucher de R$15.000","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Voucher de R$200","value":"Voucher de R$200","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Voucher de R$2000","value":"Voucher de R$2000","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Voucher de R$250","value":"Voucher de R$250","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Voucher de R$3000","value":"Voucher de R$3000","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Voucher de R$500","value":"Voucher de R$500","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Voucher de R$5000","value":"Voucher de R$5000","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Welcome Voucher","value":"Welcome Voucher","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"xboom Bounce Offer","value":"xboom Bounce Offer","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"XBOOM Go de regalo","value":"XBOOM Go de regalo","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Xbox Deal","value":"Xbox Deal","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"YAKIT PUAN HEDİYELİ","value":"YAKIT PUAN HEDİYELİ","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"مجانا مسحوق فيري","value":"مجانا مسحوق فيري","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"優惠券額外折扣","value":"優惠券額外折扣","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"組合優惠","value":"組合優惠","a":0},{"commonCodeGroupName":"PromotionTag Service","sortNo":"0","code":"$1 Extended Warranty","value":"$1 Extended Warranty","a":0},{"commonCodeGroupName":"PromotionTag Service","sortNo":"0","code":"+1 Año Extra Garantía a S/1","value":"+1 Año Extra Garantía a S/1","a":0},{"commonCodeGroupName":"PromotionTag Service","sortNo":"0","code":"3 MONTHS EXTRA WARRANTY","value":"3 MONTHS EXTRA WARRANTY","a":0},{"commonCodeGroupName":"PromotionTag Service","sortNo":"0","code":"5 year warranty","value":"5 year warranty","a":0},{"commonCodeGroupName":"PromotionTag Service","sortNo":"0","code":"面板五年保固","value":"面板五年保固","a":0},{"commonCodeGroupName":"PromotionTag Service","sortNo":"0","code":"DARMOWA GWARANCJA","value":"DARMOWA GWARANCJA","a":0},{"commonCodeGroupName":"PromotionTag Service","sortNo":"0","code":"Discounted Warranty","value":"Discounted Warranty","a":0},{"commonCodeGroupName":"PromotionTag Service","sortNo":"0","code":"Extension Garantie offerte","value":"Extension Garantie offerte","a":0},{"commonCodeGroupName":"PromotionTag Service","sortNo":"0","code":"Free Cleaning","value":"Free Cleaning","a":0},{"commonCodeGroupName":"PromotionTag Service","sortNo":"0","code":"Free Extended Warranty","value":"Free Extended Warranty","a":0},{"commonCodeGroupName":"PromotionTag Service","sortNo":"0","code":"FREE WARRANTY EXTENSION","value":"FREE WARRANTY EXTENSION","a":0},{"commonCodeGroupName":"PromotionTag Service","sortNo":"0","code":"Garantia de por vida","value":"Garantia de por vida","a":0},{"commonCodeGroupName":"PromotionTag Service","sortNo":"0","code":"Garantía de por vida¹ en el compresor","value":"Garantía de por vida¹ en el compresor","a":0},{"commonCodeGroupName":"PromotionTag Service","sortNo":"0","code":"Garantía de por vida¹ en el motor","value":"Garantía de por vida¹ en el motor","a":0},{"commonCodeGroupName":"PromotionTag Service","sortNo":"0","code":"Garantía de por vida¹ motor/compresor","value":"Garantía de por vida¹ motor/compresor","a":0},{"commonCodeGroupName":"PromotionTag Service","sortNo":"0","code":"Garantía Semi Profesional","value":"Garantía Semi Profesional","a":0},{"commonCodeGroupName":"PromotionTag Service","sortNo":"0","code":"Garantie","value":"Garantie","a":0},{"commonCodeGroupName":"PromotionTag Service","sortNo":"0","code":"Garantie 2 ans","value":"Garantie 2 ans","a":0},{"commonCodeGroupName":"PromotionTag Service","sortNo":"0","code":"Garantie 3 ans","value":"Garantie 3 ans","a":0},{"commonCodeGroupName":"PromotionTag Service","sortNo":"0","code":"Garantie 3 ans offerte","value":"Garantie 3 ans offerte","a":0},{"commonCodeGroupName":"PromotionTag Service","sortNo":"0","code":"Garantie 4 ans","value":"Garantie 4 ans","a":0},{"commonCodeGroupName":"PromotionTag Service","sortNo":"0","code":"Garantie 4 ans offerte","value":"Garantie 4 ans offerte","a":0},{"commonCodeGroupName":"PromotionTag Service","sortNo":"0","code":"Garantie 5 ans","value":"Garantie 5 ans","a":0},{"commonCodeGroupName":"PromotionTag Service","sortNo":"0","code":"Garantie 5 ans offerte","value":"Garantie 5 ans offerte","a":0},{"commonCodeGroupName":"PromotionTag Service","sortNo":"0","code":"Garantie offerte","value":"Garantie offerte","a":0},{"commonCodeGroupName":"PromotionTag Service","sortNo":"0","code":"HA warranty","value":"HA warranty","a":0},{"commonCodeGroupName":"PromotionTag Service","sortNo":"0","code":"LG Best Care","value":"LG Best Care","a":0},{"commonCodeGroupName":"PromotionTag Service","sortNo":"0","code":"Member Offer 4YRS STANDARD WARRANTY","value":"Member Offer 4YRS STANDARD WARRANTY","a":0},{"commonCodeGroupName":"PromotionTag Service","sortNo":"0","code":"Premier Care","value":"Premier Care","a":0},{"commonCodeGroupName":"PromotionTag Service","sortNo":"0","code":"PREMIUM","value":"PREMIUM","a":0},{"commonCodeGroupName":"PromotionTag Service","sortNo":"0","code":"Premium","value":"Premium","a":0},{"commonCodeGroupName":"PromotionTag Service","sortNo":"0","code":"Produit offert","value":"Produit offert","a":0},{"commonCodeGroupName":"PromotionTag Service","sortNo":"0","code":"6 mesi extra garanzia","value":"6 mesi extra garanzia","a":0},{"commonCodeGroupName":"PromotionTag Service","sortNo":"0","code":"Warranty 3 year","value":"Warranty 3 year","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"£300 off final day","value":"£300 off final day","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"1+1","value":"1+1","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"11.11 Sale","value":"11.11 Sale","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"24h Time Deal","value":"24h Time Deal","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"30天試用","value":"30天試用","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Aanbieding","value":"Aanbieding","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Add on offer","value":"Add on offer","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Desconto no Carrinho","value":"Desconto no Carrinho","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Advent Offer","value":"Advent Offer","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Air Conditioners Combo Offer","value":"Air Conditioners Combo Offer","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"All-in-One Deal","value":"All-in-One Deal","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"AMC Bundle Offer","value":"AMC Bundle Offer","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Anniversary Sale","value":"Anniversary Sale","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Apenas Online","value":"Apenas Online","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Audio Combo Offer","value":"Audio Combo Offer","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"AUTUMN OFFERS","value":"AUTUMN OFFERS","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Autumn Sale","value":"Autumn Sale","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"BACK TO SCHOOL","value":"BACK TO SCHOOL","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Begränsat erbjudande","value":"Begränsat erbjudande","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Big Big Deal","value":"Big Big Deal","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Birthday Sale","value":"Birthday Sale","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"BLACK EDITION OFFER","value":"BLACK EDITION OFFER","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Black Friday","value":"Black Friday","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Black Friday Offer","value":"Black Friday Offer","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"BLACK FRIDAY OFFER","value":"BLACK FRIDAY OFFER","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"BLACK FRIDAY","value":"BLACK FRIDAY","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"BLACK NOVEMBER","value":"BLACK NOVEMBER","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"BLACK WEEKEND","value":"BLACK WEEKEND","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"BLACKFRIDAY10","value":"BLACKFRIDAY10","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"BLACKFRIDAY5","value":"BLACKFRIDAY5","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Boxing Day Offer","value":"Boxing Day Offer","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Boxing week in July","value":"Boxing week in July","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Boxing Week in July","value":"Boxing Week in July","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"BOXING WEEK OFFER","value":"BOXING WEEK OFFER","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Boxing Week Offer","value":"Boxing Week Offer","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Bronze","value":"Bronze","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Bronze*","value":"Bronze*","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Buen Fin LG","value":"Buen Fin LG","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Bulk packaging","value":"Bulk packaging","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Bundelkorting","value":"Bundelkorting","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Bundle","value":"Bundle","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"BUNDLE","value":"BUNDLE","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Bundle \u0026 Benefit","value":"Bundle \u0026 Benefit","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Bundle \u0026 Save","value":"Bundle \u0026 Save","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Bundle Deal","value":"Bundle Deal","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Bundle of Joy","value":"Bundle of Joy","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"COMBO","value":"COMBO","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Bundle offer","value":"Bundle offer","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"買一送一","value":"買一送一","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"BUY 1 GET 1","value":"BUY 1 GET 1","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Buy more, save more","value":"Buy more, save more","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Buy More, Save More","value":"Buy More, Save More","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"BUY WITH BEST CARE- AMC","value":"BUY WITH BEST CARE- AMC","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"CART DISCOUNT","value":"CART DISCOUNT","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Christmas Offer","value":"Christmas Offer","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Combo Bonanza","value":"Combo Bonanza","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Combo Offer","value":"Combo Offer","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Combo Pack","value":"Combo Pack","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Compre Junto e Economize","value":"Compre Junto e Economize","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"CYBER","value":"CYBER","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Cyber day","value":"Cyber day","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Cyber Day","value":"Cyber Day","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"CYBER MONDAY","value":"CYBER MONDAY","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"CYBER WEEK","value":"CYBER WEEK","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Cyberweek","value":"Cyberweek","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Oferta do Dia","value":"Oferta do Dia","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Deal Days","value":"Deal Days","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Dernière chance","value":"Dernière chance","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Design Days","value":"Design Days","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Dishwasher Combo Offer","value":"Dishwasher Combo Offer","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Easter Sale","value":"Easter Sale","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Education program","value":"Education program","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Eid Offers","value":"Eid Offers","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Eleito Produto do Ano","value":"Eleito Produto do Ano","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Ensembles de cuisine","value":"Ensembles de cuisine","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"EOFY Sale","value":"EOFY Sale","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Essence White","value":"Essence White","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Essence White*","value":"Essence White*","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Essential Combo Pack","value":"Essential Combo Pack","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Exclusive Bundle Offer","value":"Exclusive Bundle Offer","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Exclusive Deal","value":"Exclusive Deal","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Exclusivo Retail","value":"Exclusivo Retail","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Exclusivos","value":"Exclusivos","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Extra 5% Flash","value":"Extra 5% Flash","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Father\u0027s Day Offer","value":"Father\u0027s Day Offer","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Festival Combo Offer","value":"Festival Combo Offer","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"旗艦商品","value":"旗艦商品","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Flash Hours","value":"Flash Hours","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Oferta Relâmpago","value":"Oferta Relâmpago","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"快閃優惠","value":"快閃優惠","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Flash Sale","value":"Flash Sale","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"OFERTA RELÂMPAGO","value":"OFERTA RELÂMPAGO","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"FLASHSALE 1000","value":"FLASHSALE 1000","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"FLASHSALE 1200","value":"FLASHSALE 1200","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"FLASHSALE 184","value":"FLASHSALE 184","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"FLASHSALE 250","value":"FLASHSALE 250","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"FLASHSALE 300","value":"FLASHSALE 300","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"FLASHSALE 350","value":"FLASHSALE 350","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"FLASHSALE 500","value":"FLASHSALE 500","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"FLASHSALE 600","value":"FLASHSALE 600","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"FLASHSALE 700","value":"FLASHSALE 700","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Free Return","value":"Free Return","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Gaming Days","value":"Gaming Days","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Gaming Weeks","value":"Gaming Weeks","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Genius Days","value":"Genius Days","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Gold","value":"Gold","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Gold*","value":"Gold*","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"gram \u0026 +view Bundle","value":"gram \u0026 +view Bundle","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"gram Book Bundle","value":"gram Book Bundle","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"GST Change 28% to 18%","value":"GST Change 28% to 18%","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"GST Reduction 28% to 18%","value":"GST Reduction 28% to 18%","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"GST Savings 28% to 18%","value":"GST Savings 28% to 18%","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Holiday Offer","value":"Holiday Offer","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"HOLIDAY OFFER","value":"HOLIDAY OFFER","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Holiday Offers","value":"Holiday Offers","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Hot Deal","value":"Hot Deal","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Hot Offer","value":"Hot Offer","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Hot Pick","value":"Hot Pick","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"HOT SALE","value":"HOT SALE","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"IFA Offer","value":"IFA Offer","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"PROMOÇÃO","value":"PROMOÇÃO","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"In-cart Promotion*","value":"In-cart Promotion*","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"In-Cart Promotion*","value":"In-Cart Promotion*","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Installation Discount","value":"Installation Discount","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Kitchen Package","value":"Kitchen Package","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Laatste kans","value":"Laatste kans","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"LABOR DAY OFFER","value":"LABOR DAY OFFER","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Labour Day Offer","value":"Labour Day Offer","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"LAST CHANCE","value":"LAST CHANCE","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"LAST PIECE","value":"LAST PIECE","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Launch offer","value":"Launch offer","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"LG RENEWED","value":"LG RENEWED","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"LG WEBÁRUHÁZ AJÁNLATA","value":"LG WEBÁRUHÁZ AJÁNLATA","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Life Genius","value":"Life Genius","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Life\u0027s Good Celebration","value":"Life\u0027s Good Celebration","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Limitado","value":"Limitado","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Limited Deal","value":"Limited Deal","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Limited quantity","value":"Limited quantity","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Limited Time Bundle","value":"Limited Time Bundle","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"LIMITED TIME DEAL","value":"LIMITED TIME DEAL","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Limited time offer","value":"Limited time offer","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Limited-time Deal","value":"Limited-time Deal","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Limited-Time Deal","value":"Limited-Time Deal","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"LINE購物加碼回饋","value":"LINE購物加碼回饋","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Liveshopping","value":"Liveshopping","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Llévate más","value":"Llévate más","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Mamá LG","value":"Mamá LG","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Más ahorro","value":"Más ahorro","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Mega Bundle","value":"Mega Bundle","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"MEGA PROMO","value":"MEGA PROMO","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Mega Sale","value":"Mega Sale","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Member Day Offer","value":"Member Day Offer","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Mother\u0027s Day Offer","value":"Mother\u0027s Day Offer","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"DIA DAS MÃES","value":"DIA DAS MÃES","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"New Year Offer","value":"New Year Offer","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"New Year Sale","value":"New Year Sale","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"夜貓優惠","value":"夜貓優惠","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Night Sale","value":"Night Sale","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"官網獨家","value":"官網獨家","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Oferta Ano Novo","value":"Oferta Ano Novo","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Oferta Black Friday","value":"Oferta Black Friday","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Oferta Cyber Monday","value":"Oferta Cyber Monday","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Oferta de Navidad","value":"Oferta de Navidad","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Oferta Dia da Mãe","value":"Oferta Dia da Mãe","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Oferta Dia da Mulher","value":"Oferta Dia da Mulher","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Oferta Dia do Pai","value":"Oferta Dia do Pai","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Oferta Dia dos Namorados","value":"Oferta Dia dos Namorados","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Oferta Especial Fim-de-Semana","value":"Oferta Especial Fim-de-Semana","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Oferta exclusiva","value":"Oferta exclusiva","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Oferta Natal","value":"Oferta Natal","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Oferta Regresso às Aulas","value":"Oferta Regresso às Aulas","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Oferta Relámpago","value":"Oferta Relámpago","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Ofertas","value":"Ofertas","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Ofertas de Suscripción","value":"Ofertas de Suscripción","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Ofertas Especiais","value":"Ofertas Especiais","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Ofertas por tempo limitado","value":"Ofertas por tempo limitado","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Offre de lancement","value":"Offre de lancement","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"OFFRE DE NOËL","value":"OFFRE DE NOËL","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Offre de Printemps","value":"Offre de Printemps","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"OFFRE DU VENDREDI FOU","value":"OFFRE DU VENDREDI FOU","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Offre exclusive","value":"Offre exclusive","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"OFFRE FÊTE DU TRAVAIL","value":"OFFRE FÊTE DU TRAVAIL","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"OFFRE RAKUTEN TV","value":"OFFRE RAKUTEN TV","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"OFFRE SEMAINE DE BOXING","value":"OFFRE SEMAINE DE BOXING","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Offres d\u0027Automne","value":"Offres d\u0027Automne","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"OLYMPIC","value":"OLYMPIC","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"One Day Offer","value":"One Day Offer","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"op\u003dop","value":"op\u003dop","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Outlet","value":"Outlet","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Pack exclusif","value":"Pack exclusif","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Pack ideal","value":"Pack ideal","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Pack personnalisé","value":"Pack personnalisé","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Package Deal","value":"Package Deal","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Papá LG","value":"Papá LG","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Platinum","value":"Platinum","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Platinum*","value":"Platinum*","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Power Pack Offer","value":"Power Pack Offer","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"PRE VENTA","value":"PRE VENTA","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"PRE-BLACK FRIDAY","value":"PRE-BLACK FRIDAY","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Precio outlet","value":"Precio outlet","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"PreVenta","value":"PreVenta","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Prime Day","value":"Prime Day","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Prime Offer","value":"Prime Offer","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"PROMO DAYS","value":"PROMO DAYS","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Promo Days","value":"Promo Days","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Promo Gamer","value":"Promo Gamer","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Promotion","value":"Promotion","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"PROMOTION","value":"PROMOTION","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Promotion dans le panier*","value":"Promotion dans le panier*","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"PTO Deal(Bundle Deal)","value":"PTO Deal(Bundle Deal)","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Quantidades Limitadas","value":"Quantidades Limitadas","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Quantité limitée","value":"Quantité limitée","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Refrigerators Combo Offer","value":"Refrigerators Combo Offer","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Reserve Now","value":"Reserve Now","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"RTL+ PREMIUM","value":"RTL+ PREMIUM","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Seasonal Bundle Deal","value":"Seasonal Bundle Deal","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Seasonal Offer","value":"Seasonal Offer","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Shopback加碼回饋","value":"Shopback加碼回饋","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Silver","value":"Silver","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Silver*","value":"Silver*","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Smart Combo","value":"Smart Combo","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Soldes d\u0027Été","value":"Soldes d\u0027Été","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Soldes d\u0027Hiver","value":"Soldes d\u0027Hiver","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Solo Online","value":"Solo Online","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Special Deal Model","value":"Special Deal Model","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Special Discount","value":"Special Discount","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"SPOFFERS","value":"SPOFFERS","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Spring Sale","value":"Spring Sale","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Streaming week","value":"Streaming week","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"SUMMER SALE","value":"SUMMER SALE","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"SUNDAY DEAL","value":"SUNDAY DEAL","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Sunday Deal","value":"Sunday Deal","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Super Sale","value":"Super Sale","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Super Saver Combo","value":"Super Saver Combo","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Super vente","value":"Super vente","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Flash 5%","value":"Flash 5%","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Test product100","value":"Test product100","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Ticket Rojo LG","value":"Ticket Rojo LG","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Time deal","value":"Time deal","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Titanium","value":"Titanium","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Today\u0027s offer","value":"Today\u0027s offer","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"TV Combo Offer","value":"TV Combo Offer","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"ÚLTIMAS HORAS","value":"ÚLTIMAS HORAS","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"ÚLTIMAS PIEZAS","value":"ÚLTIMAS PIEZAS","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Últimas Unidades","value":"Últimas Unidades","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Valentine Love","value":"Valentine Love","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Value Bundle","value":"Value Bundle","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"VAT DISCOUNT","value":"VAT DISCOUNT","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"VAT PROMO","value":"VAT PROMO","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"VENTE FLASH","value":"VENTE FLASH","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Verano LG","value":"Verano LG","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"VT Wonen Bundel","value":"VT Wonen Bundel","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Warehouse Sale","value":"Warehouse Sale","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Washer/ Dryer Bundle","value":"Washer/ Dryer Bundle","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Washing Machines Combo Offer","value":"Washing Machines Combo Offer","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Water Purifiers combo Offer","value":"Water Purifiers combo Offer","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Weekend Combo Special","value":"Weekend Combo Special","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Weekend Deal","value":"Weekend Deal","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Weekend offer","value":"Weekend offer","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Weekend Only","value":"Weekend Only","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"White Friday Offers","value":"White Friday Offers","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Win OLED TV","value":"Win OLED TV","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"WINTER SALES","value":"WINTER SALES","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"母親節精選","value":"母親節精選","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"父親節精選","value":"父親節精選","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"新年優惠","value":"新年優惠","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"一日限定優惠","value":"一日限定優惠","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"自選組合優惠","value":"自選組合優惠","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"周末優惠","value":"周末優惠","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"限量","value":"限量","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"限時優惠","value":"限時優惠","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"黑五優惠","value":"黑五優惠","a":0},{"commonCodeGroupName":"PromotionTag Payment","sortNo":"0","code":"+ S/200 con cualquier medio de pago","value":"+ S/200 con cualquier medio de pago","a":0},{"commonCodeGroupName":"PromotionTag Payment","sortNo":"0","code":"+ S/200 con VISA, AMEX, MC \u0026 Diners","value":"+ S/200 con VISA, AMEX, MC \u0026 Diners","a":0},{"commonCodeGroupName":"PromotionTag Payment","sortNo":"0","code":"0% Financing*","value":"0% Financing*","a":0},{"commonCodeGroupName":"PromotionTag Payment","sortNo":"0","code":"0-0-24","value":"0-0-24","a":0},{"commonCodeGroupName":"PromotionTag Payment","sortNo":"0","code":"0-0-36","value":"0-0-36","a":0},{"commonCodeGroupName":"PromotionTag Payment","sortNo":"0","code":"1 RATA GRATIS","value":"1 RATA GRATIS","a":0},{"commonCodeGroupName":"PromotionTag Payment","sortNo":"0","code":"10% Rabatt mit PayPal","value":"10% Rabatt mit PayPal","a":0},{"commonCodeGroupName":"PromotionTag Payment","sortNo":"0","code":"1100kr rabatt i kassan","value":"1100kr rabatt i kassan","a":0},{"commonCodeGroupName":"PromotionTag Payment","sortNo":"0","code":"30% DCTO AL PAGAR","value":"30% DCTO AL PAGAR","a":0},{"commonCodeGroupName":"PromotionTag Payment","sortNo":"0","code":"300€ dto en el pago","value":"300€ dto en el pago","a":0},{"commonCodeGroupName":"PromotionTag Payment","sortNo":"0","code":"3400kr rabatt i kassan","value":"3400kr rabatt i kassan","a":0},{"commonCodeGroupName":"PromotionTag Payment","sortNo":"0","code":"35% DCTO AL PAGAR","value":"35% DCTO AL PAGAR","a":0},{"commonCodeGroupName":"PromotionTag Payment","sortNo":"0","code":"350€ dto en el pago","value":"350€ dto en el pago","a":0},{"commonCodeGroupName":"PromotionTag Payment","sortNo":"0","code":"400€ dto en el pago","value":"400€ dto en el pago","a":0},{"commonCodeGroupName":"PromotionTag Payment","sortNo":"0","code":"Buy Now, Pay Later with 0% Financing","value":"Buy Now, Pay Later with 0% Financing","a":0},{"commonCodeGroupName":"PromotionTag Payment","sortNo":"0","code":"Buy Now, Pay Later with 0% Financing*","value":"Buy Now, Pay Later with 0% Financing*","a":0},{"commonCodeGroupName":"PromotionTag Payment","sortNo":"0","code":"Fin PayPal","value":"Fin PayPal","a":0},{"commonCodeGroupName":"PromotionTag Payment","sortNo":"0","code":"Financement à un taux de 0 %*","value":"Financement à un taux de 0 %*","a":0},{"commonCodeGroupName":"PromotionTag Payment","sortNo":"0","code":"Financement offert","value":"Financement offert","a":0},{"commonCodeGroupName":"PromotionTag Payment","sortNo":"0","code":"INSTALLMENT 0% INTEREST","value":"INSTALLMENT 0% INTEREST","a":0},{"commonCodeGroupName":"PromotionTag Payment","sortNo":"0","code":"Interest Free","value":"Interest Free","a":0},{"commonCodeGroupName":"PromotionTag Payment","sortNo":"0","code":"MSI","value":"MSI","a":0},{"commonCodeGroupName":"PromotionTag Payment","sortNo":"0","code":"NCEMI","value":"NCEMI","a":0},{"commonCodeGroupName":"PromotionTag Payment","sortNo":"0","code":"Own it today with 0% Financing","value":"Own it today with 0% Financing","a":0},{"commonCodeGroupName":"PromotionTag Payment","sortNo":"0","code":"Own it today with 0% Financing*","value":"Own it today with 0% Financing*","a":0},{"commonCodeGroupName":"PromotionTag Payment","sortNo":"0","code":"Paghi a Maggio","value":"Paghi a Maggio","a":0},{"commonCodeGroupName":"PromotionTag Payment","sortNo":"0","code":"PAY IN 2024","value":"PAY IN 2024","a":0},{"commonCodeGroupName":"PromotionTag Payment","sortNo":"0","code":"PAY IN 3 MONTHS","value":"PAY IN 3 MONTHS","a":0},{"commonCodeGroupName":"PromotionTag Payment","sortNo":"0","code":"PAY IN APRIL","value":"PAY IN APRIL","a":0},{"commonCodeGroupName":"PromotionTag Payment","sortNo":"0","code":"PAY IN AUGUST","value":"PAY IN AUGUST","a":0},{"commonCodeGroupName":"PromotionTag Payment","sortNo":"0","code":"PAY IN DECEMBER","value":"PAY IN DECEMBER","a":0},{"commonCodeGroupName":"PromotionTag Payment","sortNo":"0","code":"PAY IN JULY","value":"PAY IN JULY","a":0},{"commonCodeGroupName":"PromotionTag Payment","sortNo":"0","code":"PAY IN JUNE","value":"PAY IN JUNE","a":0},{"commonCodeGroupName":"PromotionTag Payment","sortNo":"0","code":"PAY IN MAY","value":"PAY IN MAY","a":0},{"commonCodeGroupName":"PromotionTag Payment","sortNo":"0","code":"PAY IN NOVEMBER","value":"PAY IN NOVEMBER","a":0},{"commonCodeGroupName":"PromotionTag Payment","sortNo":"0","code":"PAY IN OCTOBER","value":"PAY IN OCTOBER","a":0},{"commonCodeGroupName":"PromotionTag Payment","sortNo":"0","code":"PAY IN SEPTEMBER","value":"PAY IN SEPTEMBER","a":0},{"commonCodeGroupName":"PromotionTag Payment","sortNo":"0","code":"PAY IN THE AUTUMN","value":"PAY IN THE AUTUMN","a":0},{"commonCodeGroupName":"PromotionTag Payment","sortNo":"0","code":"12x s/ juros","value":"12x s/ juros","a":0},{"commonCodeGroupName":"PromotionTag Payment","sortNo":"0","code":"PayPal MSI","value":"PayPal MSI","a":0},{"commonCodeGroupName":"PromotionTag Payment","sortNo":"0","code":"Pre-venta PayPal","value":"Pre-venta PayPal","a":0},{"commonCodeGroupName":"PromotionTag Payment","sortNo":"0","code":"RATY 0%","value":"RATY 0%","a":0},{"commonCodeGroupName":"PromotionTag Payment","sortNo":"0","code":"S/. 300 con tu tarjeta BCP","value":"S/. 300 con tu tarjeta BCP","a":0},{"commonCodeGroupName":"PromotionTag Payment","sortNo":"0","code":"S/. 350 con tu tarjeta BCP","value":"S/. 350 con tu tarjeta BCP","a":0},{"commonCodeGroupName":"PromotionTag Payment","sortNo":"0","code":"S/100 Dscto con BCP","value":"S/100 Dscto con BCP","a":0},{"commonCodeGroupName":"PromotionTag Payment","sortNo":"0","code":"S/130 Dscto con BCP","value":"S/130 Dscto con BCP","a":0},{"commonCodeGroupName":"PromotionTag Payment","sortNo":"0","code":"S/150 Dscto con BCP","value":"S/150 Dscto con BCP","a":0},{"commonCodeGroupName":"PromotionTag Payment","sortNo":"0","code":"S/200 Dscto con BCP","value":"S/200 Dscto con BCP","a":0},{"commonCodeGroupName":"PromotionTag Payment","sortNo":"0","code":"S/220 Dscto con BCP","value":"S/220 Dscto con BCP","a":0},{"commonCodeGroupName":"PromotionTag Payment","sortNo":"0","code":"S/230 Dscto con BCP","value":"S/230 Dscto con BCP","a":0},{"commonCodeGroupName":"PromotionTag Payment","sortNo":"0","code":"S/25 Dscto con BCP","value":"S/25 Dscto con BCP","a":0},{"commonCodeGroupName":"PromotionTag Payment","sortNo":"0","code":"S/250 Dscto con BCP","value":"S/250 Dscto con BCP","a":0},{"commonCodeGroupName":"PromotionTag Payment","sortNo":"0","code":"S/260 Dscto con BCP","value":"S/260 Dscto con BCP","a":0},{"commonCodeGroupName":"PromotionTag Payment","sortNo":"0","code":"S/290 Dscto con BCP","value":"S/290 Dscto con BCP","a":0},{"commonCodeGroupName":"PromotionTag Payment","sortNo":"0","code":"S/325 Dscto con BCP","value":"S/325 Dscto con BCP","a":0},{"commonCodeGroupName":"PromotionTag Payment","sortNo":"0","code":"S/340 Dscto con BCP","value":"S/340 Dscto con BCP","a":0},{"commonCodeGroupName":"PromotionTag Payment","sortNo":"0","code":"S/390 Dscto con BCP","value":"S/390 Dscto con BCP","a":0},{"commonCodeGroupName":"PromotionTag Payment","sortNo":"0","code":"S/400 Dscto con BCP","value":"S/400 Dscto con BCP","a":0},{"commonCodeGroupName":"PromotionTag Payment","sortNo":"0","code":"S/450 Dscto con BCP","value":"S/450 Dscto con BCP","a":0},{"commonCodeGroupName":"PromotionTag Payment","sortNo":"0","code":"S/50 Dscto con BCP","value":"S/50 Dscto con BCP","a":0},{"commonCodeGroupName":"PromotionTag Payment","sortNo":"0","code":"S/500 Dscto con BCP","value":"S/500 Dscto con BCP","a":0},{"commonCodeGroupName":"PromotionTag Payment","sortNo":"0","code":"S/750 Dscto con BCP","value":"S/750 Dscto con BCP","a":0},{"commonCodeGroupName":"PromotionTag Payment","sortNo":"0","code":"20 mesi Tasso 0%","value":"20 mesi Tasso 0%","a":0},{"commonCodeGroupName":"PromotionTag Payment","sortNo":"0","code":"Cashback 150€","value":"Cashback 150€","a":0},{"commonCodeGroupName":"PromotionTag Payment","sortNo":"0","code":"Paghi ad Aprile","value":"Paghi ad Aprile","a":0},{"commonCodeGroupName":"PromotionTag Payment","sortNo":"0","code":"Gift Card 100€","value":"Gift Card 100€","a":0},{"commonCodeGroupName":"PromotionTag Payment","sortNo":"0","code":"Paghi a Febbraio","value":"Paghi a Febbraio","a":0},{"commonCodeGroupName":"PromotionTag Payment","sortNo":"0","code":"Paghi a Giugno","value":"Paghi a Giugno","a":0},{"commonCodeGroupName":"PromotionTag Payment","sortNo":"0","code":"Paghi a Luglio","value":"Paghi a Luglio","a":0},{"commonCodeGroupName":"PromotionTag Payment","sortNo":"0","code":"Paghi a Marzo","value":"Paghi a Marzo","a":0},{"commonCodeGroupName":"PromotionTag Payment","sortNo":"0","code":"Paghi a Novembre","value":"Paghi a Novembre","a":0},{"commonCodeGroupName":"PromotionTag Payment","sortNo":"0","code":"Paghi a Ottobre","value":"Paghi a Ottobre","a":0},{"commonCodeGroupName":"PromotionTag Payment","sortNo":"0","code":"Paghi a settembre","value":"Paghi a settembre","a":0},{"commonCodeGroupName":"PromotionTag Payment","sortNo":"0","code":"Paghi ad Agosto","value":"Paghi ad Agosto","a":0},{"commonCodeGroupName":"PromotionTag Payment","sortNo":"0","code":"Paghi da Agosto","value":"Paghi da Agosto","a":0},{"commonCodeGroupName":"PromotionTag Payment","sortNo":"0","code":"Paghi da Aprile","value":"Paghi da Aprile","a":0},{"commonCodeGroupName":"PromotionTag Payment","sortNo":"0","code":"Paghi da Dicembre","value":"Paghi da Dicembre","a":0},{"commonCodeGroupName":"PromotionTag Payment","sortNo":"0","code":"Paghi da Febbraio","value":"Paghi da Febbraio","a":0},{"commonCodeGroupName":"PromotionTag Payment","sortNo":"0","code":"Paghi da Gennaio","value":"Paghi da Gennaio","a":0},{"commonCodeGroupName":"PromotionTag Payment","sortNo":"0","code":"Paghi da Giugno","value":"Paghi da Giugno","a":0},{"commonCodeGroupName":"PromotionTag Payment","sortNo":"0","code":"Paghi da Luglio","value":"Paghi da Luglio","a":0},{"commonCodeGroupName":"PromotionTag Payment","sortNo":"0","code":"Paghi da Maggio","value":"Paghi da Maggio","a":0},{"commonCodeGroupName":"PromotionTag Payment","sortNo":"0","code":"Paghi da Marzo","value":"Paghi da Marzo","a":0},{"commonCodeGroupName":"PromotionTag Payment","sortNo":"0","code":"Paghi da Novembre","value":"Paghi da Novembre","a":0},{"commonCodeGroupName":"PromotionTag Payment","sortNo":"0","code":"Paghi da Ottobre","value":"Paghi da Ottobre","a":0},{"commonCodeGroupName":"PromotionTag Payment","sortNo":"0","code":"Paghi da Settembre","value":"Paghi da Settembre","a":0},{"commonCodeGroupName":"PromotionTag Payment","sortNo":"0","code":"Paghi in 40 mesi","value":"Paghi in 40 mesi","a":0},{"commonCodeGroupName":"PromotionTag Payment","sortNo":"0","code":"Tasso 0%","value":"Tasso 0%","a":0},{"commonCodeGroupName":"PromotionTag Payment","sortNo":"0","code":"ZESTAW","value":"ZESTAW","a":0},{"commonCodeGroupName":"PromotionTag Member","sortNo":"0","code":"2% welcome discount","value":"2% welcome discount","a":0},{"commonCodeGroupName":"PromotionTag Member","sortNo":"0","code":"5% welcome discount","value":"5% welcome discount","a":0},{"commonCodeGroupName":"PromotionTag Member","sortNo":"0","code":"Aniversario LG","value":"Aniversario LG","a":0},{"commonCodeGroupName":"PromotionTag Member","sortNo":"0","code":"Aniversario LG.com","value":"Aniversario LG.com","a":0},{"commonCodeGroupName":"PromotionTag Member","sortNo":"0","code":"Apenas para Membros","value":"Apenas para Membros","a":0},{"commonCodeGroupName":"PromotionTag Member","sortNo":"0","code":"Apenas para VIP","value":"Apenas para VIP","a":0},{"commonCodeGroupName":"PromotionTag Member","sortNo":"0","code":"Community Exclusive","value":"Community Exclusive","a":0},{"commonCodeGroupName":"PromotionTag Member","sortNo":"0","code":"Community Exclusive*","value":"Community Exclusive*","a":0},{"commonCodeGroupName":"PromotionTag Member","sortNo":"0","code":"Dscto Member Days","value":"Dscto Member Days","a":0},{"commonCodeGroupName":"PromotionTag Member","sortNo":"0","code":"LG.com ’a Özel","value":"LG.com ’a Özel","a":0},{"commonCodeGroupName":"PromotionTag Member","sortNo":"0","code":"LG Birthday","value":"LG Birthday","a":0},{"commonCodeGroupName":"PromotionTag Member","sortNo":"0","code":"LG DAY","value":"LG DAY","a":0},{"commonCodeGroupName":"PromotionTag Member","sortNo":"0","code":"LG Day","value":"LG Day","a":0},{"commonCodeGroupName":"PromotionTag Member","sortNo":"0","code":"LG DAY優惠商品","value":"LG DAY優惠商品","a":0},{"commonCodeGroupName":"PromotionTag Member","sortNo":"0","code":"LG Design Week","value":"LG Design Week","a":0},{"commonCodeGroupName":"PromotionTag Member","sortNo":"0","code":"LG Member Days | Bundle Deal","value":"LG Member Days | Bundle Deal","a":0},{"commonCodeGroupName":"PromotionTag Member","sortNo":"0","code":"LG Member Days | Hot Deal","value":"LG Member Days | Hot Deal","a":0},{"commonCodeGroupName":"PromotionTag Member","sortNo":"0","code":"LG Member Days | Premium","value":"LG Member Days | Premium","a":0},{"commonCodeGroupName":"PromotionTag Member","sortNo":"0","code":"LG Member Days | Limitiert","value":"LG Member Days | Limitiert","a":0},{"commonCodeGroupName":"PromotionTag Member","sortNo":"0","code":"LG Memberdays l Combo","value":"LG Memberdays l Combo","a":0},{"commonCodeGroupName":"PromotionTag Member","sortNo":"0","code":"LG Memberdays l Exclusives","value":"LG Memberdays l Exclusives","a":0},{"commonCodeGroupName":"PromotionTag Member","sortNo":"0","code":"LG Memberdays l Special","value":"LG Memberdays l Special","a":0},{"commonCodeGroupName":"PromotionTag Member","sortNo":"0","code":"LG MONTH","value":"LG MONTH","a":0},{"commonCodeGroupName":"PromotionTag Member","sortNo":"0","code":"LG Plus","value":"LG Plus","a":0},{"commonCodeGroupName":"PromotionTag Member","sortNo":"0","code":"LG Streaming Week","value":"LG Streaming Week","a":0},{"commonCodeGroupName":"PromotionTag Member","sortNo":"0","code":"LG Week","value":"LG Week","a":0},{"commonCodeGroupName":"PromotionTag Member","sortNo":"0","code":"LG10","value":"LG10","a":0},{"commonCodeGroupName":"PromotionTag Member","sortNo":"0","code":"LG\u0027s choice","value":"LG\u0027s choice","a":0},{"commonCodeGroupName":"PromotionTag Member","sortNo":"0","code":"Member Days","value":"Member Days","a":0},{"commonCodeGroupName":"PromotionTag Member","sortNo":"0","code":"OFERTA DIAS ESPECIAIS PARA MEMBROS","value":"OFERTA DIAS ESPECIAIS PARA MEMBROS","a":0},{"commonCodeGroupName":"PromotionTag Member","sortNo":"0","code":"Member Offer","value":"Member Offer","a":0},{"commonCodeGroupName":"PromotionTag Member","sortNo":"0","code":"Member Only","value":"Member Only","a":0},{"commonCodeGroupName":"PromotionTag Member","sortNo":"0","code":"MEMBER TRADE IN $100","value":"MEMBER TRADE IN $100","a":0},{"commonCodeGroupName":"PromotionTag Member","sortNo":"0","code":"MEMBER TRADE IN $150","value":"MEMBER TRADE IN $150","a":0},{"commonCodeGroupName":"PromotionTag Member","sortNo":"0","code":"MEMBER TRADE IN $200","value":"MEMBER TRADE IN $200","a":0},{"commonCodeGroupName":"PromotionTag Member","sortNo":"0","code":"MEMBER TRADE IN $300","value":"MEMBER TRADE IN $300","a":0},{"commonCodeGroupName":"PromotionTag Member","sortNo":"0","code":"MEMBER TRADE IN $400","value":"MEMBER TRADE IN $400","a":0},{"commonCodeGroupName":"PromotionTag Member","sortNo":"0","code":"MEMBER TRADE IN $500","value":"MEMBER TRADE IN $500","a":0},{"commonCodeGroupName":"PromotionTag Member","sortNo":"0","code":"MONTHLY LG","value":"MONTHLY LG","a":0},{"commonCodeGroupName":"PromotionTag Member","sortNo":"0","code":"OFFRE MEMBRES","value":"OFFRE MEMBRES","a":0},{"commonCodeGroupName":"PromotionTag Member","sortNo":"0","code":"Online Exclusive Bundle","value":"Online Exclusive Bundle","a":0},{"commonCodeGroupName":"PromotionTag Member","sortNo":"0","code":"Partner Exclusive","value":"Partner Exclusive","a":0},{"commonCodeGroupName":"PromotionTag Member","sortNo":"0","code":"登錄送贈品","value":"登錄送贈品","a":0},{"commonCodeGroupName":"PromotionTag Member","sortNo":"0","code":"Registrate y recibe Dcto","value":"Registrate y recibe Dcto","a":0},{"commonCodeGroupName":"PromotionTag Member","sortNo":"0","code":"Retailer exclusive model","value":"Retailer exclusive model","a":0},{"commonCodeGroupName":"PromotionTag Member","sortNo":"0","code":"Solo LG Members","value":"Solo LG Members","a":0},{"commonCodeGroupName":"PromotionTag Member","sortNo":"0","code":"Thai Price only Lg member","value":"Thai Price only Lg member","a":0},{"commonCodeGroupName":"PromotionTag Member","sortNo":"0","code":"Vip Care","value":"Vip Care","a":0},{"commonCodeGroupName":"PromotionTag Member","sortNo":"0","code":"VIP installation","value":"VIP installation","a":0},{"commonCodeGroupName":"PromotionTag Member","sortNo":"0","code":"VIP Only","value":"VIP Only","a":0},{"commonCodeGroupName":"PromotionTag Member","sortNo":"0","code":"Sign in for coupons","value":"Sign in for coupons","a":0},{"commonCodeGroupName":"DeliveryTag","sortNo":"0","code":"Despacho Gratis RM","value":"Despacho Gratis RM","a":0},{"commonCodeGroupName":"DeliveryTag","sortNo":"0","code":"FREE 1 YEAR AMC","value":"FREE 1 YEAR AMC","a":0},{"commonCodeGroupName":"DeliveryTag","sortNo":"0","code":"Despacho Gratis","value":"Despacho Gratis","a":0},{"commonCodeGroupName":"DeliveryTag","sortNo":"0","code":"Instalación Básica Gratuita","value":"Instalación Básica Gratuita","a":0},{"commonCodeGroupName":"ProductTag Exclusive","sortNo":"0","code":"Exclusive Bundle Offer","value":"Exclusive Bundle Offer","a":0},{"commonCodeGroupName":"ProductTag Exclusive","sortNo":"0","code":"Exclusive Offer","value":"Exclusive Offer","a":0},{"commonCodeGroupName":"ProductTag Exclusive","sortNo":"0","code":"Exclusivo Online","value":"Exclusivo Online","a":0},{"commonCodeGroupName":"ProductTag Exclusive","sortNo":"0","code":"Online Exclusive Bundle","value":"Online Exclusive Bundle","a":0},{"commonCodeGroupName":"ProductTag Exclusive","sortNo":"0","code":"Solo en línea","value":"Solo en línea","a":0},{"commonCodeGroupName":"ProductTag Exclusive","sortNo":"0","code":"Test Exclusive Offer","value":"Test Exclusive Offer","a":0},{"commonCodeGroupName":"ProductTag Stock","sortNo":"0","code":"Próximamente","value":"Próximamente","a":0},{"commonCodeGroupName":"ProductTag Stock","sortNo":"0","code":"Descontinuado","value":"Descontinuado","a":0},{"commonCodeGroupName":"ProductTag Stock","sortNo":"0","code":"Nuevo","value":"Nuevo","a":0},{"commonCodeGroupName":"ProductTag Stock","sortNo":"0","code":"PRE-VENTA","value":"PRE-VENTA","a":0},{"commonCodeGroupName":"ProductTag Editor","sortNo":"0","code":"¡Gracias Chile!","value":"¡Gracias Chile!","a":0},{"commonCodeGroupName":"ProductTag Editor","sortNo":"0","code":"Premio","value":"Premio","a":0},{"commonCodeGroupName":"ProductTag Editor","sortNo":"0","code":"Mejor vendedor","value":"Mejor vendedor","a":0},{"commonCodeGroupName":"ProductTag Editor","sortNo":"0","code":"Recomendar","value":"Recomendar","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"10% dscto. adicional Santander","value":"10% dscto. adicional Santander","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"10% de dscto adicional al añadir al","value":"10% de dscto adicional al añadir al","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"20% de dscto adicional al añadir al","value":"20% de dscto adicional al añadir al","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"300.000 CLP de REGALO","value":"300.000 CLP de REGALO","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Autorización","value":"Autorización","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Descuento","value":"Descuento","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Venta","value":"Venta","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"₹1000 Gift Voucher","value":"₹1000 Gift Voucher","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"₹1500 Gift Voucher","value":"₹1500 Gift Voucher","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"₹2000 Gift Voucher","value":"₹2000 Gift Voucher","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"₹3000 Gift Voucher","value":"₹3000 Gift Voucher","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"₹4000 Gift Voucher","value":"₹4000 Gift Voucher","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"₹500 Gift Voucher","value":"₹500 Gift Voucher","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"+ Play Mobil","value":"+ Play Mobil","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"10% Additional Off Using Code","value":"10% Additional Off Using Code","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"400.000 CLP de REGALO","value":"400.000 CLP de REGALO","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"500.000 CLP de REGALO","value":"500.000 CLP de REGALO","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"600.000 CLP de REGALO","value":"600.000 CLP de REGALO","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Air Conditioners Combo Offer","value":"Air Conditioners Combo Offer","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Audio Combo Offer","value":"Audio Combo Offer","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Paquete","value":"Paquete","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Bundle \u0026 Benefit","value":"Bundle \u0026 Benefit","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Bundle Deal","value":"Bundle Deal","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Bundle of Joy","value":"Bundle of Joy","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Bundle offer","value":"Bundle offer","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Combo","value":"Combo","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Combo Pack","value":"Combo Pack","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Cupón disponible","value":"Cupón disponible","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Dishwasher Combo Offer","value":"Dishwasher Combo Offer","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Exclusive Voucher","value":"Exclusive Voucher","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Free Stainless Steel Bottle","value":"Free Stainless Steel Bottle","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Mega Bundle","value":"Mega Bundle","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Refrigerators Combo Offer","value":"Refrigerators Combo Offer","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"TV Combo Offer","value":"TV Combo Offer","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Washing Machines Combo Offer","value":"Washing Machines Combo Offer","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Water Purifiers combo Offer","value":"Water Purifiers combo Offer","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"Welcome Voucher","value":"Welcome Voucher","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Combo Offer","value":"Combo Offer","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Oferta del Adviento","value":"Oferta del Adviento","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"All-in-One Deal","value":"All-in-One Deal","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Black Friday","value":"Black Friday","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Oferta de Black Friday","value":"Oferta de Black Friday","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Oferta de día del boxeo","value":"Oferta de día del boxeo","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Buy More, Save More","value":"Buy More, Save More","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"BUY WITH BEST CARE- AMC","value":"BUY WITH BEST CARE- AMC","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Oferta navideña","value":"Oferta navideña","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Combo Bonanza","value":"Combo Bonanza","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Cyber Day","value":"Cyber Day","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Essential Combo Pack","value":"Essential Combo Pack","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Oferta del Día del padre","value":"Oferta del Día del padre","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Festival Combo Offer","value":"Festival Combo Offer","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"GST Change 28% to 18%","value":"GST Change 28% to 18%","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"GST Reduction 28% to 18%","value":"GST Reduction 28% to 18%","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"GST Savings 28% to 18%","value":"GST Savings 28% to 18%","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Oferta de vacaciones","value":"Oferta de vacaciones","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Oferta IFA","value":"Oferta IFA","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Cantidad limitada","value":"Cantidad limitada","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Limited Time Bundle","value":"Limited Time Bundle","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Oferta del Día de la Madre","value":"Oferta del Día de la Madre","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Oferta de año nuevo","value":"Oferta de año nuevo","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Oferta de un día","value":"Oferta de un día","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Power Pack Offer","value":"Power Pack Offer","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"PRE-VENTA","value":"PRE-VENTA","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Prime Day","value":"Prime Day","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Promoción","value":"Promoción","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Favoritos de Santa","value":"Favoritos de Santa","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Seasonal Bundle Deal","value":"Seasonal Bundle Deal","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Oferta estacional","value":"Oferta estacional","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Smart Combo","value":"Smart Combo","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Special Discount","value":"Special Discount","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Streaming week","value":"Streaming week","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Super Saver Combo","value":"Super Saver Combo","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Oferta única","value":"Oferta única","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Value Bundle","value":"Value Bundle","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Venta de bodega","value":"Venta de bodega","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Weekend Combo Special","value":"Weekend Combo Special","a":0},{"commonCodeGroupName":"PromotionTag Event","sortNo":"0","code":"Oferta de fin de semana","value":"Oferta de fin de semana","a":0},{"commonCodeGroupName":"PromotionTag Payment","sortNo":"0","code":"30% DCTO AL PAGAR","value":"30% DCTO AL PAGAR","a":0},{"commonCodeGroupName":"PromotionTag Payment","sortNo":"0","code":"35% DCTO AL PAGAR","value":"35% DCTO AL PAGAR","a":0},{"commonCodeGroupName":"PromotionTag Member","sortNo":"0","code":"Oferta de día del miembro","value":"Oferta de día del miembro","a":0},{"commonCodeGroupName":"PromotionTag Member","sortNo":"0","code":"Member Days","value":"Member Days","a":0},{"commonCodeGroupName":"PromotionTag Member","sortNo":"0","code":"Solo VIP","value":"Solo VIP","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"1","code":"10% discount + 5% extra","value":"10% discount + 5% extra","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"1","code":"15% discount + 5% extra","value":"15% discount + 5% extra","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"1","code":"Offer","value":"Offer","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"1","code":"Trade up 400","value":"Trade up 400","a":0},{"commonCodeGroupName":"ProductTag Stock","sortNo":"1","code":"NEW","value":"NEW","a":0},{"commonCodeGroupName":"PromotionTag Member","sortNo":"1","code":"VIP Care","value":"VIP Care","a":0},{"commonCodeGroupName":"PromotionTag Service","sortNo":"1","code":"Bảo dưỡng LG","value":"Bảo dưỡng LG","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"1","code":"BUY 1 GET 1","value":"BUY 1 GET 1","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"1","code":"Free soundbar - £239","value":"Free soundbar - £239","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"1","code":"Free speaker - £99","value":"Free speaker - £99","a":0},{"commonCodeGroupName":"ProductTag Exclusive","sortNo":"1","code":"Only at LG","value":"Only at LG","a":0},{"commonCodeGroupName":"DeliveryTag","sortNo":"1","code":"test","value":"test","a":0},{"commonCodeGroupName":"PromotionTag Member","sortNo":"1","code":"Only at LG","value":"Only at LG","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"1","code":"MEMBER TRADE IN $100","value":"MEMBER TRADE IN $100","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"1","code":"Free Earbuds worth £199","value":"Free earbuds - £199","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"BUNDLE \u0026 SAVE $1000","value":"BUNDLE \u0026 SAVE $1000","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"BUNDLE \u0026 SAVE $600","value":"BUNDLE \u0026 SAVE $600","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"BUNDLE \u0026 SAVE $300","value":"BUNDLE \u0026 SAVE $300","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"1","code":"Online Özel Ekstra Gece İndirimi","value":"Online Özel Ekstra Gece İndirimi","a":0},{"commonCodeGroupName":"DeliveryTag","sortNo":"1","code":"Livraison gratuite*","value":"Livraison gratuite*","a":0},{"commonCodeGroupName":"DeliveryTag","sortNo":"1","code":"Free Delivery*","value":"Free Delivery*","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"1","code":"Rebates","value":"Rebates","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"1","code":"Remises","value":"Remises","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"1","code":"Get a Prepaid Card*","value":"Get a Prepaid Card*","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"1","code":"Obtenez une carte prépayée*","value":"Obtenez une carte prépayée*","a":0},{"commonCodeGroupName":"PromotionTag Service","sortNo":"1","code":"ENERGY STAR® Certified","value":"ENERGY STAR® Certified","a":0},{"commonCodeGroupName":"PromotionTag Service","sortNo":"1","code":"Certifié ENERGY STAR®","value":"Certifié ENERGY STAR®","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"1","code":"$50 MEMBER TRADE IN","value":"$50 MEMBER TRADE IN","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"1","code":"$75 MEMBER TRADE IN","value":"$75 MEMBER TRADE IN","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"1","code":"$100 MEMBER TRADE IN","value":"$100 MEMBER TRADE IN","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"1","code":"$150 MEMBER TRADE IN","value":"$150 MEMBER TRADE IN","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"1","code":"$200 MEMBER TRADE IN","value":"$200 MEMBER TRADE IN","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"1","code":"$250 MEMBER TRADE IN","value":"$250 MEMBER TRADE IN","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"1","code":"$300 MEMBER TRADE IN","value":"$300 MEMBER TRADE IN","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"1","code":"$350 MEMBER TRADE IN","value":"$350 MEMBER TRADE IN","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"1","code":"$400 MEMBER TRADE IN","value":"$400 MEMBER TRADE IN","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"1","code":"$450 MEMBER TRADE IN","value":"$450 MEMBER TRADE IN","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"1","code":"$500 MEMBER TRADE IN","value":"$500 MEMBER TRADE IN","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"1","code":"Free Microwave -£109","value":"Free microwave - £109","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"1","code":"Free speaker - £79","value":"Free speaker - £79","a":0},{"commonCodeGroupName":"DeliveryTag","sortNo":"1","code":"Premium Shipping and Installation","value":"Premium Shipping and Installation","a":0},{"commonCodeGroupName":"DeliveryTag","sortNo":"1","code":"Free Elite Shipping and Installation","value":"Free Elite Shipping and Installation","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"2","code":"Free Earbuds worth £129","value":"Free earbuds - £129","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"3","code":"Free Earbuds worth £149","value":"Free earbuds - £149","a":0},{"commonCodeGroupName":"DeliveryTag","sortNo":"10","code":"Free Delivery / Installation","value":"Free Delivery / Installation.","a":0},{"commonCodeGroupName":"DeliveryTag","sortNo":"11","code":"Free Delivery, Wall Mount \u0026 Disposal","value":"Free Delivery, Wall Mount \u0026 Disposal","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"1","code":"Trade Up - 200€ Discount","value":"Trade Up - 200€ Discount","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"1","code":"Trade Up - 150€ Discount","value":"Trade Up - 150€ Discount","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"1","code":"Trade Up - 100€ Discount","value":"Trade Up - 100€ Discount","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"1","code":"Trade Up - 75€ Discount","value":"Trade Up - 75€ Discount","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"1","code":"Trade Up - 60€ Discount","value":"Trade Up - 60€ Discount","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"1","code":"Trade Up - 50€ Discount","value":"Trade Up - 50€ Discount","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"1","code":"8% discount in checkout","value":"8% discount in checkout","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"1","code":"13% discount in checkout","value":"13% discount in checkout","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"1","code":"18% discount in checkout","value":"18% discount in checkout","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"1","code":"23% discount in checkout","value":"23% discount in checkout","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"1","code":"1+1 Gift","value":"1+1 Gift","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"50","code":"Bundle offer","value":"Bundle offer","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Dscto extra de $160.010 en el carro","value":"Dscto extra de $160.010 en el carro","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Dscto extra de $230.010 en el carro","value":"Dscto extra de $230.010 en el carro","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Dscto extra de $250.010 en el carro","value":"Dscto extra de $250.010 en el carro","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Dscto extra de $210.010 en el carro","value":"Dscto extra de $210.010 en el carro","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Dscto extra $210.010","value":"Dscto extra $210.010","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Dscto extra $160.010","value":"Dscto extra $160.010","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Dscto extra $250.010","value":"Dscto extra $250.010","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Dscto extra $230.010","value":"Dscto extra $230.010","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"1","code":"Free speaker - £119","value":"Free speaker - £119","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"1","code":"£50 Cashback","value":"£50 Cashback","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"DESCONTO PIX","value":"DESCONTO PIX","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"8%","value":"8%","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"10%","value":"10%","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"12%","value":"12%","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"15%","value":"15%","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"20%","value":"20%","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"1","code":"Free monitor - £179","value":"Free monitor - £179","a":0},{"commonCodeGroupName":"ProductTag Exclusive","sortNo":"0","code":"FRETE GRATIS - CAPITAIS","value":"FRETE GRATIS - CAPITAIS","a":0},{"commonCodeGroupName":"ProductTag Stock","sortNo":"0","code":"P/ CAPITAIS","value":"P/ CAPITAIS","a":0},{"commonCodeGroupName":"ProductTag Exclusive","sortNo":"1","code":"Бесплатная установка","value":"Бесплатная установка","a":0},{"commonCodeGroupName":"ProductTag Exclusive","sortNo":"1","code":"20% на сушильную машину","value":"20% на сушильную машину","a":0},{"commonCodeGroupName":"PromotionTag Service","sortNo":"1","code":"Бесплатная установка","value":"Бесплатная установка","a":0},{"commonCodeGroupName":"DeliveryTag","sortNo":"1","code":"Бесплатная доставка","value":"Бесплатная доставка","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"1","code":"Free monitor - £299","value":"Free monitor - £299","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"1","code":"Free monitor - £749","value":"Free monitor - £749","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"1","code":"Free monitor - £899","value":"Free monitor - £899","a":0},{"commonCodeGroupName":"ProductTag Exclusive","sortNo":"0","code":"P/ CAPITAIS","value":"P/ CAPITAIS","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"1","code":"Free monitor - £729","value":"Free monitor - £729","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"1","code":"Free monitor - £229","value":"Free monitor - £229","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"1","code":"Free monitor - £889","value":"Free monitor - £889","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"1","code":"Free monitor - £779","value":"Free monitor - £779","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"1","code":"Free monitor offer","value":"Free monitor offer","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"1","code":"Trade-Up for £40 off","value":"Trade-Up for £40 off","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"1","code":"Flash offer","value":"Flash offer","a":0},{"commonCodeGroupName":"ProductTag Exclusive","sortNo":"0","code":"LGNOTA10","value":"LGNOTA10","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"DESCONTO PIX 8%","value":"DESCONTO PIX 8%","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"DESCONTO PIX 10%","value":"DESCONTO PIX 10%","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"DESCONTO PIX 12%","value":"DESCONTO PIX 12%","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"DESCONTO PIX 15%","value":"DESCONTO PIX 15%","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"DESCONTO PIX 20%","value":"DESCONTO PIX 20%","a":0},{"commonCodeGroupName":"ProductTag Exclusive","sortNo":"0","code":"LGNOTA15","value":"LGNOTA15","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"1","code":"Free monitor - £329","value":"Free monitor - £329","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"1","code":"Free monitor - £999","value":"Free monitor - £999","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"1","code":"Free monitor - £1199","value":"Free monitor - £1199","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"1","code":"Free monitor - £1099","value":"Free monitor - £1099","a":0},{"commonCodeGroupName":"DeliveryTag","sortNo":"0","code":"Frete Grátis Para Capitais","value":"Frete Grátis Para Capitais","a":0},{"commonCodeGroupName":"ProductTag Exclusive","sortNo":"0","code":"LGBESTDAY","value":"LGBESTDAY","a":0},{"commonCodeGroupName":"ProductTag Exclusive","sortNo":"0","code":"ULTIMACHANCE30AC","value":"ULTIMACHANCE30AC","a":0},{"commonCodeGroupName":"DeliveryTag","sortNo":"0","code":"Últimas unidades","value":"Últimas unidades","a":0},{"commonCodeGroupName":"DeliveryTag","sortNo":"0","code":"Adicione LG Instala Plus","value":"Adicione LG Instala Plus","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"LGBESTDAY","value":"LGBESTDAY","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"1","code":"Ecover Promotion","value":"Ecover Promotion","a":0},{"commonCodeGroupName":"DeliveryTag","sortNo":"0","code":"CONS_MONTH","value":"Mês do Consumidor","a":0},{"commonCodeGroupName":"DeliveryTag","sortNo":"0","code":"REV_DOOR","value":"Porta Reversível","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"ITDESC8","value":"ITDESC8","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"ITDESC5","value":"ITDESC5","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"AVDESC10","value":"AVDESC10","a":0},{"commonCodeGroupName":"ProductTag Exclusive","sortNo":"0","code":"REV_DOOR","value":"Porta Reversível","a":0},{"commonCodeGroupName":"ProductTag Exclusive","sortNo":"0","code":"CONS_MONTH","value":"Mês do Consumidor","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"1","code":"Free soundbar - £149","value":"Free soundbar - £149","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"1","code":"Free monitor - £279","value":"Free monitor - £279","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"1","code":"Free monitor - £199","value":"Free monitor - £199","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"1","code":"Free Ecover","value":"Free Ecover","a":0},{"commonCodeGroupName":"ProductTag Exclusive","sortNo":"0","code":"HISTORIASMAR","value":"HISTORIASMAR","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"1","code":"Free monitor - £699","value":"Free monitor - £699","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"1","code":"Free monitor - £854","value":"Free monitor - £854","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"1","code":"Free Folio Cover - £132","value":"Free Folio Cover - £132","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"1","code":"Free soundbar - £719","value":"Free soundbar - £719","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"1","code":"Free soundbar - £234","value":"Free soundbar - £234","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"1","code":"Free soundbar - £139","value":"Free soundbar - £139","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"1","code":"Free soundbar - £74","value":"Free soundbar - £74","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"1","code":"Free soundbar - £629","value":"Free soundbar - £629","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"1","code":"Free soundbar - £189","value":"Free soundbar - £189","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"1","code":"Free monitor - £879","value":"Free monitor - £879","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"1","code":"Free soundbar - £749","value":"Free soundbar - £749","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"1","code":"Free monitor - £849","value":"Free monitor - £849","a":0},{"commonCodeGroupName":"ProductTag Exclusive","sortNo":"0","code":"-10% bancos adheridos","value":"-10% bancos adheridos","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"1","code":"Free monitor - £249","value":"Free monitor - £249","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"1","code":"Free monitor - £169","value":"Free monitor - £169","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"1","code":"Free sound - £599","value":"Free sound - £599","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"1","code":"Free soundbar - £599","value":"Free soundbar - £599","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"1","code":"Free monitor - £219","value":"Free monitor - £219","a":0},{"commonCodeGroupName":"PromotionTag Service","sortNo":"1","code":"Free installation","value":"Free installation","a":0},{"commonCodeGroupName":"PromotionTag Gift","sortNo":"0","code":"10% extra","value":"10% extra","a":0},{"commonCodeGroupName":"ProductTag Exclusive","sortNo":"0","code":"Lanzamiento 2026","value":"Lanzamiento 2026","a":0},{"commonCodeGroupName":"PromotionTag Payment","sortNo":"0","code":"12x s/interés","value":"12x s/interés","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Trade Up 400€","value":"Trade Up 400€","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Trade Up 500€","value":"Trade Up 500€","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Trade Up 700€","value":"Trade Up 700€","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Trade Up 1000€","value":"Trade Up 1000€","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Trade Up 2500€","value":"Trade Up 2500€","a":0},{"commonCodeGroupName":"PromotionTag Discount","sortNo":"0","code":"Trade Up 3000€","value":"Trade Up 3000€","a":0},{"commonCodeGroupName":"ProductTag Exclusive","sortNo":"0","code":"ARCOND10","value":"ARCOND10","a":0},{"commonCodeGroupName":"ProductTag Exclusive","sortNo":"0","code":"ELETRO5","value":"ELETRO5","a":0},{"commonCodeGroupName":"ProductTag Exclusive","sortNo":"0","code":"ELETRO10","value":"ELETRO10","a":0},{"commonCodeGroupName":"ProductTag Exclusive","sortNo":"0","code":"ELETRO15","value":"ELETRO15","a":0},{"commonCodeGroupName":"ProductTag Exclusive","sortNo":"0","code":"ELETRO20","value":"ELETRO20","a":0},{"commonCodeGroupName":"ProductTag Exclusive","sortNo":"0","code":"ARCOND5","value":"ARCOND5","a":0},{"commonCodeGroupName":"ProductTag Exclusive","sortNo":"0","code":"ARCOND12","value":"ARCOND12","a":0},{"commonCodeGroupName":"ProductTag Exclusive","sortNo":"0","code":"REF5","value":"REF5","a":0},{"commonCodeGroupName":"ProductTag Exclusive","sortNo":"0","code":"REF10","value":"REF10","a":0},{"commonCodeGroupName":"ProductTag Exclusive","sortNo":"0","code":"REF15","value":"REF15","a":0},{"commonCodeGroupName":"ProductTag Exclusive","sortNo":"0","code":"MIBR","value":"MIBR","a":0},{"commonCodeGroupName":"DeliveryTag","sortNo":"0","code":"Instalación Gratis","value":"Instalación Gratis","a":0},{"commonCodeGroupName":"DeliveryTag","sortNo":"0","code":"Envió Gratis","value":"Envió Gratis","a":0},{"commonCodeGroupName":"PromotionTag Payment","sortNo":"1","code":"3x s/juros","value":"3x s/juros","a":0}];
+var mtsShopCodeDataSet;
+// LGCOMRB-3604
+const mktTagData = [{
+    "commonCodeGroupName": "DeliveryTag",
+    "sortNo": "0",
+    "code": "Despacho Gratis RM",
+    "value": "Despacho Gratis RM",
+    "a": 0
+}, {
+    "commonCodeGroupName": "DeliveryTag",
+    "sortNo": "0",
+    "code": "ENVÍO 24HRS",
+    "value": "ENVÍO 24HRS",
+    "a": 0
+}, {
+    "commonCodeGroupName": "DeliveryTag",
+    "sortNo": "0",
+    "code": "Express Delivery",
+    "value": "Express Delivery",
+    "a": 0
+}, {
+    "commonCodeGroupName": "DeliveryTag",
+    "sortNo": "0",
+    "code": "Floor Delivery",
+    "value": "Floor Delivery",
+    "a": 0
+}, {
+    "commonCodeGroupName": "DeliveryTag",
+    "sortNo": "0",
+    "code": "FREE 1 YEAR AMC",
+    "value": "FREE 1 YEAR AMC",
+    "a": 0
+}, {
+    "commonCodeGroupName": "DeliveryTag",
+    "sortNo": "0",
+    "code": "Free delivery",
+    "value": "Free delivery",
+    "a": 0
+}, {
+    "commonCodeGroupName": "DeliveryTag",
+    "sortNo": "0",
+    "code": "Free Delivery",
+    "value": "Free Delivery",
+    "a": 0
+}, {
+    "commonCodeGroupName": "DeliveryTag",
+    "sortNo": "0",
+    "code": "Free delivery/installation/disposal",
+    "value": "Free delivery/installation/disposal",
+    "a": 0
+}, {
+    "commonCodeGroupName": "DeliveryTag",
+    "sortNo": "0",
+    "code": "Free Express Delivery",
+    "value": "Free Express Delivery",
+    "a": 0
+}, {
+    "commonCodeGroupName": "DeliveryTag",
+    "sortNo": "0",
+    "code": "FREE INSTALLATION",
+    "value": "FREE INSTALLATION",
+    "a": 0
+}, {
+    "commonCodeGroupName": "DeliveryTag",
+    "sortNo": "0",
+    "code": "Free Installation",
+    "value": "Free Installation",
+    "a": 0
+}, {
+    "commonCodeGroupName": "DeliveryTag",
+    "sortNo": "0",
+    "code": "Free Premium Delivery",
+    "value": "Free Premium Delivery",
+    "a": 0
+}, {
+    "commonCodeGroupName": "DeliveryTag",
+    "sortNo": "0",
+    "code": "Free Premium Delivery*",
+    "value": "Free Premium Delivery*",
+    "a": 0
+}, {
+    "commonCodeGroupName": "DeliveryTag",
+    "sortNo": "0",
+    "code": "FREE SHIPPING",
+    "value": "FREE SHIPPING",
+    "a": 0
+}, {
+    "commonCodeGroupName": "DeliveryTag",
+    "sortNo": "0",
+    "code": "Free Shipping",
+    "value": "Free Shipping",
+    "a": 0
+}, {
+    "commonCodeGroupName": "DeliveryTag",
+    "sortNo": "0",
+    "code": "FREE SHIPPING INSTALLATION",
+    "value": "FREE SHIPPING INSTALLATION",
+    "a": 0
+}, {
+    "commonCodeGroupName": "DeliveryTag",
+    "sortNo": "0",
+    "code": "Gratis transport och installation",
+    "value": "Gratis transport och installation",
+    "a": 0
+}, {
+    "commonCodeGroupName": "DeliveryTag",
+    "sortNo": "0",
+    "code": "Incluye instalación VIP",
+    "value": "Incluye instalación VIP",
+    "a": 0
+}, {
+    "commonCodeGroupName": "DeliveryTag",
+    "sortNo": "0",
+    "code": "INST.PARED GRATIS",
+    "value": "INST.PARED GRATIS",
+    "a": 0
+}, {
+    "commonCodeGroupName": "DeliveryTag",
+    "sortNo": "0",
+    "code": "Instalacion Basica Gratuita",
+    "value": "Instalacion Basica Gratuita",
+    "a": 0
+}, {
+    "commonCodeGroupName": "DeliveryTag",
+    "sortNo": "0",
+    "code": "Instalación Básica Gratuita",
+    "value": "Instalación Básica Gratuita",
+    "a": 0
+}, {
+    "commonCodeGroupName": "DeliveryTag",
+    "sortNo": "0",
+    "code": "INSTALACJA GRATIS",
+    "value": "INSTALACJA GRATIS",
+    "a": 0
+}, {
+    "commonCodeGroupName": "DeliveryTag",
+    "sortNo": "0",
+    "code": "Installation gratuite",
+    "value": "Installation gratuite",
+    "a": 0
+}, {
+    "commonCodeGroupName": "DeliveryTag",
+    "sortNo": "0",
+    "code": "Livraison gratuite",
+    "value": "Livraison gratuite",
+    "a": 0
+}, {
+    "commonCodeGroupName": "DeliveryTag",
+    "sortNo": "0",
+    "code": "Livraison prioritaire",
+    "value": "Livraison prioritaire",
+    "a": 0
+}, {
+    "commonCodeGroupName": "DeliveryTag",
+    "sortNo": "0",
+    "code": "尊榮安裝",
+    "value": "尊榮安裝",
+    "a": 0
+}, {
+    "commonCodeGroupName": "DeliveryTag",
+    "sortNo": "0",
+    "code": "REGALO INSTALACIÓN",
+    "value": "REGALO INSTALACIÓN",
+    "a": 0
+}, {
+    "commonCodeGroupName": "DeliveryTag",
+    "sortNo": "0",
+    "code": "WNIESIENIE GRATIS",
+    "value": "WNIESIENIE GRATIS",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Editor",
+    "sortNo": "0",
+    "code": "Grab Noww",
+    "value": "Grab Noww",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Exclusive",
+    "sortNo": "0",
+    "code": "TYLKO U NAS",
+    "value": "TYLKO U NAS",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Stock",
+    "sortNo": "0",
+    "code": "PRZEDSPRZEDAŻ",
+    "value": "PRZEDSPRZEDAŻ",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "CASHBACK 1500 PLN",
+    "value": "CASHBACK 1500 PLN",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "CASHBACK 2500 PLN",
+    "value": "CASHBACK 2500 PLN",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "CASHBACK 750 PLN",
+    "value": "CASHBACK 750 PLN",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "WYPRZEDAŻ",
+    "value": "WYPRZEDAŻ",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "DOSTĘPNY KUPON",
+    "value": "DOSTĘPNY KUPON",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "KUPON 100 PLN",
+    "value": "KUPON 100 PLN",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "KUPON 1000 PLN",
+    "value": "KUPON 1000 PLN",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "KUPON 1300 PLN",
+    "value": "KUPON 1300 PLN",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "KUPON 150 PLN",
+    "value": "KUPON 150 PLN",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "KUPON 1500 PLN",
+    "value": "KUPON 1500 PLN",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "KUPON 1800 PLN",
+    "value": "KUPON 1800 PLN",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "KUPON 200 PLN",
+    "value": "KUPON 200 PLN",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "KUPON 2000 PLN",
+    "value": "KUPON 2000 PLN",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "KUPON 250 PLN",
+    "value": "KUPON 250 PLN",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "KUPON 2500 PLN",
+    "value": "KUPON 2500 PLN",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "KUPON 300  PLN",
+    "value": "KUPON 300  PLN",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "KUPON 350 PLN",
+    "value": "KUPON 350 PLN",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "KUPON 400 PLN",
+    "value": "KUPON 400 PLN",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "KUPON 4000 PLN",
+    "value": "KUPON 4000 PLN",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "KUPON 50 PLN",
+    "value": "KUPON 50 PLN",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "KUPON 500 PLN",
+    "value": "KUPON 500 PLN",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "KUPON 5000 PLN",
+    "value": "KUPON 5000 PLN",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "KUPON 600 PLN",
+    "value": "KUPON 600 PLN",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "KUPON 700 PLN",
+    "value": "KUPON 700 PLN",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "KUPON 800 PLN",
+    "value": "KUPON 800 PLN",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "HOT OFERTA",
+    "value": "HOT OFERTA",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "OFERTA DNIA",
+    "value": "OFERTA DNIA",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "OFERTA LIMITOWANA",
+    "value": "OFERTA LIMITOWANA",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "OFERTA WEEKENDOWA",
+    "value": "OFERTA WEEKENDOWA",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "OSTATNIA SZANSA",
+    "value": "OSTATNIA SZANSA",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Exclusive",
+    "sortNo": "0",
+    "code": "En ligne seulement",
+    "value": "En ligne seulement",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Exclusive",
+    "sortNo": "0",
+    "code": "Exclusive",
+    "value": "Exclusive",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Exclusive",
+    "sortNo": "0",
+    "code": "Exclusive offer",
+    "value": "Exclusive offer",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Exclusive",
+    "sortNo": "0",
+    "code": "Exclusive only LG.com",
+    "value": "Exclusive only LG.com",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Exclusive",
+    "sortNo": "0",
+    "code": "Exclusivo",
+    "value": "Exclusivo",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Exclusive",
+    "sortNo": "0",
+    "code": "Exclusivo Online",
+    "value": "Exclusivo Online",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Exclusive",
+    "sortNo": "0",
+    "code": "LG Online Exclusive",
+    "value": "LG Online Exclusive",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Exclusive",
+    "sortNo": "0",
+    "code": "LG WEBÁRUHÁZ",
+    "value": "LG WEBÁRUHÁZ",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Exclusive",
+    "sortNo": "0",
+    "code": "Exclusivo Loja Online",
+    "value": "Exclusivo Loja Online",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Exclusive",
+    "sortNo": "0",
+    "code": "Online exclusive",
+    "value": "Online exclusive",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Exclusive",
+    "sortNo": "0",
+    "code": "Online Only",
+    "value": "Online Only",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Exclusive",
+    "sortNo": "0",
+    "code": "Only at LG.com",
+    "value": "Only at LG.com",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Exclusive",
+    "sortNo": "0",
+    "code": "Only on LG.ca",
+    "value": "Only on LG.ca",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Exclusive",
+    "sortNo": "0",
+    "code": "Only on LG.com",
+    "value": "Only on LG.com",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Exclusive",
+    "sortNo": "0",
+    "code": "Pouze na LG.cz",
+    "value": "Pouze na LG.cz",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Exclusive",
+    "sortNo": "0",
+    "code": "Producto exclusivo",
+    "value": "Producto exclusivo",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Exclusive",
+    "sortNo": "0",
+    "code": "Solo en LG.com",
+    "value": "Solo en LG.com",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Exclusive",
+    "sortNo": "0",
+    "code": "Thai only LG.com",
+    "value": "Thai only LG.com",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Exclusive",
+    "sortNo": "0",
+    "code": "Uniquement en ligne",
+    "value": "Uniquement en ligne",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Exclusive",
+    "sortNo": "0",
+    "code": "官網限定",
+    "value": "官網限定",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Stock",
+    "sortNo": "0",
+    "code": "À venir",
+    "value": "À venir",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Stock",
+    "sortNo": "0",
+    "code": "Reserva ahora",
+    "value": "Reserva ahora",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Stock",
+    "sortNo": "0",
+    "code": "Bientôt disponible",
+    "value": "Bientôt disponible",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Stock",
+    "sortNo": "0",
+    "code": "by Will.I.Am",
+    "value": "by Will.I.Am",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Stock",
+    "sortNo": "0",
+    "code": "Coming soon",
+    "value": "Coming soon",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Stock",
+    "sortNo": "0",
+    "code": "Em breve",
+    "value": "Em breve",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Stock",
+    "sortNo": "0",
+    "code": "Coming Soon",
+    "value": "Coming Soon",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Stock",
+    "sortNo": "0",
+    "code": "Discontinued",
+    "value": "Discontinued",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Stock",
+    "sortNo": "0",
+    "code": "ELŐRENDELÉS",
+    "value": "ELŐRENDELÉS",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Stock",
+    "sortNo": "0",
+    "code": "Hamarosan",
+    "value": "Hamarosan",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Stock",
+    "sortNo": "0",
+    "code": "LANÇAMENTO",
+    "value": "LANÇAMENTO",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Stock",
+    "sortNo": "0",
+    "code": "Lanzamiento",
+    "value": "Lanzamiento",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Stock",
+    "sortNo": "0",
+    "code": "Launching soon",
+    "value": "Launching soon",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Stock",
+    "sortNo": "0",
+    "code": "aunchingSoon-StayTuned",
+    "value": "aunchingSoon-StayTuned",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Stock",
+    "sortNo": "0",
+    "code": "Low stock",
+    "value": "Low stock",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Stock",
+    "sortNo": "0",
+    "code": "New",
+    "value": "New",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Stock",
+    "sortNo": "0",
+    "code": "Novo",
+    "value": "Novo",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Stock",
+    "sortNo": "0",
+    "code": "Nouveau",
+    "value": "Nouveau",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Stock",
+    "sortNo": "0",
+    "code": "Pre order",
+    "value": "Pre order",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Stock",
+    "sortNo": "0",
+    "code": "Précommander",
+    "value": "Précommander",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Stock",
+    "sortNo": "0",
+    "code": "Pre-Order",
+    "value": "Pre-Order",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Stock",
+    "sortNo": "0",
+    "code": "PRÉ-VENDA",
+    "value": "PRÉ-VENDA",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Stock",
+    "sortNo": "0",
+    "code": "PRE-VENTA",
+    "value": "PRE-VENTA",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Stock",
+    "sortNo": "0",
+    "code": "Új",
+    "value": "Új",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Stock",
+    "sortNo": "0",
+    "code": "Very soon",
+    "value": "Very soon",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Stock",
+    "sortNo": "0",
+    "code": "新產品",
+    "value": "新產品",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Stock",
+    "sortNo": "0",
+    "code": "預購",
+    "value": "預購",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Stock",
+    "sortNo": "0",
+    "code": "即將推出",
+    "value": "即將推出",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Editor",
+    "sortNo": "0",
+    "code": "¡Gracias Chile!",
+    "value": "¡Gracias Chile!",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Editor",
+    "sortNo": "0",
+    "code": "Affectionate Intelligence",
+    "value": "Affectionate Intelligence",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Editor",
+    "sortNo": "0",
+    "code": "AI",
+    "value": "AI",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Editor",
+    "sortNo": "0",
+    "code": "Always good price",
+    "value": "Always good price",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Editor",
+    "sortNo": "0",
+    "code": "Attention",
+    "value": "Attention",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Editor",
+    "sortNo": "0",
+    "code": "Award",
+    "value": "Award",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Editor",
+    "sortNo": "0",
+    "code": "BEST PRICE",
+    "value": "BEST PRICE",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Editor",
+    "sortNo": "0",
+    "code": "Best product",
+    "value": "Best product",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Editor",
+    "sortNo": "0",
+    "code": "Best seller",
+    "value": "Best seller",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Editor",
+    "sortNo": "0",
+    "code": "BEST SELLER",
+    "value": "BEST SELLER",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Editor",
+    "sortNo": "0",
+    "code": "Best Seller",
+    "value": "Best Seller",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Editor",
+    "sortNo": "0",
+    "code": "Mais vendido",
+    "value": "Mais vendido",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Editor",
+    "sortNo": "0",
+    "code": "Melhor Compra",
+    "value": "Melhor Compra",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Editor",
+    "sortNo": "0",
+    "code": "Check item dimensions",
+    "value": "Check item dimensions",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Editor",
+    "sortNo": "0",
+    "code": "Copo Stanley!",
+    "value": "Copo Stanley!",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Editor",
+    "sortNo": "0",
+    "code": "Craft Ice Function",
+    "value": "Craft Ice Function",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Editor",
+    "sortNo": "0",
+    "code": "FLASH SALE",
+    "value": "FLASH SALE",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Editor",
+    "sortNo": "0",
+    "code": "dTest award",
+    "value": "dTest award",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Editor",
+    "sortNo": "0",
+    "code": "Enegiebewust",
+    "value": "Enegiebewust",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Editor",
+    "sortNo": "0",
+    "code": "節能商品",
+    "value": "節能商品",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Editor",
+    "sortNo": "0",
+    "code": "Expert Choice",
+    "value": "Expert Choice",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Editor",
+    "sortNo": "0",
+    "code": "Featured",
+    "value": "Featured",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Editor",
+    "sortNo": "0",
+    "code": "KPOP",
+    "value": "KPOP",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Editor",
+    "sortNo": "0",
+    "code": "LG\u0027s Choice",
+    "value": "LG\u0027s Choice",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Editor",
+    "sortNo": "0",
+    "code": "Magic Remote",
+    "value": "Magic Remote",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Editor",
+    "sortNo": "0",
+    "code": "MÁS VENDIDO",
+    "value": "MÁS VENDIDO",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Editor",
+    "sortNo": "0",
+    "code": "NEW 2025",
+    "value": "NEW 2025",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Editor",
+    "sortNo": "0",
+    "code": "NEW TAG TESTING",
+    "value": "NEW TAG TESTING",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Editor",
+    "sortNo": "0",
+    "code": "NEW2024",
+    "value": "NEW2024",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Editor",
+    "sortNo": "0",
+    "code": "New2024",
+    "value": "New2024",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Editor",
+    "sortNo": "0",
+    "code": "No.1 en ventas",
+    "value": "No.1 en ventas",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Editor",
+    "sortNo": "0",
+    "code": "No.2 en ventas",
+    "value": "No.2 en ventas",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Editor",
+    "sortNo": "0",
+    "code": "No.3 en ventas",
+    "value": "No.3 en ventas",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Editor",
+    "sortNo": "0",
+    "code": "Nos Adelantamos",
+    "value": "Nos Adelantamos",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Editor",
+    "sortNo": "0",
+    "code": "Nuevo 2025",
+    "value": "Nuevo 2025",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Editor",
+    "sortNo": "0",
+    "code": "OFERTA MIESIĄCA",
+    "value": "OFERTA MIESIĄCA",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Editor",
+    "sortNo": "0",
+    "code": "PERFECT MATCH",
+    "value": "PERFECT MATCH",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Editor",
+    "sortNo": "0",
+    "code": "POLECAMY",
+    "value": "POLECAMY",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Editor",
+    "sortNo": "0",
+    "code": "Precio más bajo",
+    "value": "Precio más bajo",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Editor",
+    "sortNo": "0",
+    "code": "PRODUCT OF THE YEAR",
+    "value": "PRODUCT OF THE YEAR",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Editor",
+    "sortNo": "0",
+    "code": "Product Review",
+    "value": "Product Review",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Editor",
+    "sortNo": "0",
+    "code": "Producto del día",
+    "value": "Producto del día",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Editor",
+    "sortNo": "0",
+    "code": "Producto del mes",
+    "value": "Producto del mes",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Editor",
+    "sortNo": "0",
+    "code": "Quiet Mark",
+    "value": "Quiet Mark",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Editor",
+    "sortNo": "0",
+    "code": "Recomendado",
+    "value": "Recomendado",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Editor",
+    "sortNo": "0",
+    "code": "Recommend",
+    "value": "Recommend",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Editor",
+    "sortNo": "0",
+    "code": "網紅推薦",
+    "value": "網紅推薦",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Editor",
+    "sortNo": "0",
+    "code": "Santa\u0027s Favorites",
+    "value": "Santa\u0027s Favorites",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Editor",
+    "sortNo": "0",
+    "code": "Thai Best selling products",
+    "value": "Thai Best selling products",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Editor",
+    "sortNo": "0",
+    "code": "Thai Good selling products",
+    "value": "Thai Good selling products",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Editor",
+    "sortNo": "0",
+    "code": "Thai Recommended products",
+    "value": "Thai Recommended products",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Editor",
+    "sortNo": "0",
+    "code": "Titanium*",
+    "value": "Titanium*",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Editor",
+    "sortNo": "0",
+    "code": "Produto Recomendado",
+    "value": "Produto Recomendado",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Editor",
+    "sortNo": "0",
+    "code": "TOP SELLER",
+    "value": "TOP SELLER",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Editor",
+    "sortNo": "0",
+    "code": "Top Seller",
+    "value": "Top Seller",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Editor",
+    "sortNo": "0",
+    "code": "熱銷冠軍",
+    "value": "熱銷冠軍",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Editor",
+    "sortNo": "0",
+    "code": "熱銷經典色",
+    "value": "熱銷經典色",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Editor",
+    "sortNo": "0",
+    "code": "Unidad exterior",
+    "value": "Unidad exterior",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Editor",
+    "sortNo": "0",
+    "code": "Unidad interior",
+    "value": "Unidad interior",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Editor",
+    "sortNo": "0",
+    "code": "VERSION 2025",
+    "value": "VERSION 2025",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Editor",
+    "sortNo": "0",
+    "code": "年度最低",
+    "value": "年度最低",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Editor",
+    "sortNo": "0",
+    "code": "إختيار الخبراء",
+    "value": "إختيار الخبراء",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Editor",
+    "sortNo": "0",
+    "code": "暢銷產品",
+    "value": "暢銷產品",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Editor",
+    "sortNo": "0",
+    "code": "推薦產品",
+    "value": "推薦產品",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "£1,000 Cashback",
+    "value": "£1,000 Cashback",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "£1,000.00 Cashback",
+    "value": "£1,000.00 Cashback",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "£100 Cashback",
+    "value": "£100 Cashback",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "£100 off at checkout",
+    "value": "£100 off at checkout",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "£1000 Cashback",
+    "value": "£1000 Cashback",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "£150 Cashback",
+    "value": "£150 Cashback",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "£200 Cashback",
+    "value": "£200 Cashback",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "£200 off",
+    "value": "£200 off",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "£2000 Cashback",
+    "value": "£2000 Cashback",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "£250 Cashback",
+    "value": "£250 Cashback",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "£300 Cashback",
+    "value": "£300 Cashback",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "£300 off",
+    "value": "£300 off",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "£300 off at checkout",
+    "value": "£300 off at checkout",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "£400 Cashback",
+    "value": "£400 Cashback",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "£50 off at checkout",
+    "value": "£50 off at checkout",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "£500 Cashback",
+    "value": "£500 Cashback",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "£700 Cashback",
+    "value": "£700 Cashback",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "£75 Cashback",
+    "value": "£75 Cashback",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "€100 Cashback",
+    "value": "€100 Cashback",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "€100 Korting",
+    "value": "€100 Korting",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "€1000 Korting",
+    "value": "€1000 Korting",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "€120 Inruilkorting",
+    "value": "€120 Inruilkorting",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "€150 Cashback",
+    "value": "€150 Cashback",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "€150 Korting",
+    "value": "€150 Korting",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "€160 Inruilkorting",
+    "value": "€160 Inruilkorting",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "€20 Korting",
+    "value": "€20 Korting",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "€200 Cashback",
+    "value": "€200 Cashback",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "€200 Korting",
+    "value": "€200 Korting",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "€30 Korting",
+    "value": "€30 Korting",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "€300 Cashback",
+    "value": "€300 Cashback",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "€300 Korting",
+    "value": "€300 Korting",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "€350 Korting",
+    "value": "€350 Korting",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "€50 Korting",
+    "value": "€50 Korting",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "€60 Korting",
+    "value": "€60 Korting",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "€600 Korting",
+    "value": "€600 Korting",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "€75 Korting",
+    "value": "€75 Korting",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "€900 Korting",
+    "value": "€900 Korting",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "10 % de rabais",
+    "value": "10 % de rabais",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "10 % Korting",
+    "value": "10 % Korting",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "10 off at checkout",
+    "value": "10 off at checkout",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "10% DISCOUNT",
+    "value": "10% DISCOUNT",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "10% discount in checkout",
+    "value": "10% discount in checkout",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "10% dscto. adicional Santander",
+    "value": "10% dscto. adicional Santander",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "10% DTO",
+    "value": "10% DTO",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "10% extra på parat produkt",
+    "value": "10% extra på parat produkt",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "10％ OFF",
+    "value": "10％ OFF",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "10% OFF",
+    "value": "10% OFF",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "10% off",
+    "value": "10% off",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "10% OFF at checkout",
+    "value": "10% OFF at checkout",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "10% off at checkout",
+    "value": "10% off at checkout",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "10% Rabatt mit GAMING10",
+    "value": "10% Rabatt mit GAMING10",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "10% SCONTO A CARRELLO",
+    "value": "10% SCONTO A CARRELLO",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "10% SLEVA V KOŠÍKU",
+    "value": "10% SLEVA V KOŠÍKU",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "100 CASHBACK",
+    "value": "100 CASHBACK",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "100€ CASHBACK",
+    "value": "100€ CASHBACK",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "100€ REMBOURSÉS",
+    "value": "100€ REMBOURSÉS",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "100€ Direktrabatt",
+    "value": "100€ Direktrabatt",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "1000 CASHBACK",
+    "value": "1000 CASHBACK",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "1000 Off",
+    "value": "1000 Off",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "1000€ REMBOURSÉS",
+    "value": "1000€ REMBOURSÉS",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "10000 Discount in check out",
+    "value": "10000 Discount in check out",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "1000kr rabatt i kassan",
+    "value": "1000kr rabatt i kassan",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "10500 Discount in check out",
+    "value": "10500 Discount in check out",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "11% OFF",
+    "value": "11% OFF",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "11000 Discount in check out",
+    "value": "11000 Discount in check out",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "11500 Discount in check out",
+    "value": "11500 Discount in check out",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "12% discount in checkout",
+    "value": "12% discount in checkout",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "12% off at checkout",
+    "value": "12% off at checkout",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "12000 Discount in check out",
+    "value": "12000 Discount in check out",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "12500 Discount in check out",
+    "value": "12500 Discount in check out",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "130€ Cashback",
+    "value": "130€ Cashback",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "13000 Discount in check out",
+    "value": "13000 Discount in check out",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "13500 Discount in check out",
+    "value": "13500 Discount in check out",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "14000 Discount in check out",
+    "value": "14000 Discount in check out",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "14500 Discount in check out",
+    "value": "14500 Discount in check out",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "15 % de rabais",
+    "value": "15 % de rabais",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "15% Direktabzug",
+    "value": "15% Direktabzug",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "15% DISCOUNT",
+    "value": "15% DISCOUNT",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "15% DISCOUNT IN CART",
+    "value": "15% DISCOUNT IN CART",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "15% discount in checkout",
+    "value": "15% discount in checkout",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "15% DTO EXTRA",
+    "value": "15% DTO EXTRA",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "15% extra discount on matching TV",
+    "value": "15% extra discount on matching TV",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "15% extra på parat produkt",
+    "value": "15% extra på parat produkt",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "15% Korting",
+    "value": "15% Korting",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "15% OFF",
+    "value": "15% OFF",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "15% off",
+    "value": "15% off",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "15% off at checkout",
+    "value": "15% off at checkout",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "15% SCONTO A CARRELLO",
+    "value": "15% SCONTO A CARRELLO",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "15% SLEVA V KOŠÍKU",
+    "value": "15% SLEVA V KOŠÍKU",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "150 CASHBACK",
+    "value": "150 CASHBACK",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "150 off at checkout",
+    "value": "150 off at checkout",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "150€ REMBOURSÉS",
+    "value": "150€ REMBOURSÉS",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "150€ Direktrabatt",
+    "value": "150€ Direktrabatt",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "150€ dto en el pago",
+    "value": "150€ dto en el pago",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "1500 Off",
+    "value": "1500 Off",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "15000 Discount in check out",
+    "value": "15000 Discount in check out",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "1500kr rabatt i kassan",
+    "value": "1500kr rabatt i kassan",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "15500 Discount in check out",
+    "value": "15500 Discount in check out",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "160€ CASHBACK",
+    "value": "160€ CASHBACK",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "16000 Discount in check out",
+    "value": "16000 Discount in check out",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "16500 Discount in check out",
+    "value": "16500 Discount in check out",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "17000 Discount in check out",
+    "value": "17000 Discount in check out",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "17500 Discount in check out",
+    "value": "17500 Discount in check out",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "180€ Direktrabatt",
+    "value": "180€ Direktrabatt",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "18000 Discount in check out",
+    "value": "18000 Discount in check out",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "18500 Discount in check out",
+    "value": "18500 Discount in check out",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "19% Discount",
+    "value": "19% Discount",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "19000 Discount in check out",
+    "value": "19000 Discount in check out",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "19500 Discount in check out",
+    "value": "19500 Discount in check out",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "2% off",
+    "value": "2% off",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "20 % de rabais",
+    "value": "20 % de rabais",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "20 % Korting",
+    "value": "20 % Korting",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "20 CASHBACK",
+    "value": "20 CASHBACK",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "20 off at checkout",
+    "value": "20 off at checkout",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "20% DISCOUNT",
+    "value": "20% DISCOUNT",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "20% DISCOUNT IN CART",
+    "value": "20% DISCOUNT IN CART",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "20% discount in checkout",
+    "value": "20% discount in checkout",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "20% OFF",
+    "value": "20% OFF",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "20% off",
+    "value": "20% off",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "20% off at checkout",
+    "value": "20% off at checkout",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "20% SLEVA V KOŠÍKU",
+    "value": "20% SLEVA V KOŠÍKU",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "20€ CASHBACK",
+    "value": "20€ CASHBACK",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "20€ Direktrabatt",
+    "value": "20€ Direktrabatt",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "200 CASHBACK",
+    "value": "200 CASHBACK",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "200 off at checkout",
+    "value": "200 off at checkout",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "200€ CASHBACK",
+    "value": "200€ CASHBACK",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "200€ REMBOURSÉS",
+    "value": "200€ REMBOURSÉS",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "200€ Direktrabatt",
+    "value": "200€ Direktrabatt",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "2000 Discount in check out",
+    "value": "2000 Discount in check out",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "2000 Off",
+    "value": "2000 Off",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "20000 Discount in check out",
+    "value": "20000 Discount in check out",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "25% DISCOUNT",
+    "value": "25% DISCOUNT",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "25% discount in checkout",
+    "value": "25% discount in checkout",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "25% OFF",
+    "value": "25% OFF",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "25% SLEVA V KOŠÍKU",
+    "value": "25% SLEVA V KOŠÍKU",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "250 CASHBACK",
+    "value": "250 CASHBACK",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "250 off at checkout",
+    "value": "250 off at checkout",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "250€ CASHBACK",
+    "value": "250€ CASHBACK",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "250€ REMBOURSÉS",
+    "value": "250€ REMBOURSÉS",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "250€ Direktrabatt",
+    "value": "250€ Direktrabatt",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "250€ dto en el pago",
+    "value": "250€ dto en el pago",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "2500 Discount in check out",
+    "value": "2500 Discount in check out",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "2500 Off",
+    "value": "2500 Off",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "270€ Direktrabatt",
+    "value": "270€ Direktrabatt",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "29% extra på parat produkt",
+    "value": "29% extra på parat produkt",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "30 CASHBACK",
+    "value": "30 CASHBACK",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "30 mesi Tasso 0%",
+    "value": "30 mesi Tasso 0%",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "30 off at checkout",
+    "value": "30 off at checkout",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "30% DISCOUNT",
+    "value": "30% DISCOUNT",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "30% discount in checkout",
+    "value": "30% discount in checkout",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "30% dto",
+    "value": "30% dto",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "30% OFF",
+    "value": "30% OFF",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "30% SLEVA V KOŠÍKU",
+    "value": "30% SLEVA V KOŠÍKU",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "30€ CASHBACK",
+    "value": "30€ CASHBACK",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "30€ Direktrabatt",
+    "value": "30€ Direktrabatt",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "30€ REMBOURSES",
+    "value": "30€ REMBOURSES",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "300 CASHBACK",
+    "value": "300 CASHBACK",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "300€ CASHBACK",
+    "value": "300€ CASHBACK",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "300€ REMBOURSÉS",
+    "value": "300€ REMBOURSÉS",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "300€ Direktrabatt",
+    "value": "300€ Direktrabatt",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "3000 Discount in check out",
+    "value": "3000 Discount in check out",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "3000 Off",
+    "value": "3000 Off",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "32% extra på parat produkt",
+    "value": "32% extra på parat produkt",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "35 % Korting",
+    "value": "35 % Korting",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "35% DISCOUNT",
+    "value": "35% DISCOUNT",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "35% discount in checkout",
+    "value": "35% discount in checkout",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "35% dto",
+    "value": "35% dto",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "35% OFF",
+    "value": "35% OFF",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "350€ CASHBACK",
+    "value": "350€ CASHBACK",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "350€ REMBOURSÉS",
+    "value": "350€ REMBOURSÉS",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "3500 Discount in check out",
+    "value": "3500 Discount in check out",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "3500 Off",
+    "value": "3500 Off",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "40 % Korting",
+    "value": "40 % Korting",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "40 CASHBACK",
+    "value": "40 CASHBACK",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "40 off at checkout",
+    "value": "40 off at checkout",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "40% DISCOUNT",
+    "value": "40% DISCOUNT",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "40% discount in checkout",
+    "value": "40% discount in checkout",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "40% extra på parat produkt",
+    "value": "40% extra på parat produkt",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "40% OFF",
+    "value": "40% OFF",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "40€ CASHBACK",
+    "value": "40€ CASHBACK",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "40€ Direktrabatt",
+    "value": "40€ Direktrabatt",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "40€ REMBOURSES",
+    "value": "40€ REMBOURSES",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "400 off at checkout",
+    "value": "400 off at checkout",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "400€ CASHBACK",
+    "value": "400€ CASHBACK",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "400€ REMBOURSÉS",
+    "value": "400€ REMBOURSÉS",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "400€ Direktrabatt",
+    "value": "400€ Direktrabatt",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "4000 Discount in check out",
+    "value": "4000 Discount in check out",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "4000 Off",
+    "value": "4000 Off",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "41% extra på parat produkt",
+    "value": "41% extra på parat produkt",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "45% DISCOUNT",
+    "value": "45% DISCOUNT",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "45% discount in checkout",
+    "value": "45% discount in checkout",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "45% OFF",
+    "value": "45% OFF",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "450€ CASHBACK",
+    "value": "450€ CASHBACK",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "450€ REMBOURSÉS",
+    "value": "450€ REMBOURSÉS",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "4500 Discount in check out",
+    "value": "4500 Discount in check out",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "4500 Off",
+    "value": "4500 Off",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "5% discount in checkout",
+    "value": "5% discount in checkout",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "5% DTO EXTRA",
+    "value": "5% DTO EXTRA",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "5% dto extra en carrito",
+    "value": "5% dto extra en carrito",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "5% Korting",
+    "value": "5% Korting",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "5% OFF",
+    "value": "5% OFF",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "5% off",
+    "value": "5% off",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "5% Off at checkout",
+    "value": "5% Off at checkout",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "5% SCONTO A CARRELLO",
+    "value": "5% SCONTO A CARRELLO",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "5% SLEVA V KOŠÍKU",
+    "value": "5% SLEVA V KOŠÍKU",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "50 CASHBACK",
+    "value": "50 CASHBACK",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "50% DISCOUNT",
+    "value": "50% DISCOUNT",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "50% discount in checkout",
+    "value": "50% discount in checkout",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "50% OFF",
+    "value": "50% OFF",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "50% SLEVA V KOŠÍKU",
+    "value": "50% SLEVA V KOŠÍKU",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "50€ CASHBACK",
+    "value": "50€ CASHBACK",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "50€ REMBOURSÉS",
+    "value": "50€ REMBOURSÉS",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "50€ Direktrabatt",
+    "value": "50€ Direktrabatt",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "500 CASHBACK",
+    "value": "500 CASHBACK",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "500 Off",
+    "value": "500 Off",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "500 off at checkout",
+    "value": "500 off at checkout",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "500€ CASHBACK",
+    "value": "500€ CASHBACK",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "500€ REMBOURSÉS",
+    "value": "500€ REMBOURSÉS",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "500€ Direktrabatt",
+    "value": "500€ Direktrabatt",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "5000 Discount in check out",
+    "value": "5000 Discount in check out",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "5000 Off",
+    "value": "5000 Off",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "500kr rabatt i kassan",
+    "value": "500kr rabatt i kassan",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "55% discount in checkout",
+    "value": "55% discount in checkout",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "55% OFF",
+    "value": "55% OFF",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "5500 Discount in check out",
+    "value": "5500 Discount in check out",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "60% discount in checkout",
+    "value": "60% discount in checkout",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "60% discount on Soundbar",
+    "value": "60% discount on Soundbar",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "60% OFF",
+    "value": "60% OFF",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "60€ Direktrabatt",
+    "value": "60€ Direktrabatt",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "600€ REMBOURSÉS",
+    "value": "600€ REMBOURSÉS",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "6000 Discount in check out",
+    "value": "6000 Discount in check out",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "65% OFF",
+    "value": "65% OFF",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "6500 Discount in check out",
+    "value": "6500 Discount in check out",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "70 CASHBACK",
+    "value": "70 CASHBACK",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "70% discount on Soundbar",
+    "value": "70% discount on Soundbar",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "70% OFF",
+    "value": "70% OFF",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "70€ CASHBACK",
+    "value": "70€ CASHBACK",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "70€ REMBOURSÉS",
+    "value": "70€ REMBOURSÉS",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "70€ Direktrabatt",
+    "value": "70€ Direktrabatt",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "700€ REMBOURSÉS",
+    "value": "700€ REMBOURSÉS",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "7000 Discount in check out",
+    "value": "7000 Discount in check out",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "75% OFF",
+    "value": "75% OFF",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "75€ CASHBACK",
+    "value": "75€ CASHBACK",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "7500 Discount in check out",
+    "value": "7500 Discount in check out",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "80% OFF",
+    "value": "80% OFF",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "80€ REMBOURSÉS",
+    "value": "80€ REMBOURSÉS",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "80€ Direktrabatt",
+    "value": "80€ Direktrabatt",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "800€ REMBOURSÉS",
+    "value": "800€ REMBOURSÉS",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "8000 Discount in check out",
+    "value": "8000 Discount in check out",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "85% OFF",
+    "value": "85% OFF",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "8500 Discount in check out",
+    "value": "8500 Discount in check out",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "90% discount on Soundbar",
+    "value": "90% discount on Soundbar",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "90% OFF",
+    "value": "90% OFF",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "900€ REMBOURSÉS",
+    "value": "900€ REMBOURSÉS",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "9000 Discount in check out",
+    "value": "9000 Discount in check out",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "9500 Discount in check out",
+    "value": "9500 Discount in check out",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Add Filter, Get 50% Off Filter",
+    "value": "Add Filter, Get 50% Off Filter",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Add Filter, Save 50% on Filter",
+    "value": "Add Filter, Save 50% on Filter",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Additional Discount 10%",
+    "value": "Additional Discount 10%",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Additional Discount 15%",
+    "value": "Additional Discount 15%",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Apply 10% off code at checkout",
+    "value": "Apply 10% off code at checkout",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Apply 20% off code at checkout",
+    "value": "Apply 20% off code at checkout",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Apply 5% off code at checkout",
+    "value": "Apply 5% off code at checkout",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Apply code at checkout for 10% off",
+    "value": "Apply code at checkout for 10% off",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Apply code at checkout for 20% off",
+    "value": "Apply code at checkout for 20% off",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Apply code at checkout for 5% off",
+    "value": "Apply code at checkout for 5% off",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Barre de son 1€",
+    "value": "Barre de son 1€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Barre de son -15%",
+    "value": "Barre de son -15%",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Barre de son -20%",
+    "value": "Barre de son -20%",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Barre de son -25%",
+    "value": "Barre de son -25%",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Barre de son -30%",
+    "value": "Barre de son -30%",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Barre de son -35%",
+    "value": "Barre de son -35%",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Barre de son -40%",
+    "value": "Barre de son -40%",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Barre de son -45%",
+    "value": "Barre de son -45%",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Barre de son -50%",
+    "value": "Barre de son -50%",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Barre de son -60%",
+    "value": "Barre de son -60%",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Barre de son -70%",
+    "value": "Barre de son -70%",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Barre de son -80%",
+    "value": "Barre de son -80%",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Barre de son -90%",
+    "value": "Barre de son -90%",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Buy 2, Save 10%",
+    "value": "Buy 2, Save 10%",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Buy 2, Save 5%",
+    "value": "Buy 2, Save 5%",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "CASHBACK",
+    "value": "CASHBACK",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Cashback £1000",
+    "value": "Cashback £1000",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Cashback 10 000 Kč",
+    "value": "Cashback 10 000 Kč",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Cashback 10%",
+    "value": "Cashback 10%",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "CASHBACK 10%",
+    "value": "CASHBACK 10%",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "CASHBACK 100",
+    "value": "CASHBACK 100",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "CASHBACK 1000",
+    "value": "CASHBACK 1000",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Cashback 1000",
+    "value": "Cashback 1000",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Cashback 1000 Kč",
+    "value": "Cashback 1000 Kč",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "CASHBACK 1000€",
+    "value": "CASHBACK 1000€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "CASHBACK 1050",
+    "value": "CASHBACK 1050",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Cashback 1100",
+    "value": "Cashback 1100",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Cashback 12 500 Kč",
+    "value": "Cashback 12 500 Kč",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "CASHBACK 120",
+    "value": "CASHBACK 120",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Cashback 1200",
+    "value": "Cashback 1200",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "CASHBACK 1200",
+    "value": "CASHBACK 1200",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Cashback 1250 Kč",
+    "value": "Cashback 1250 Kč",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Cashback 1300",
+    "value": "Cashback 1300",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "CASHBACK 1400",
+    "value": "CASHBACK 1400",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Cashback 15 000 Kč",
+    "value": "Cashback 15 000 Kč",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "CASHBACK 15%",
+    "value": "CASHBACK 15%",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Cashback 150",
+    "value": "Cashback 150",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Cashback 1500",
+    "value": "Cashback 1500",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Cashback 1500 Kč",
+    "value": "Cashback 1500 Kč",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Cashback 16 000 Kč",
+    "value": "Cashback 16 000 Kč",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "CASHBACK 1600",
+    "value": "CASHBACK 1600",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Cashback 17 500 Kč",
+    "value": "Cashback 17 500 Kč",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Cashback 1700",
+    "value": "Cashback 1700",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "CASHBACK 1800",
+    "value": "CASHBACK 1800",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Cashback 20 000 Kč",
+    "value": "Cashback 20 000 Kč",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "CASHBACK 20%",
+    "value": "CASHBACK 20%",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "CASHBACK 200",
+    "value": "CASHBACK 200",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "CASHBACK 2000",
+    "value": "CASHBACK 2000",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Cashback 2000 Kč",
+    "value": "Cashback 2000 Kč",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "CASHBACK 2200",
+    "value": "CASHBACK 2200",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "CASHBACK 2400",
+    "value": "CASHBACK 2400",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "CASHBACK 25",
+    "value": "CASHBACK 25",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Cashback 25 000 Kč",
+    "value": "Cashback 25 000 Kč",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "CASHBACK 25%",
+    "value": "CASHBACK 25%",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Cashback 250",
+    "value": "Cashback 250",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "CASHBACK 2500",
+    "value": "CASHBACK 2500",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Cashback 2500 Kč",
+    "value": "Cashback 2500 Kč",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "CASHBACK 2600",
+    "value": "CASHBACK 2600",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "CASHBACK 2800",
+    "value": "CASHBACK 2800",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Cashback 30 000 Kč",
+    "value": "Cashback 30 000 Kč",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "CASHBACK 30%",
+    "value": "CASHBACK 30%",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "CASHBACK 300",
+    "value": "CASHBACK 300",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "CASHBACK 3000",
+    "value": "CASHBACK 3000",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Cashback 3000 Kč",
+    "value": "Cashback 3000 Kč",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "CASHBACK 3200",
+    "value": "CASHBACK 3200",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "CASHBACK 3400",
+    "value": "CASHBACK 3400",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "CASHBACK 35%",
+    "value": "CASHBACK 35%",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Cashback 350",
+    "value": "Cashback 350",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "CASHBACK 3600",
+    "value": "CASHBACK 3600",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Cashback 3750 Kč",
+    "value": "Cashback 3750 Kč",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "CASHBACK 3800",
+    "value": "CASHBACK 3800",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "CASHBACK 40%",
+    "value": "CASHBACK 40%",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "CASHBACK 400",
+    "value": "CASHBACK 400",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "CASHBACK 4000",
+    "value": "CASHBACK 4000",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Cashback 4000 Kč",
+    "value": "Cashback 4000 Kč",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "CASHBACK 4200",
+    "value": "CASHBACK 4200",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "CASHBACK 4400",
+    "value": "CASHBACK 4400",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Cashback 450",
+    "value": "Cashback 450",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Cashback 4500 Kč",
+    "value": "Cashback 4500 Kč",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "CASHBACK 4600",
+    "value": "CASHBACK 4600",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "CASHBACK 4800",
+    "value": "CASHBACK 4800",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "CASHBACK 5%",
+    "value": "CASHBACK 5%",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Cashback 50 000 Kč",
+    "value": "Cashback 50 000 Kč",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "CASHBACK 500",
+    "value": "CASHBACK 500",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "CASHBACK 5000",
+    "value": "CASHBACK 5000",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Cashback 5000 Kč",
+    "value": "Cashback 5000 Kč",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Cashback 550",
+    "value": "Cashback 550",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "CASHBACK 60",
+    "value": "CASHBACK 60",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "CASHBACK 600",
+    "value": "CASHBACK 600",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Cashback 650",
+    "value": "Cashback 650",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Cashback 6500 Kč",
+    "value": "Cashback 6500 Kč",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "CASHBACK 700",
+    "value": "CASHBACK 700",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Cashback 7000",
+    "value": "Cashback 7000",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Cashback 7000 Kč",
+    "value": "Cashback 7000 Kč",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "CASHBACK 75",
+    "value": "CASHBACK 75",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Cashback 750",
+    "value": "Cashback 750",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Cashback 7500 Kč",
+    "value": "Cashback 7500 Kč",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "CASHBACK 800",
+    "value": "CASHBACK 800",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Cashback 8000 Kč",
+    "value": "Cashback 8000 Kč",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Cashback 850",
+    "value": "Cashback 850",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "CASHBACK 90",
+    "value": "CASHBACK 90",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "CASHBACK 900",
+    "value": "CASHBACK 900",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Cashback 950",
+    "value": "Cashback 950",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Clearance",
+    "value": "Clearance",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Dcto 12%",
+    "value": "Dcto 12%",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Dcto 15%",
+    "value": "Dcto 15%",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Dcto 2%",
+    "value": "Dcto 2%",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Dcto 20%",
+    "value": "Dcto 20%",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Dcto 5%",
+    "value": "Dcto 5%",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Descuento",
+    "value": "Descuento",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Direktabzug",
+    "value": "Direktabzug",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Discount at checkout",
+    "value": "Discount at checkout",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Discount code available at checkout",
+    "value": "Discount code available at checkout",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "DOUBLE YOUR CASHBACK",
+    "value": "DOUBLE YOUR CASHBACK",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Extra £40 off",
+    "value": "Extra £40 off",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Extra £50 off",
+    "value": "Extra £50 off",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Extra 10% off",
+    "value": "Extra 10% off",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "10% no Carrinho",
+    "value": "10% no Carrinho",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Extra 15% off",
+    "value": "Extra 15% off",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "15% no Carrinho",
+    "value": "15% no Carrinho",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Extra 20% off",
+    "value": "Extra 20% off",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "20% no Carrinho",
+    "value": "20% no Carrinho",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Extra 25% off",
+    "value": "Extra 25% off",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Extra 30% off",
+    "value": "Extra 30% off",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Extra 40% off",
+    "value": "Extra 40% off",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Extra discount at checkout",
+    "value": "Extra discount at checkout",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Extra Rabatt im Warenkorb",
+    "value": "Extra Rabatt im Warenkorb",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Get 10% extra for paired product",
+    "value": "Get 10% extra for paired product",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Instant Cashback 100",
+    "value": "Instant Cashback 100",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Instant Cashback 1000",
+    "value": "Instant Cashback 1000",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Instant Cashback 1050",
+    "value": "Instant Cashback 1050",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Instant Cashback 1100",
+    "value": "Instant Cashback 1100",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Instant Cashback 150",
+    "value": "Instant Cashback 150",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Instant Cashback 200",
+    "value": "Instant Cashback 200",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Instant Cashback 250",
+    "value": "Instant Cashback 250",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Instant Cashback 300",
+    "value": "Instant Cashback 300",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Instant Cashback 350",
+    "value": "Instant Cashback 350",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Instant Cashback 400",
+    "value": "Instant Cashback 400",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Instant Cashback 450",
+    "value": "Instant Cashback 450",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Instant Cashback 50",
+    "value": "Instant Cashback 50",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Instant Cashback 500",
+    "value": "Instant Cashback 500",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Instant Cashback 5000",
+    "value": "Instant Cashback 5000",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Instant Cashback 550",
+    "value": "Instant Cashback 550",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Instant Cashback 600",
+    "value": "Instant Cashback 600",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Instant Cashback 650",
+    "value": "Instant Cashback 650",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Instant Cashback 700",
+    "value": "Instant Cashback 700",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Instant Cashback 7000",
+    "value": "Instant Cashback 7000",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Instant Cashback 750",
+    "value": "Instant Cashback 750",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Instant Cashback 800",
+    "value": "Instant Cashback 800",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Instant Cashback 850",
+    "value": "Instant Cashback 850",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Instant Cashback 900",
+    "value": "Instant Cashback 900",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Instant Cashback 9000",
+    "value": "Instant Cashback 9000",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Instant Cashback 950",
+    "value": "Instant Cashback 950",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Lege 3 in den Warenkorb und zahl 2",
+    "value": "Lege 3 in den Warenkorb und zahl 2",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Max 10,000yen Cashback",
+    "value": "Max 10,000yen Cashback",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Max 15,000yen Cashback",
+    "value": "Max 15,000yen Cashback",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Max 20,000yen Cashback",
+    "value": "Max 20,000yen Cashback",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Max 25,000yen Cashback",
+    "value": "Max 25,000yen Cashback",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Max 30,000yen Cashback",
+    "value": "Max 30,000yen Cashback",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Max 35,000yen Cashback",
+    "value": "Max 35,000yen Cashback",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Max 5,000yen Cashback",
+    "value": "Max 5,000yen Cashback",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Max 50,000yen Cashback",
+    "value": "Max 50,000yen Cashback",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Oferta",
+    "value": "Oferta",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "OFFRE DE REMBOURSEMENT",
+    "value": "OFFRE DE REMBOURSEMENT",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "OLD TO NEW 10%",
+    "value": "OLD TO NEW 10%",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "OLD TO NEW 5%",
+    "value": "OLD TO NEW 5%",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Pack - 20%",
+    "value": "Pack - 20%",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Pack -15%",
+    "value": "Pack -15%",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Pack -25%",
+    "value": "Pack -25%",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Pack -30%",
+    "value": "Pack -30%",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Pack -35%",
+    "value": "Pack -35%",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Pack -40%",
+    "value": "Pack -40%",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Pack -45%",
+    "value": "Pack -45%",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Pack -50%",
+    "value": "Pack -50%",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "REPRISE 10%",
+    "value": "REPRISE 10%",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Reprise 10€",
+    "value": "Reprise 10€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Reprise 100€",
+    "value": "Reprise 100€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Reprise 125€",
+    "value": "Reprise 125€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "REPRISE 15%",
+    "value": "REPRISE 15%",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Reprise 150€",
+    "value": "Reprise 150€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Reprise 175€",
+    "value": "Reprise 175€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "REPRISE 20%",
+    "value": "REPRISE 20%",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Reprise 20€",
+    "value": "Reprise 20€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Reprise 200€",
+    "value": "Reprise 200€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "REPRISE 25%",
+    "value": "REPRISE 25%",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Reprise 250€",
+    "value": "Reprise 250€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "REPRISE 30%",
+    "value": "REPRISE 30%",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Reprise 30€",
+    "value": "Reprise 30€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Reprise 300€",
+    "value": "Reprise 300€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Reprise 350€",
+    "value": "Reprise 350€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Reprise 40€",
+    "value": "Reprise 40€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Reprise 400€",
+    "value": "Reprise 400€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Reprise 450€",
+    "value": "Reprise 450€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "REPRISE 5%",
+    "value": "REPRISE 5%",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Reprise 50€",
+    "value": "Reprise 50€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Reprise 500€",
+    "value": "Reprise 500€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Reprise 60€",
+    "value": "Reprise 60€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Reprise 600€",
+    "value": "Reprise 600€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Reprise 70€",
+    "value": "Reprise 70€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Reprise 700€",
+    "value": "Reprise 700€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Reprise 75€",
+    "value": "Reprise 75€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Reprise 80€",
+    "value": "Reprise 80€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Reprise 800€",
+    "value": "Reprise 800€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Reprise 90€",
+    "value": "Reprise 90€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Reprise 900€",
+    "value": "Reprise 900€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Sale",
+    "value": "Sale",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Save £600",
+    "value": "Save £600",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "SLEVA 1 000 KČ V KOŠÍKU",
+    "value": "SLEVA 1 000 KČ V KOŠÍKU",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "SLEVA 1 500 KČ V KOŠÍKU",
+    "value": "SLEVA 1 500 KČ V KOŠÍKU",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "SLEVA 10%",
+    "value": "SLEVA 10%",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "SLEVA 15%",
+    "value": "SLEVA 15%",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "SLEVA 2 000 KČ V KOŠÍKU",
+    "value": "SLEVA 2 000 KČ V KOŠÍKU",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "SLEVA 2 500 KČ V KOŠÍKU",
+    "value": "SLEVA 2 500 KČ V KOŠÍKU",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "SLEVA 20%",
+    "value": "SLEVA 20%",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "SLEVA 25%",
+    "value": "SLEVA 25%",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "SLEVA 30%",
+    "value": "SLEVA 30%",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "SLEVA 35%",
+    "value": "SLEVA 35%",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "SLEVA 40%",
+    "value": "SLEVA 40%",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "SLEVA 5%",
+    "value": "SLEVA 5%",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "100€ extra Sconto",
+    "value": "100€ extra Sconto",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "100€ Trade In",
+    "value": "100€ Trade In",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "1000€ Trade In",
+    "value": "1000€ Trade In",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "150€ extra Sconto",
+    "value": "150€ extra Sconto",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "200€ extra Sconto",
+    "value": "200€ extra Sconto",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "200€ Trade In",
+    "value": "200€ Trade In",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "30€ extra Sconto",
+    "value": "30€ extra Sconto",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "300€ extra Sconto",
+    "value": "300€ extra Sconto",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "50€ extra Sconto",
+    "value": "50€ extra Sconto",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Cashback 100€",
+    "value": "Cashback 100€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Cashback 200€",
+    "value": "Cashback 200€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Cashback 300€",
+    "value": "Cashback 300€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Cashback 400€",
+    "value": "Cashback 400€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Cashback 50€",
+    "value": "Cashback 50€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Cashback 500€",
+    "value": "Cashback 500€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Cashback fino a 150€",
+    "value": "Cashback fino a 150€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Cashback fino a 500€",
+    "value": "Cashback fino a 500€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "10% al Checkout",
+    "value": "10% al Checkout",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "15% al Checkout",
+    "value": "15% al Checkout",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "20% al Checkout",
+    "value": "20% al Checkout",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "5% al Checkout",
+    "value": "5% al Checkout",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "TRADE IN",
+    "value": "TRADE IN",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Trade Up 100€",
+    "value": "Trade Up 100€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Trade Up 150€",
+    "value": "Trade Up 150€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Trade Up 200€",
+    "value": "Trade Up 200€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Trade Up 250€",
+    "value": "Trade Up 250€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Trade Up 300€",
+    "value": "Trade Up 300€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Trade Up 50€",
+    "value": "Trade Up 50€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Trade up",
+    "value": "Trade up",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Trade-In",
+    "value": "Trade-In",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Trade-in discount",
+    "value": "Trade-in discount",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Trade-up 1 000 kr",
+    "value": "Trade-up 1 000 kr",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Trade-up 2 000 kr",
+    "value": "Trade-up 2 000 kr",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Trade-up 3 000 kr",
+    "value": "Trade-up 3 000 kr",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Trade-up 4 000 kr",
+    "value": "Trade-up 4 000 kr",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Trade-up 5 000 kr",
+    "value": "Trade-up 5 000 kr",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Trade-up bonus 10 000Kč",
+    "value": "Trade-up bonus 10 000Kč",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Trade-up bonus 1000Kč",
+    "value": "Trade-up bonus 1000Kč",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Trade-up bonus 15 000Kč",
+    "value": "Trade-up bonus 15 000Kč",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Trade-up bonus 1500Kč",
+    "value": "Trade-up bonus 1500Kč",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Trade-up bonus 2000Kč",
+    "value": "Trade-up bonus 2000Kč",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Trade-up bonus 2500Kč",
+    "value": "Trade-up bonus 2500Kč",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Trade-up bonus 30 000Kč",
+    "value": "Trade-up bonus 30 000Kč",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Trade-up bonus 3000Kč",
+    "value": "Trade-up bonus 3000Kč",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Trade-up bonus 4000Kč",
+    "value": "Trade-up bonus 4000Kč",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Trade-up bonus 5000Kč",
+    "value": "Trade-up bonus 5000Kč",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Trade-up bonus 6000Kč",
+    "value": "Trade-up bonus 6000Kč",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Trade-up bonus 7000Kč",
+    "value": "Trade-up bonus 7000Kč",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Trade-up bonus 8000Kč",
+    "value": "Trade-up bonus 8000Kč",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Trade-up bonus 9000Kč",
+    "value": "Trade-up bonus 9000Kč",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Trade-Up for £100 off",
+    "value": "Trade-Up for £100 off",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Trade-Up for £125 off",
+    "value": "Trade-Up for £125 off",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Trade-Up for £150 off",
+    "value": "Trade-Up for £150 off",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Trade-Up for £200 off",
+    "value": "Trade-Up for £200 off",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Trade-Up for £250 off",
+    "value": "Trade-Up for £250 off",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Trade-Up for £300 off",
+    "value": "Trade-Up for £300 off",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Trade-Up for £350 off",
+    "value": "Trade-Up for £350 off",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Trade-Up for £400 off",
+    "value": "Trade-Up for £400 off",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Trade-Up for £50 off",
+    "value": "Trade-Up for £50 off",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Trade-Up for £500 off",
+    "value": "Trade-Up for £500 off",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Trade-Up for £70 off",
+    "value": "Trade-Up for £70 off",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Trade-Up for £75 off",
+    "value": "Trade-Up for £75 off",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Trade-Up for £80 off",
+    "value": "Trade-Up for £80 off",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Trade-Up for 30 off",
+    "value": "Trade-Up for 30 off",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Up to 25% Discount",
+    "value": "Up to 25% Discount",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Upgrade for 1 000 kr off",
+    "value": "Upgrade for 1 000 kr off",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Upgrade for 2 000 kr off",
+    "value": "Upgrade for 2 000 kr off",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Upgrade for 500 kr off",
+    "value": "Upgrade for 500 kr off",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "W SPRZEDAŻY",
+    "value": "W SPRZEDAŻY",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "استرجاع نقدي %10",
+    "value": "استرجاع نقدي %10",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "清貨促銷",
+    "value": "清貨促銷",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "£200 off at checkout",
+    "value": "£200 off at checkout",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "₹1000 Gift Voucher",
+    "value": "₹1000 Gift Voucher",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "₹1500 Gift Voucher",
+    "value": "₹1500 Gift Voucher",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "₹2000 Gift Voucher",
+    "value": "₹2000 Gift Voucher",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "₹3000 Gift Voucher",
+    "value": "₹3000 Gift Voucher",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "₹4000 Gift Voucher",
+    "value": "₹4000 Gift Voucher",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "₹500 Gift Voucher",
+    "value": "₹500 Gift Voucher",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "+ Play Mobil",
+    "value": "+ Play Mobil",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "inc.1an Zattoo Ulti.",
+    "value": "inc.1an Zattoo Ulti.",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "1.200TL Pluxee hediye çeki",
+    "value": "1.200TL Pluxee hediye çeki",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "1.800TL Pluxee hediye çeki",
+    "value": "1.800TL Pluxee hediye çeki",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "-10 000 FT KUPON",
+    "value": "-10 000 FT KUPON",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "10% Additional Off Using Code",
+    "value": "10% Additional Off Using Code",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "10% KUPON",
+    "value": "10% KUPON",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "10% off with code 24BTS10",
+    "value": "10% off with code 24BTS10",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "-100 000 FT KUPON",
+    "value": "-100 000 FT KUPON",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "100 Gift Card",
+    "value": "100 Gift Card",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "1000 TL Kupon Hediye",
+    "value": "1000 TL Kupon Hediye",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "11% KUPON",
+    "value": "11% KUPON",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "11.000 TL Yakıt Puan Hediyeli",
+    "value": "11.000 TL Yakıt Puan Hediyeli",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "110€ CASHBACK",
+    "value": "110€ CASHBACK",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "12 Months OSN+",
+    "value": "12 Months OSN+",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "-125 000 FT Coupon",
+    "value": "-125 000 FT Coupon",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "12M APPLE TV+",
+    "value": "12M APPLE TV+",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "13.000 TL Yakıt Puan Hediyeli",
+    "value": "13.000 TL Yakıt Puan Hediyeli",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "-15 000 FT KUPON",
+    "value": "-15 000 FT KUPON",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "15% KUPON",
+    "value": "15% KUPON",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "15.000 TL Yakıt Puan Hediyeli",
+    "value": "15.000 TL Yakıt Puan Hediyeli",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "-150 000 FT KUPON",
+    "value": "-150 000 FT KUPON",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "150€ CASHBACK",
+    "value": "150€ CASHBACK",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "2.400TL Pluxee hediye çeki",
+    "value": "2.400TL Pluxee hediye çeki",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "-20 000 FT KUPON",
+    "value": "-20 000 FT KUPON",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "20.000 TL Yakıt Puan Hediyeli",
+    "value": "20.000 TL Yakıt Puan Hediyeli",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "2000 TL Kupon Hediye",
+    "value": "2000 TL Kupon Hediye",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "-25 000 FT KUPON",
+    "value": "-25 000 FT KUPON",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "3 Meses de Apple Music",
+    "value": "3 Meses de Apple Music",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "3 Monate Apple TV+ inklusive",
+    "value": "3 Monate Apple TV+ inklusive",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "3 Months OSN+",
+    "value": "3 Months OSN+",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "-30 000 FT KUPON",
+    "value": "-30 000 FT KUPON",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "300.000 CLP de REGALO",
+    "value": "300.000 CLP de REGALO",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "3000 TL Kupon Hediye",
+    "value": "3000 TL Kupon Hediye",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "35.000 TL Yakıt Puan Hediyeli",
+    "value": "35.000 TL Yakıt Puan Hediyeli",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "3500 TL Kupon Hediye",
+    "value": "3500 TL Kupon Hediye",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "3M APPLE TV+",
+    "value": "3M APPLE TV+",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "-40 000 FT KUPON",
+    "value": "-40 000 FT KUPON",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "400.000 CLP de REGALO",
+    "value": "400.000 CLP de REGALO",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "4000 TL Kupon Hediye",
+    "value": "4000 TL Kupon Hediye",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "4500 TL Kupon Hediye",
+    "value": "4500 TL Kupon Hediye",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "-5 000 FT KUPON",
+    "value": "-5 000 FT KUPON",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "5% KUPON",
+    "value": "5% KUPON",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "5.000 TL Yakıt Puan Hediyeli",
+    "value": "5.000 TL Yakıt Puan Hediyeli",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "-50 000 FT KUPON",
+    "value": "-50 000 FT KUPON",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "50% off soundbar",
+    "value": "50% off soundbar",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "500 TL Kupon Hediye",
+    "value": "500 TL Kupon Hediye",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "500.000 CLP de REGALO",
+    "value": "500.000 CLP de REGALO",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "5000 TL Kupon Hediye",
+    "value": "5000 TL Kupon Hediye",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "5500 TL Kupon Hediye",
+    "value": "5500 TL Kupon Hediye",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "6 mths free tabs",
+    "value": "6 mths free tabs",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "-60 000 FT Coupon",
+    "value": "-60 000 FT Coupon",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "60天試用期",
+    "value": "60天試用期",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "600.000 CLP de REGALO",
+    "value": "600.000 CLP de REGALO",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "6000 TL Kupon Hediye",
+    "value": "6000 TL Kupon Hediye",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "6200 TL Kupon Hediye",
+    "value": "6200 TL Kupon Hediye",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "6M APPLE TV+",
+    "value": "6M APPLE TV+",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "7.000 TL Yakıt Puan Hediyeli",
+    "value": "7.000 TL Yakıt Puan Hediyeli",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "7000 TL Kupon Hediye",
+    "value": "7000 TL Kupon Hediye",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "-75 000 FT KUPON",
+    "value": "-75 000 FT KUPON",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "7500 TL Kupon Hediye",
+    "value": "7500 TL Kupon Hediye",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "8.000 TL Yakıt Puan Hediyeli",
+    "value": "8.000 TL Yakıt Puan Hediyeli",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "8000 TL Kupon Hediye",
+    "value": "8000 TL Kupon Hediye",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "-85 000 FT Coupon",
+    "value": "-85 000 FT Coupon",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "9000 TL Kupon Hediye",
+    "value": "9000 TL Kupon Hediye",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Abonnement cadeau",
+    "value": "Abonnement cadeau",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "ACCESSOIRE OFFERT",
+    "value": "ACCESSOIRE OFFERT",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Apple Music",
+    "value": "Apple Music",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "APPLE MUSIC",
+    "value": "APPLE MUSIC",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Apple Music Gratis",
+    "value": "Apple Music Gratis",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Apple TV+",
+    "value": "Apple TV+",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "applicable for gift campaign",
+    "value": "applicable for gift campaign",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "ARB10",
+    "value": "ARB10",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Avec le bon d\u0027achat Philips Hue",
+    "value": "Avec le bon d\u0027achat Philips Hue",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Barra valorada en 799€",
+    "value": "Barra valorada en 799€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "BGS10",
+    "value": "BGS10",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "BGS20",
+    "value": "BGS20",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "BONUS FLEXI TOOL KIT",
+    "value": "BONUS FLEXI TOOL KIT",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Bonus Gift",
+    "value": "Bonus Gift",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "BONUS STACKING KIT",
+    "value": "BONUS STACKING KIT",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "BONUS Standbyme Speaker",
+    "value": "BONUS Standbyme Speaker",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "BONUS WATER FILTER",
+    "value": "BONUS WATER FILTER",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "BONUS WINE",
+    "value": "BONUS WINE",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "BONUS WOWCAST",
+    "value": "BONUS WOWCAST",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "BUY 2, SAVE 15%",
+    "value": "BUY 2, SAVE 15%",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "BUY 5, SAVE 20%",
+    "value": "BUY 5, SAVE 20%",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "CASHBACK 1100 PLN",
+    "value": "CASHBACK 1100 PLN",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "CASHBACK 125",
+    "value": "CASHBACK 125",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "CASHBACK 1300 PLN",
+    "value": "CASHBACK 1300 PLN",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "CASHBACK 150 PLN",
+    "value": "CASHBACK 150 PLN",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "CASHBACK 1700 PLN",
+    "value": "CASHBACK 1700 PLN",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "CASHBACK 1900 PLN",
+    "value": "CASHBACK 1900 PLN",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "CASHBACK 250 PLN",
+    "value": "CASHBACK 250 PLN",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "CASHBACK 350 PLN",
+    "value": "CASHBACK 350 PLN",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "CASHBACK 3500 PLN",
+    "value": "CASHBACK 3500 PLN",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "CASHBACK 450 PLN",
+    "value": "CASHBACK 450 PLN",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "CASHBACK 4500 PLN",
+    "value": "CASHBACK 4500 PLN",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "CASHBACK 50 PLN",
+    "value": "CASHBACK 50 PLN",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "CASHBACK 550 PLN",
+    "value": "CASHBACK 550 PLN",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "CASHBACK 650 PLN",
+    "value": "CASHBACK 650 PLN",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "CASHBACK 850 PLN",
+    "value": "CASHBACK 850 PLN",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "CASHBACK 950 PLN",
+    "value": "CASHBACK 950 PLN",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Claim your free gift",
+    "value": "Claim your free gift",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Claim your Free Gift*",
+    "value": "Claim your Free Gift*",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Combo",
+    "value": "Combo",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Compre e Ganhe",
+    "value": "Compre e Ganhe",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Comprend un cadeau",
+    "value": "Comprend un cadeau",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "CoTamara10",
+    "value": "CoTamara10",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "CoTamara15",
+    "value": "CoTamara15",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "CoTamara20",
+    "value": "CoTamara20",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "COUPON 10%",
+    "value": "COUPON 10%",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Cupom 10% OFF",
+    "value": "Cupom 10% OFF",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "COUPON 10€",
+    "value": "COUPON 10€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "COUPON 100€",
+    "value": "COUPON 100€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "COUPON 1000",
+    "value": "COUPON 1000",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "COUPON 1000€",
+    "value": "COUPON 1000€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "COUPON 10000",
+    "value": "COUPON 10000",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "COUPON 100000",
+    "value": "COUPON 100000",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Coupon 110€",
+    "value": "Coupon 110€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "COUPON 1100€",
+    "value": "COUPON 1100€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "COUPON 12%",
+    "value": "COUPON 12%",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "COUPON 120€",
+    "value": "COUPON 120€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Coupon 120€",
+    "value": "Coupon 120€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "COUPON 1200€",
+    "value": "COUPON 1200€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Coupon 130€",
+    "value": "Coupon 130€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Coupon 140€",
+    "value": "Coupon 140€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "COUPON 15%",
+    "value": "COUPON 15%",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Cupom 15% OFF",
+    "value": "Cupom 15% OFF",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "COUPON 150€",
+    "value": "COUPON 150€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "COUPON 15000",
+    "value": "COUPON 15000",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Coupon 160€",
+    "value": "Coupon 160€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Coupon 170€",
+    "value": "Coupon 170€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Coupon 180€",
+    "value": "Coupon 180€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Coupon 190€",
+    "value": "Coupon 190€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "COUPON 20%",
+    "value": "COUPON 20%",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Cupom 20% OFF",
+    "value": "Cupom 20% OFF",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "COUPON 20€",
+    "value": "COUPON 20€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "COUPON 200€",
+    "value": "COUPON 200€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "COUPON 2000",
+    "value": "COUPON 2000",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "COUPON 20000",
+    "value": "COUPON 20000",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "COUPON 200000",
+    "value": "COUPON 200000",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Coupon 210€",
+    "value": "Coupon 210€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Coupon 220€",
+    "value": "Coupon 220€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Coupon 230€",
+    "value": "Coupon 230€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Coupon 240€",
+    "value": "Coupon 240€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "COUPON 25%",
+    "value": "COUPON 25%",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "COUPON 250€",
+    "value": "COUPON 250€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "COUPON 25000",
+    "value": "COUPON 25000",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Coupon 260€",
+    "value": "Coupon 260€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Coupon 270€",
+    "value": "Coupon 270€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Coupon 280€",
+    "value": "Coupon 280€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Coupon 290€",
+    "value": "Coupon 290€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "COUPON 30%",
+    "value": "COUPON 30%",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "COUPON 30€",
+    "value": "COUPON 30€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "COUPON 300€",
+    "value": "COUPON 300€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "COUPON 3000",
+    "value": "COUPON 3000",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "COUPON 30000",
+    "value": "COUPON 30000",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Coupon 310€",
+    "value": "Coupon 310€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Coupon 320€",
+    "value": "Coupon 320€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Coupon 330€",
+    "value": "Coupon 330€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Coupon 340€",
+    "value": "Coupon 340€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "COUPON 35%",
+    "value": "COUPON 35%",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "COUPON 350€",
+    "value": "COUPON 350€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Coupon 360€",
+    "value": "Coupon 360€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Coupon 370€",
+    "value": "Coupon 370€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Coupon 380€",
+    "value": "Coupon 380€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Coupon 390€",
+    "value": "Coupon 390€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "COUPON 40%",
+    "value": "COUPON 40%",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "COUPON 40€",
+    "value": "COUPON 40€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "COUPON 400€",
+    "value": "COUPON 400€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "COUPON 4000",
+    "value": "COUPON 4000",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "COUPON 40000",
+    "value": "COUPON 40000",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Coupon 410€",
+    "value": "Coupon 410€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Coupon 420€",
+    "value": "Coupon 420€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Coupon 430€",
+    "value": "Coupon 430€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Coupon 440€",
+    "value": "Coupon 440€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "COUPON 45%",
+    "value": "COUPON 45%",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "COUPON 450€",
+    "value": "COUPON 450€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Coupon 460€",
+    "value": "Coupon 460€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Coupon 470€",
+    "value": "Coupon 470€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Coupon 480€",
+    "value": "Coupon 480€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Coupon 490€",
+    "value": "Coupon 490€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "COUPON 5%",
+    "value": "COUPON 5%",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "COUPON 50%",
+    "value": "COUPON 50%",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "COUPON 50€",
+    "value": "COUPON 50€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "COUPON 500€",
+    "value": "COUPON 500€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "COUPON 5000",
+    "value": "COUPON 5000",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "COUPON 50000",
+    "value": "COUPON 50000",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Coupon 510€",
+    "value": "Coupon 510€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Coupon 520€",
+    "value": "Coupon 520€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Coupon 530€",
+    "value": "Coupon 530€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Coupon 540€",
+    "value": "Coupon 540€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "COUPON 55%",
+    "value": "COUPON 55%",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "COUPON 550€",
+    "value": "COUPON 550€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "COUPON 55000",
+    "value": "COUPON 55000",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Coupon 560€",
+    "value": "Coupon 560€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Coupon 570€",
+    "value": "Coupon 570€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Coupon 580€",
+    "value": "Coupon 580€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Coupon 590€",
+    "value": "Coupon 590€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "COUPON 60%",
+    "value": "COUPON 60%",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "COUPON 60€",
+    "value": "COUPON 60€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "COUPON 600€",
+    "value": "COUPON 600€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "COUPON 6000",
+    "value": "COUPON 6000",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Coupon 610€",
+    "value": "Coupon 610€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Coupon 620€",
+    "value": "Coupon 620€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Coupon 630€",
+    "value": "Coupon 630€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Coupon 640€",
+    "value": "Coupon 640€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "COUPON 65%",
+    "value": "COUPON 65%",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "COUPON 650€",
+    "value": "COUPON 650€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Coupon 660€",
+    "value": "Coupon 660€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Coupon 670€",
+    "value": "Coupon 670€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Coupon 680€",
+    "value": "Coupon 680€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Coupon 690€",
+    "value": "Coupon 690€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "COUPON 70%",
+    "value": "COUPON 70%",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "COUPON 70€",
+    "value": "COUPON 70€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "COUPON 700€",
+    "value": "COUPON 700€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "COUPON 7000",
+    "value": "COUPON 7000",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Coupon 710€",
+    "value": "Coupon 710€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Coupon 720€",
+    "value": "Coupon 720€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Coupon 730€",
+    "value": "Coupon 730€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Coupon 740€",
+    "value": "Coupon 740€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "COUPON 75%",
+    "value": "COUPON 75%",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "COUPON 750€",
+    "value": "COUPON 750€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Coupon 760€",
+    "value": "Coupon 760€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Coupon 770€",
+    "value": "Coupon 770€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Coupon 780€",
+    "value": "Coupon 780€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Coupon 790€",
+    "value": "Coupon 790€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "COUPON 80%",
+    "value": "COUPON 80%",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "COUPON 80€",
+    "value": "COUPON 80€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "COUPON 800€",
+    "value": "COUPON 800€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "COUPON 8000",
+    "value": "COUPON 8000",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Coupon 810€",
+    "value": "Coupon 810€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Coupon 820€",
+    "value": "Coupon 820€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Coupon 830€",
+    "value": "Coupon 830€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Coupon 840€",
+    "value": "Coupon 840€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "COUPON 850€",
+    "value": "COUPON 850€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Coupon 860€",
+    "value": "Coupon 860€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Coupon 870€",
+    "value": "Coupon 870€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Coupon 880€",
+    "value": "Coupon 880€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Coupon 890€",
+    "value": "Coupon 890€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "COUPON 90€",
+    "value": "COUPON 90€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "COUPON 900€",
+    "value": "COUPON 900€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "COUPON 9000",
+    "value": "COUPON 9000",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Coupon 910€",
+    "value": "Coupon 910€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Coupon 920€",
+    "value": "Coupon 920€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Coupon 930€",
+    "value": "Coupon 930€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Coupon 940€",
+    "value": "Coupon 940€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "COUPON 950€",
+    "value": "COUPON 950€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Coupon 960€",
+    "value": "Coupon 960€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Coupon 970€",
+    "value": "Coupon 970€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Coupon 980€",
+    "value": "Coupon 980€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Coupon 990€",
+    "value": "Coupon 990€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Coupon Available",
+    "value": "Coupon Available",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "CUPOM DISPONÍVEL",
+    "value": "CUPOM DISPONÍVEL",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "CUPÓN 200€",
+    "value": "CUPÓN 200€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "CUPÓN EXTRA",
+    "value": "CUPÓN EXTRA",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Descuento TV + barra",
+    "value": "Descuento TV + barra",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Disponible con cupón",
+    "value": "Disponible con cupón",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "DRUHÝ ZA 1/2",
+    "value": "DRUHÝ ZA 1/2",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Exclusive Gift",
+    "value": "Exclusive Gift",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Exclusive Kit",
+    "value": "Exclusive Kit",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Exclusive Offer",
+    "value": "Exclusive Offer",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Exclusive Voucher",
+    "value": "Exclusive Voucher",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Fletcher Hotel Deal",
+    "value": "Fletcher Hotel Deal",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "FREE ACCESSORY",
+    "value": "FREE ACCESSORY",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Free Accessory",
+    "value": "Free Accessory",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Free Amazon Prime Video",
+    "value": "Free Amazon Prime Video",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "FREE APPLE TV+",
+    "value": "FREE APPLE TV+",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "FREE BRACKET",
+    "value": "FREE BRACKET",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "FREE Detergent",
+    "value": "FREE Detergent",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Free Dust Bag Included",
+    "value": "Free Dust Bag Included",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Free Fairy Detergent",
+    "value": "Free Fairy Detergent",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "FREE Filter",
+    "value": "FREE Filter",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "FREE GIFT",
+    "value": "FREE GIFT",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "FREE Microwave",
+    "value": "FREE Microwave",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Free Mop Head Included",
+    "value": "Free Mop Head Included",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "FREE PACKAGING DISPOSAL",
+    "value": "FREE PACKAGING DISPOSAL",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Free Pedestal",
+    "value": "Free Pedestal",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Monitor +View Gratis",
+    "value": "Monitor +View Gratis",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "FREE RETURN",
+    "value": "FREE RETURN",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "FREE SHAHID 12M",
+    "value": "FREE SHAHID 12M",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "FREE SHAHID 3M",
+    "value": "FREE SHAHID 3M",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "FREE SHAHID 6M",
+    "value": "FREE SHAHID 6M",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "FRETE GRÁTIS",
+    "value": "FRETE GRÁTIS",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Free Soundbar",
+    "value": "Free soundbar",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "FREE SOUNDBAR",
+    "value": "FREE SOUNDBAR",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Free soundbar - £1699",
+    "value": "Free soundbar - £1699",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Free soundbar - £199",
+    "value": "Free soundbar - £199",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Free soundbar - £249",
+    "value": "Free soundbar - £249",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Free soundbar - £299",
+    "value": "Free soundbar - £299",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Free soundbar - £399",
+    "value": "Free soundbar - £399",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Free soundbar - £699",
+    "value": "Free soundbar - £699",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Free soundbar - £799",
+    "value": "Free soundbar - £799",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Free soundbar - £899",
+    "value": "Free soundbar - £899",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Free soundbar - £929",
+    "value": "Free soundbar - £929",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Free soundbar - £999",
+    "value": "Free soundbar - £999",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Barra de Sonido gratis",
+    "value": "Barra de Sonido gratis",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Free speaker - £129",
+    "value": "Free speaker - £129",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Free speaker - £169",
+    "value": "Free speaker - £169",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Free speaker - £199",
+    "value": "Free speaker - £199",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "FREE SPEAKR",
+    "value": "FREE SPEAKR",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Free Stainless Steel Bottle",
+    "value": "Free Stainless Steel Bottle",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Free Stand \u0026 Sleeve",
+    "value": "Free Stand \u0026 Sleeve",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "FREE STARZPLAY",
+    "value": "FREE STARZPLAY",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "FREE TV",
+    "value": "FREE TV",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Free Wall Mount Bracket Included",
+    "value": "Free wall mount bracket ",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Free Water Filter",
+    "value": "Free water filter",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Free with LG G2 TV",
+    "value": "Free with LG G2 TV",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Free XO3",
+    "value": "Free XO3",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Free XO3 Speaker",
+    "value": "Free XO3 speaker",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Get $100 prepaid card",
+    "value": "Get $100 prepaid card",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Get $100 Prepaid Card*",
+    "value": "Get $100 Prepaid Card*",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Get $1000 prepaid card",
+    "value": "Get $1000 prepaid card",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Get $1000 Prepaid Card*",
+    "value": "Get $1000 Prepaid Card*",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Get $1200 prepaid card",
+    "value": "Get $1200 prepaid card",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Get $1200 Prepaid Card*",
+    "value": "Get $1200 Prepaid Card*",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Get $150 prepaid card",
+    "value": "Get $150 prepaid card",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Get $150 Prepaid Card*",
+    "value": "Get $150 Prepaid Card*",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Get $200 prepaid card",
+    "value": "Get $200 prepaid card",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Get $200 Prepaid Card*",
+    "value": "Get $200 Prepaid Card*",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Get $300 prepaid card",
+    "value": "Get $300 prepaid card",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Get $300 Prepaid Card*",
+    "value": "Get $300 Prepaid Card*",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Get $400 prepaid card",
+    "value": "Get $400 prepaid card",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Get $400 Prepaid Card*",
+    "value": "Get $400 Prepaid Card*",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Get $500 Prepaid Card*",
+    "value": "Get $500 Prepaid Card*",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Get $600 prepaid card",
+    "value": "Get $600 prepaid card",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Get $600 Prepaid Card*",
+    "value": "Get $600 Prepaid Card*",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Get $800 prepaid card",
+    "value": "Get $800 prepaid card",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Get $800 Prepaid Card*",
+    "value": "Get $800 Prepaid Card*",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "gift campaign",
+    "value": "gift campaign",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Gift with Purchase",
+    "value": "Gift with Purchase",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Gratis magnetron",
+    "value": "Gratis magnetron",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "INCLUDES A GIFT",
+    "value": "INCLUDES A GIFT",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Incluidos 3 meses de Apple Music",
+    "value": "Incluidos 3 meses de Apple Music",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Incluye regalo",
+    "value": "Incluye regalo",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Ink.1Jahr Zatto Ulti.",
+    "value": "Ink.1Jahr Zatto Ulti.",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Inkl. 1 Jahr Zattoo Ultimate",
+    "value": "Inkl. 1 Jahr Zattoo Ultimate",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Instalación gratis",
+    "value": "Instalación gratis",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Kit Esclusivo",
+    "value": "Kit Esclusivo",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "KUPON 1100 PLN",
+    "value": "KUPON 1100 PLN",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "KUPON 1200 PLN",
+    "value": "KUPON 1200 PLN",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "KUPON 1400 PLN",
+    "value": "KUPON 1400 PLN",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "KUPON 1600 PLN",
+    "value": "KUPON 1600 PLN",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "KUPON 1700 PLN",
+    "value": "KUPON 1700 PLN",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "KUPON 1900 PLN",
+    "value": "KUPON 1900 PLN",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "KUPON 3000 PLN",
+    "value": "KUPON 3000 PLN",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "KUPON 3500 PLN",
+    "value": "KUPON 3500 PLN",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "KUPON 450 PLN",
+    "value": "KUPON 450 PLN",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "KUPON 4500 PLN",
+    "value": "KUPON 4500 PLN",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "KUPON 550 PLN",
+    "value": "KUPON 550 PLN",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "KUPON 650 PLN",
+    "value": "KUPON 650 PLN",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "KUPON 750 PLN",
+    "value": "KUPON 750 PLN",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "KUPON 850 PLN",
+    "value": "KUPON 850 PLN",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "KUPON 900 PLN",
+    "value": "KUPON 900 PLN",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "KUPON 950 PLN",
+    "value": "KUPON 950 PLN",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Pontos Livelo",
+    "value": "Pontos Livelo",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "MICRÓFONO GRATIS",
+    "value": "MICRÓFONO GRATIS",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Microwave offer",
+    "value": "Microwave offer",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Mit Philips Hue Gutschein",
+    "value": "Mit Philips Hue Gutschein",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Monitor-TV de regalo",
+    "value": "Monitor-TV de regalo",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Obsequio Trípode",
+    "value": "Obsequio Trípode",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Oferta Especial",
+    "value": "Oferta Especial",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "OFFER",
+    "value": "OFFER",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "OFFRE APPLE TV+",
+    "value": "OFFRE APPLE TV+",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "OFFRE DISNEY+",
+    "value": "OFFRE DISNEY+",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "OFFRE NETFLIX",
+    "value": "OFFRE NETFLIX",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Quà Tặng",
+    "value": "Quà Tặng",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "RECEPTION10",
+    "value": "RECEPTION10",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Recibe 3 meses de Apple Music",
+    "value": "Recibe 3 meses de Apple Music",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Recibe obsequio",
+    "value": "Recibe obsequio",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Redemption",
+    "value": "Redemption",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Regalo en compra",
+    "value": "Regalo en compra",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "REGALO MONITOR 24GS50F-B",
+    "value": "REGALO MONITOR 24GS50F-B",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "REGALO MONITOR 27GS75Q-B",
+    "value": "REGALO MONITOR 27GS75Q-B",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "REGALO NATULIM",
+    "value": "REGALO NATULIM",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Regalo Natulium",
+    "value": "Regalo Natulium",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Set cocina",
+    "value": "Set cocina",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "SOUNDBAR DEAL",
+    "value": "SOUNDBAR DEAL",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Soundbar offer",
+    "value": "Soundbar offer",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Soundbar offer \u0026 Bracket inc.",
+    "value": "Soundbar offer \u0026 Bracket inc.",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Special Coupon",
+    "value": "Special Coupon",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Special Voucher",
+    "value": "Special Voucher",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Subscription Gift",
+    "value": "Subscription Gift",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "10% coupon",
+    "value": "10% coupon",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Extra garanzia",
+    "value": "Extra garanzia",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Premio in regalo",
+    "value": "Premio in regalo",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Promo Apple TV+",
+    "value": "Promo Apple TV+",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "送禮首選",
+    "value": "送禮首選",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "TV 32\" de regalo",
+    "value": "TV 32\" de regalo",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "TV 43\" de regalo",
+    "value": "TV 43\" de regalo",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "TV 48\" de regalo",
+    "value": "TV 48\" de regalo",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Up to 200€ Voucher",
+    "value": "Up to 200€ Voucher",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Use code Alinma10",
+    "value": "Use code Alinma10",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Use code ARB10",
+    "value": "Use code ARB10",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Use code Bank10",
+    "value": "Use code Bank10",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Use Code Big10",
+    "value": "Use Code Big10",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Use Code Big15",
+    "value": "Use Code Big15",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Use Code Eid10",
+    "value": "Use Code Eid10",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Use code L10",
+    "value": "Use code L10",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "USE CODE LG10",
+    "value": "USE CODE LG10",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "USE CODE LG15",
+    "value": "USE CODE LG15",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "USE CODE LG20",
+    "value": "USE CODE LG20",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "USE CODE LG25",
+    "value": "USE CODE LG25",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "USE CODE LG30",
+    "value": "USE CODE LG30",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "USE CODE LG35",
+    "value": "USE CODE LG35",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "USE CODE LG40",
+    "value": "USE CODE LG40",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "USE CODE LG45",
+    "value": "USE CODE LG45",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "USE CODE LG50",
+    "value": "USE CODE LG50",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Use code Mada10",
+    "value": "Use code Mada10",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Use Code Mega10",
+    "value": "Use Code Mega10",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Use Code ND10",
+    "value": "Use Code ND10",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Use Code ND15",
+    "value": "Use Code ND15",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Use code Riyadh10",
+    "value": "Use code Riyadh10",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Use Code SALE10",
+    "value": "Use Code SALE10",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Use Code SALE15",
+    "value": "Use Code SALE15",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Use Code Summer10",
+    "value": "Use Code Summer10",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Use code Tamara10",
+    "value": "Use code Tamara10",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Use code Visa10",
+    "value": "Use code Visa10",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Use Code WF10",
+    "value": "Use Code WF10",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Use Code WF15",
+    "value": "Use Code WF15",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Use code: LGGAMINGWEEK10",
+    "value": "Use code: LGGAMINGWEEK10",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Use code: LGGAMINGWEEK20",
+    "value": "Use code: LGGAMINGWEEK20",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Use code: LGGAMINGWEEK5",
+    "value": "Use code: LGGAMINGWEEK5",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "VISA10",
+    "value": "VISA10",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Voucher Code",
+    "value": "Voucher Code",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Voucher de R$1000",
+    "value": "Voucher de R$1000",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Voucher de R$15.000",
+    "value": "Voucher de R$15.000",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Voucher de R$200",
+    "value": "Voucher de R$200",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Voucher de R$2000",
+    "value": "Voucher de R$2000",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Voucher de R$250",
+    "value": "Voucher de R$250",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Voucher de R$3000",
+    "value": "Voucher de R$3000",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Voucher de R$500",
+    "value": "Voucher de R$500",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Voucher de R$5000",
+    "value": "Voucher de R$5000",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Welcome Voucher",
+    "value": "Welcome Voucher",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "xboom Bounce Offer",
+    "value": "xboom Bounce Offer",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "XBOOM Go de regalo",
+    "value": "XBOOM Go de regalo",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Xbox Deal",
+    "value": "Xbox Deal",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "YAKIT PUAN HEDİYELİ",
+    "value": "YAKIT PUAN HEDİYELİ",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "مجانا مسحوق فيري",
+    "value": "مجانا مسحوق فيري",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "優惠券額外折扣",
+    "value": "優惠券額外折扣",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "組合優惠",
+    "value": "組合優惠",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Service",
+    "sortNo": "0",
+    "code": "$1 Extended Warranty",
+    "value": "$1 Extended Warranty",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Service",
+    "sortNo": "0",
+    "code": "+1 Año Extra Garantía a S/1",
+    "value": "+1 Año Extra Garantía a S/1",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Service",
+    "sortNo": "0",
+    "code": "3 MONTHS EXTRA WARRANTY",
+    "value": "3 MONTHS EXTRA WARRANTY",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Service",
+    "sortNo": "0",
+    "code": "5 year warranty",
+    "value": "5 year warranty",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Service",
+    "sortNo": "0",
+    "code": "面板五年保固",
+    "value": "面板五年保固",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Service",
+    "sortNo": "0",
+    "code": "DARMOWA GWARANCJA",
+    "value": "DARMOWA GWARANCJA",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Service",
+    "sortNo": "0",
+    "code": "Discounted Warranty",
+    "value": "Discounted Warranty",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Service",
+    "sortNo": "0",
+    "code": "Extension Garantie offerte",
+    "value": "Extension Garantie offerte",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Service",
+    "sortNo": "0",
+    "code": "Free Cleaning",
+    "value": "Free Cleaning",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Service",
+    "sortNo": "0",
+    "code": "Free Extended Warranty",
+    "value": "Free Extended Warranty",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Service",
+    "sortNo": "0",
+    "code": "FREE WARRANTY EXTENSION",
+    "value": "FREE WARRANTY EXTENSION",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Service",
+    "sortNo": "0",
+    "code": "Garantia de por vida",
+    "value": "Garantia de por vida",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Service",
+    "sortNo": "0",
+    "code": "Garantía de por vida¹ en el compresor",
+    "value": "Garantía de por vida¹ en el compresor",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Service",
+    "sortNo": "0",
+    "code": "Garantía de por vida¹ en el motor",
+    "value": "Garantía de por vida¹ en el motor",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Service",
+    "sortNo": "0",
+    "code": "Garantía de por vida¹ motor/compresor",
+    "value": "Garantía de por vida¹ motor/compresor",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Service",
+    "sortNo": "0",
+    "code": "Garantía Semi Profesional",
+    "value": "Garantía Semi Profesional",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Service",
+    "sortNo": "0",
+    "code": "Garantie",
+    "value": "Garantie",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Service",
+    "sortNo": "0",
+    "code": "Garantie 2 ans",
+    "value": "Garantie 2 ans",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Service",
+    "sortNo": "0",
+    "code": "Garantie 3 ans",
+    "value": "Garantie 3 ans",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Service",
+    "sortNo": "0",
+    "code": "Garantie 3 ans offerte",
+    "value": "Garantie 3 ans offerte",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Service",
+    "sortNo": "0",
+    "code": "Garantie 4 ans",
+    "value": "Garantie 4 ans",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Service",
+    "sortNo": "0",
+    "code": "Garantie 4 ans offerte",
+    "value": "Garantie 4 ans offerte",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Service",
+    "sortNo": "0",
+    "code": "Garantie 5 ans",
+    "value": "Garantie 5 ans",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Service",
+    "sortNo": "0",
+    "code": "Garantie 5 ans offerte",
+    "value": "Garantie 5 ans offerte",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Service",
+    "sortNo": "0",
+    "code": "Garantie offerte",
+    "value": "Garantie offerte",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Service",
+    "sortNo": "0",
+    "code": "HA warranty",
+    "value": "HA warranty",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Service",
+    "sortNo": "0",
+    "code": "LG Best Care",
+    "value": "LG Best Care",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Service",
+    "sortNo": "0",
+    "code": "Member Offer 4YRS STANDARD WARRANTY",
+    "value": "Member Offer 4YRS STANDARD WARRANTY",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Service",
+    "sortNo": "0",
+    "code": "Premier Care",
+    "value": "Premier Care",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Service",
+    "sortNo": "0",
+    "code": "PREMIUM",
+    "value": "PREMIUM",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Service",
+    "sortNo": "0",
+    "code": "Premium",
+    "value": "Premium",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Service",
+    "sortNo": "0",
+    "code": "Produit offert",
+    "value": "Produit offert",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Service",
+    "sortNo": "0",
+    "code": "6 mesi extra garanzia",
+    "value": "6 mesi extra garanzia",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Service",
+    "sortNo": "0",
+    "code": "Warranty 3 year",
+    "value": "Warranty 3 year",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "£300 off final day",
+    "value": "£300 off final day",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "1+1",
+    "value": "1+1",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "11.11 Sale",
+    "value": "11.11 Sale",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "24h Time Deal",
+    "value": "24h Time Deal",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "30天試用",
+    "value": "30天試用",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Aanbieding",
+    "value": "Aanbieding",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Add on offer",
+    "value": "Add on offer",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Desconto no Carrinho",
+    "value": "Desconto no Carrinho",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Advent Offer",
+    "value": "Advent Offer",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Air Conditioners Combo Offer",
+    "value": "Air Conditioners Combo Offer",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "All-in-One Deal",
+    "value": "All-in-One Deal",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "AMC Bundle Offer",
+    "value": "AMC Bundle Offer",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Anniversary Sale",
+    "value": "Anniversary Sale",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Apenas Online",
+    "value": "Apenas Online",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Audio Combo Offer",
+    "value": "Audio Combo Offer",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "AUTUMN OFFERS",
+    "value": "AUTUMN OFFERS",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Autumn Sale",
+    "value": "Autumn Sale",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "BACK TO SCHOOL",
+    "value": "BACK TO SCHOOL",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Begränsat erbjudande",
+    "value": "Begränsat erbjudande",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Big Big Deal",
+    "value": "Big Big Deal",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Birthday Sale",
+    "value": "Birthday Sale",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "BLACK EDITION OFFER",
+    "value": "BLACK EDITION OFFER",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Black Friday",
+    "value": "Black Friday",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Black Friday Offer",
+    "value": "Black Friday Offer",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "BLACK FRIDAY OFFER",
+    "value": "BLACK FRIDAY OFFER",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "BLACK FRIDAY",
+    "value": "BLACK FRIDAY",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "BLACK NOVEMBER",
+    "value": "BLACK NOVEMBER",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "BLACK WEEKEND",
+    "value": "BLACK WEEKEND",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "BLACKFRIDAY10",
+    "value": "BLACKFRIDAY10",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "BLACKFRIDAY5",
+    "value": "BLACKFRIDAY5",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Boxing Day Offer",
+    "value": "Boxing Day Offer",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Boxing week in July",
+    "value": "Boxing week in July",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Boxing Week in July",
+    "value": "Boxing Week in July",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "BOXING WEEK OFFER",
+    "value": "BOXING WEEK OFFER",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Boxing Week Offer",
+    "value": "Boxing Week Offer",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Bronze",
+    "value": "Bronze",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Bronze*",
+    "value": "Bronze*",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Buen Fin LG",
+    "value": "Buen Fin LG",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Bulk packaging",
+    "value": "Bulk packaging",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Bundelkorting",
+    "value": "Bundelkorting",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Bundle",
+    "value": "Bundle",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "BUNDLE",
+    "value": "BUNDLE",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Bundle \u0026 Benefit",
+    "value": "Bundle \u0026 Benefit",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Bundle \u0026 Save",
+    "value": "Bundle \u0026 Save",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Bundle Deal",
+    "value": "Bundle Deal",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Bundle of Joy",
+    "value": "Bundle of Joy",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "COMBO",
+    "value": "COMBO",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Bundle offer",
+    "value": "Bundle offer",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "買一送一",
+    "value": "買一送一",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "BUY 1 GET 1",
+    "value": "BUY 1 GET 1",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Buy more, save more",
+    "value": "Buy more, save more",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Buy More, Save More",
+    "value": "Buy More, Save More",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "BUY WITH BEST CARE- AMC",
+    "value": "BUY WITH BEST CARE- AMC",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "CART DISCOUNT",
+    "value": "CART DISCOUNT",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Christmas Offer",
+    "value": "Christmas Offer",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Combo Bonanza",
+    "value": "Combo Bonanza",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Combo Offer",
+    "value": "Combo Offer",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Combo Pack",
+    "value": "Combo Pack",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Compre Junto e Economize",
+    "value": "Compre Junto e Economize",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "CYBER",
+    "value": "CYBER",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Cyber day",
+    "value": "Cyber day",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Cyber Day",
+    "value": "Cyber Day",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "CYBER MONDAY",
+    "value": "CYBER MONDAY",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "CYBER WEEK",
+    "value": "CYBER WEEK",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Cyberweek",
+    "value": "Cyberweek",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Oferta do Dia",
+    "value": "Oferta do Dia",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Deal Days",
+    "value": "Deal Days",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Dernière chance",
+    "value": "Dernière chance",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Design Days",
+    "value": "Design Days",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Dishwasher Combo Offer",
+    "value": "Dishwasher Combo Offer",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Easter Sale",
+    "value": "Easter Sale",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Education program",
+    "value": "Education program",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Eid Offers",
+    "value": "Eid Offers",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Eleito Produto do Ano",
+    "value": "Eleito Produto do Ano",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Ensembles de cuisine",
+    "value": "Ensembles de cuisine",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "EOFY Sale",
+    "value": "EOFY Sale",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Essence White",
+    "value": "Essence White",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Essence White*",
+    "value": "Essence White*",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Essential Combo Pack",
+    "value": "Essential Combo Pack",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Exclusive Bundle Offer",
+    "value": "Exclusive Bundle Offer",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Exclusive Deal",
+    "value": "Exclusive Deal",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Exclusivo Retail",
+    "value": "Exclusivo Retail",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Exclusivos",
+    "value": "Exclusivos",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Extra 5% Flash",
+    "value": "Extra 5% Flash",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Father\u0027s Day Offer",
+    "value": "Father\u0027s Day Offer",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Festival Combo Offer",
+    "value": "Festival Combo Offer",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "旗艦商品",
+    "value": "旗艦商品",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Flash Hours",
+    "value": "Flash Hours",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Oferta Relâmpago",
+    "value": "Oferta Relâmpago",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "快閃優惠",
+    "value": "快閃優惠",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Flash Sale",
+    "value": "Flash Sale",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "OFERTA RELÂMPAGO",
+    "value": "OFERTA RELÂMPAGO",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "FLASHSALE 1000",
+    "value": "FLASHSALE 1000",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "FLASHSALE 1200",
+    "value": "FLASHSALE 1200",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "FLASHSALE 184",
+    "value": "FLASHSALE 184",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "FLASHSALE 250",
+    "value": "FLASHSALE 250",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "FLASHSALE 300",
+    "value": "FLASHSALE 300",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "FLASHSALE 350",
+    "value": "FLASHSALE 350",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "FLASHSALE 500",
+    "value": "FLASHSALE 500",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "FLASHSALE 600",
+    "value": "FLASHSALE 600",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "FLASHSALE 700",
+    "value": "FLASHSALE 700",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Free Return",
+    "value": "Free Return",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Gaming Days",
+    "value": "Gaming Days",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Gaming Weeks",
+    "value": "Gaming Weeks",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Genius Days",
+    "value": "Genius Days",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Gold",
+    "value": "Gold",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Gold*",
+    "value": "Gold*",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "gram \u0026 +view Bundle",
+    "value": "gram \u0026 +view Bundle",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "gram Book Bundle",
+    "value": "gram Book Bundle",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "GST Change 28% to 18%",
+    "value": "GST Change 28% to 18%",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "GST Reduction 28% to 18%",
+    "value": "GST Reduction 28% to 18%",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "GST Savings 28% to 18%",
+    "value": "GST Savings 28% to 18%",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Holiday Offer",
+    "value": "Holiday Offer",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "HOLIDAY OFFER",
+    "value": "HOLIDAY OFFER",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Holiday Offers",
+    "value": "Holiday Offers",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Hot Deal",
+    "value": "Hot Deal",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Hot Offer",
+    "value": "Hot Offer",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Hot Pick",
+    "value": "Hot Pick",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "HOT SALE",
+    "value": "HOT SALE",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "IFA Offer",
+    "value": "IFA Offer",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "PROMOÇÃO",
+    "value": "PROMOÇÃO",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "In-cart Promotion*",
+    "value": "In-cart Promotion*",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "In-Cart Promotion*",
+    "value": "In-Cart Promotion*",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Installation Discount",
+    "value": "Installation Discount",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Kitchen Package",
+    "value": "Kitchen Package",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Laatste kans",
+    "value": "Laatste kans",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "LABOR DAY OFFER",
+    "value": "LABOR DAY OFFER",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Labour Day Offer",
+    "value": "Labour Day Offer",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "LAST CHANCE",
+    "value": "LAST CHANCE",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "LAST PIECE",
+    "value": "LAST PIECE",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Launch offer",
+    "value": "Launch offer",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "LG RENEWED",
+    "value": "LG RENEWED",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "LG WEBÁRUHÁZ AJÁNLATA",
+    "value": "LG WEBÁRUHÁZ AJÁNLATA",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Life Genius",
+    "value": "Life Genius",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Life\u0027s Good Celebration",
+    "value": "Life\u0027s Good Celebration",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Limitado",
+    "value": "Limitado",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Limited Deal",
+    "value": "Limited Deal",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Limited quantity",
+    "value": "Limited quantity",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Limited Time Bundle",
+    "value": "Limited Time Bundle",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "LIMITED TIME DEAL",
+    "value": "LIMITED TIME DEAL",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Limited time offer",
+    "value": "Limited time offer",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Limited-time Deal",
+    "value": "Limited-time Deal",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Limited-Time Deal",
+    "value": "Limited-Time Deal",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "LINE購物加碼回饋",
+    "value": "LINE購物加碼回饋",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Liveshopping",
+    "value": "Liveshopping",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Llévate más",
+    "value": "Llévate más",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Mamá LG",
+    "value": "Mamá LG",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Más ahorro",
+    "value": "Más ahorro",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Mega Bundle",
+    "value": "Mega Bundle",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "MEGA PROMO",
+    "value": "MEGA PROMO",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Mega Sale",
+    "value": "Mega Sale",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Member Day Offer",
+    "value": "Member Day Offer",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Mother\u0027s Day Offer",
+    "value": "Mother\u0027s Day Offer",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "DIA DAS MÃES",
+    "value": "DIA DAS MÃES",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "New Year Offer",
+    "value": "New Year Offer",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "New Year Sale",
+    "value": "New Year Sale",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "夜貓優惠",
+    "value": "夜貓優惠",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Night Sale",
+    "value": "Night Sale",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "官網獨家",
+    "value": "官網獨家",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Oferta Ano Novo",
+    "value": "Oferta Ano Novo",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Oferta Black Friday",
+    "value": "Oferta Black Friday",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Oferta Cyber Monday",
+    "value": "Oferta Cyber Monday",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Oferta de Navidad",
+    "value": "Oferta de Navidad",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Oferta Dia da Mãe",
+    "value": "Oferta Dia da Mãe",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Oferta Dia da Mulher",
+    "value": "Oferta Dia da Mulher",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Oferta Dia do Pai",
+    "value": "Oferta Dia do Pai",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Oferta Dia dos Namorados",
+    "value": "Oferta Dia dos Namorados",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Oferta Especial Fim-de-Semana",
+    "value": "Oferta Especial Fim-de-Semana",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Oferta exclusiva",
+    "value": "Oferta exclusiva",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Oferta Natal",
+    "value": "Oferta Natal",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Oferta Regresso às Aulas",
+    "value": "Oferta Regresso às Aulas",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Oferta Relámpago",
+    "value": "Oferta Relámpago",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Ofertas",
+    "value": "Ofertas",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Ofertas de Suscripción",
+    "value": "Ofertas de Suscripción",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Ofertas Especiais",
+    "value": "Ofertas Especiais",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Ofertas por tempo limitado",
+    "value": "Ofertas por tempo limitado",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Offre de lancement",
+    "value": "Offre de lancement",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "OFFRE DE NOËL",
+    "value": "OFFRE DE NOËL",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Offre de Printemps",
+    "value": "Offre de Printemps",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "OFFRE DU VENDREDI FOU",
+    "value": "OFFRE DU VENDREDI FOU",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Offre exclusive",
+    "value": "Offre exclusive",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "OFFRE FÊTE DU TRAVAIL",
+    "value": "OFFRE FÊTE DU TRAVAIL",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "OFFRE RAKUTEN TV",
+    "value": "OFFRE RAKUTEN TV",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "OFFRE SEMAINE DE BOXING",
+    "value": "OFFRE SEMAINE DE BOXING",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Offres d\u0027Automne",
+    "value": "Offres d\u0027Automne",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "OLYMPIC",
+    "value": "OLYMPIC",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "One Day Offer",
+    "value": "One Day Offer",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "op\u003dop",
+    "value": "op\u003dop",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Outlet",
+    "value": "Outlet",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Pack exclusif",
+    "value": "Pack exclusif",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Pack ideal",
+    "value": "Pack ideal",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Pack personnalisé",
+    "value": "Pack personnalisé",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Package Deal",
+    "value": "Package Deal",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Papá LG",
+    "value": "Papá LG",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Platinum",
+    "value": "Platinum",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Platinum*",
+    "value": "Platinum*",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Power Pack Offer",
+    "value": "Power Pack Offer",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "PRE VENTA",
+    "value": "PRE VENTA",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "PRE-BLACK FRIDAY",
+    "value": "PRE-BLACK FRIDAY",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Precio outlet",
+    "value": "Precio outlet",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "PreVenta",
+    "value": "PreVenta",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Prime Day",
+    "value": "Prime Day",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Prime Offer",
+    "value": "Prime Offer",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "PROMO DAYS",
+    "value": "PROMO DAYS",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Promo Days",
+    "value": "Promo Days",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Promo Gamer",
+    "value": "Promo Gamer",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Promotion",
+    "value": "Promotion",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "PROMOTION",
+    "value": "PROMOTION",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Promotion dans le panier*",
+    "value": "Promotion dans le panier*",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "PTO Deal(Bundle Deal)",
+    "value": "PTO Deal(Bundle Deal)",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Quantidades Limitadas",
+    "value": "Quantidades Limitadas",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Quantité limitée",
+    "value": "Quantité limitée",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Refrigerators Combo Offer",
+    "value": "Refrigerators Combo Offer",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Reserve Now",
+    "value": "Reserve Now",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "RTL+ PREMIUM",
+    "value": "RTL+ PREMIUM",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Seasonal Bundle Deal",
+    "value": "Seasonal Bundle Deal",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Seasonal Offer",
+    "value": "Seasonal Offer",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Shopback加碼回饋",
+    "value": "Shopback加碼回饋",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Silver",
+    "value": "Silver",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Silver*",
+    "value": "Silver*",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Smart Combo",
+    "value": "Smart Combo",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Soldes d\u0027Été",
+    "value": "Soldes d\u0027Été",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Soldes d\u0027Hiver",
+    "value": "Soldes d\u0027Hiver",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Solo Online",
+    "value": "Solo Online",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Special Deal Model",
+    "value": "Special Deal Model",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Special Discount",
+    "value": "Special Discount",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "SPOFFERS",
+    "value": "SPOFFERS",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Spring Sale",
+    "value": "Spring Sale",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Streaming week",
+    "value": "Streaming week",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "SUMMER SALE",
+    "value": "SUMMER SALE",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "SUNDAY DEAL",
+    "value": "SUNDAY DEAL",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Sunday Deal",
+    "value": "Sunday Deal",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Super Sale",
+    "value": "Super Sale",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Super Saver Combo",
+    "value": "Super Saver Combo",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Super vente",
+    "value": "Super vente",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Flash 5%",
+    "value": "Flash 5%",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Test product100",
+    "value": "Test product100",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Ticket Rojo LG",
+    "value": "Ticket Rojo LG",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Time deal",
+    "value": "Time deal",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Titanium",
+    "value": "Titanium",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Today\u0027s offer",
+    "value": "Today\u0027s offer",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "TV Combo Offer",
+    "value": "TV Combo Offer",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "ÚLTIMAS HORAS",
+    "value": "ÚLTIMAS HORAS",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "ÚLTIMAS PIEZAS",
+    "value": "ÚLTIMAS PIEZAS",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Últimas Unidades",
+    "value": "Últimas Unidades",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Valentine Love",
+    "value": "Valentine Love",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Value Bundle",
+    "value": "Value Bundle",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "VAT DISCOUNT",
+    "value": "VAT DISCOUNT",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "VAT PROMO",
+    "value": "VAT PROMO",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "VENTE FLASH",
+    "value": "VENTE FLASH",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Verano LG",
+    "value": "Verano LG",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "VT Wonen Bundel",
+    "value": "VT Wonen Bundel",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Warehouse Sale",
+    "value": "Warehouse Sale",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Washer/ Dryer Bundle",
+    "value": "Washer/ Dryer Bundle",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Washing Machines Combo Offer",
+    "value": "Washing Machines Combo Offer",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Water Purifiers combo Offer",
+    "value": "Water Purifiers combo Offer",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Weekend Combo Special",
+    "value": "Weekend Combo Special",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Weekend Deal",
+    "value": "Weekend Deal",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Weekend offer",
+    "value": "Weekend offer",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Weekend Only",
+    "value": "Weekend Only",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "White Friday Offers",
+    "value": "White Friday Offers",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Win OLED TV",
+    "value": "Win OLED TV",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "WINTER SALES",
+    "value": "WINTER SALES",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "母親節精選",
+    "value": "母親節精選",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "父親節精選",
+    "value": "父親節精選",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "新年優惠",
+    "value": "新年優惠",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "一日限定優惠",
+    "value": "一日限定優惠",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "自選組合優惠",
+    "value": "自選組合優惠",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "周末優惠",
+    "value": "周末優惠",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "限量",
+    "value": "限量",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "限時優惠",
+    "value": "限時優惠",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "黑五優惠",
+    "value": "黑五優惠",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Payment",
+    "sortNo": "0",
+    "code": "+ S/200 con cualquier medio de pago",
+    "value": "+ S/200 con cualquier medio de pago",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Payment",
+    "sortNo": "0",
+    "code": "+ S/200 con VISA, AMEX, MC \u0026 Diners",
+    "value": "+ S/200 con VISA, AMEX, MC \u0026 Diners",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Payment",
+    "sortNo": "0",
+    "code": "0% Financing*",
+    "value": "0% Financing*",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Payment",
+    "sortNo": "0",
+    "code": "0-0-24",
+    "value": "0-0-24",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Payment",
+    "sortNo": "0",
+    "code": "0-0-36",
+    "value": "0-0-36",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Payment",
+    "sortNo": "0",
+    "code": "1 RATA GRATIS",
+    "value": "1 RATA GRATIS",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Payment",
+    "sortNo": "0",
+    "code": "10% Rabatt mit PayPal",
+    "value": "10% Rabatt mit PayPal",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Payment",
+    "sortNo": "0",
+    "code": "1100kr rabatt i kassan",
+    "value": "1100kr rabatt i kassan",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Payment",
+    "sortNo": "0",
+    "code": "30% DCTO AL PAGAR",
+    "value": "30% DCTO AL PAGAR",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Payment",
+    "sortNo": "0",
+    "code": "300€ dto en el pago",
+    "value": "300€ dto en el pago",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Payment",
+    "sortNo": "0",
+    "code": "3400kr rabatt i kassan",
+    "value": "3400kr rabatt i kassan",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Payment",
+    "sortNo": "0",
+    "code": "35% DCTO AL PAGAR",
+    "value": "35% DCTO AL PAGAR",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Payment",
+    "sortNo": "0",
+    "code": "350€ dto en el pago",
+    "value": "350€ dto en el pago",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Payment",
+    "sortNo": "0",
+    "code": "400€ dto en el pago",
+    "value": "400€ dto en el pago",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Payment",
+    "sortNo": "0",
+    "code": "Buy Now, Pay Later with 0% Financing",
+    "value": "Buy Now, Pay Later with 0% Financing",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Payment",
+    "sortNo": "0",
+    "code": "Buy Now, Pay Later with 0% Financing*",
+    "value": "Buy Now, Pay Later with 0% Financing*",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Payment",
+    "sortNo": "0",
+    "code": "Fin PayPal",
+    "value": "Fin PayPal",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Payment",
+    "sortNo": "0",
+    "code": "Financement à un taux de 0 %*",
+    "value": "Financement à un taux de 0 %*",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Payment",
+    "sortNo": "0",
+    "code": "Financement offert",
+    "value": "Financement offert",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Payment",
+    "sortNo": "0",
+    "code": "INSTALLMENT 0% INTEREST",
+    "value": "INSTALLMENT 0% INTEREST",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Payment",
+    "sortNo": "0",
+    "code": "Interest Free",
+    "value": "Interest Free",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Payment",
+    "sortNo": "0",
+    "code": "MSI",
+    "value": "MSI",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Payment",
+    "sortNo": "0",
+    "code": "NCEMI",
+    "value": "NCEMI",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Payment",
+    "sortNo": "0",
+    "code": "Own it today with 0% Financing",
+    "value": "Own it today with 0% Financing",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Payment",
+    "sortNo": "0",
+    "code": "Own it today with 0% Financing*",
+    "value": "Own it today with 0% Financing*",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Payment",
+    "sortNo": "0",
+    "code": "Paghi a Maggio",
+    "value": "Paghi a Maggio",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Payment",
+    "sortNo": "0",
+    "code": "PAY IN 2024",
+    "value": "PAY IN 2024",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Payment",
+    "sortNo": "0",
+    "code": "PAY IN 3 MONTHS",
+    "value": "PAY IN 3 MONTHS",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Payment",
+    "sortNo": "0",
+    "code": "PAY IN APRIL",
+    "value": "PAY IN APRIL",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Payment",
+    "sortNo": "0",
+    "code": "PAY IN AUGUST",
+    "value": "PAY IN AUGUST",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Payment",
+    "sortNo": "0",
+    "code": "PAY IN DECEMBER",
+    "value": "PAY IN DECEMBER",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Payment",
+    "sortNo": "0",
+    "code": "PAY IN JULY",
+    "value": "PAY IN JULY",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Payment",
+    "sortNo": "0",
+    "code": "PAY IN JUNE",
+    "value": "PAY IN JUNE",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Payment",
+    "sortNo": "0",
+    "code": "PAY IN MAY",
+    "value": "PAY IN MAY",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Payment",
+    "sortNo": "0",
+    "code": "PAY IN NOVEMBER",
+    "value": "PAY IN NOVEMBER",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Payment",
+    "sortNo": "0",
+    "code": "PAY IN OCTOBER",
+    "value": "PAY IN OCTOBER",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Payment",
+    "sortNo": "0",
+    "code": "PAY IN SEPTEMBER",
+    "value": "PAY IN SEPTEMBER",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Payment",
+    "sortNo": "0",
+    "code": "PAY IN THE AUTUMN",
+    "value": "PAY IN THE AUTUMN",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Payment",
+    "sortNo": "0",
+    "code": "12x s/ juros",
+    "value": "12x s/ juros",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Payment",
+    "sortNo": "0",
+    "code": "PayPal MSI",
+    "value": "PayPal MSI",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Payment",
+    "sortNo": "0",
+    "code": "Pre-venta PayPal",
+    "value": "Pre-venta PayPal",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Payment",
+    "sortNo": "0",
+    "code": "RATY 0%",
+    "value": "RATY 0%",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Payment",
+    "sortNo": "0",
+    "code": "S/. 300 con tu tarjeta BCP",
+    "value": "S/. 300 con tu tarjeta BCP",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Payment",
+    "sortNo": "0",
+    "code": "S/. 350 con tu tarjeta BCP",
+    "value": "S/. 350 con tu tarjeta BCP",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Payment",
+    "sortNo": "0",
+    "code": "S/100 Dscto con BCP",
+    "value": "S/100 Dscto con BCP",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Payment",
+    "sortNo": "0",
+    "code": "S/130 Dscto con BCP",
+    "value": "S/130 Dscto con BCP",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Payment",
+    "sortNo": "0",
+    "code": "S/150 Dscto con BCP",
+    "value": "S/150 Dscto con BCP",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Payment",
+    "sortNo": "0",
+    "code": "S/200 Dscto con BCP",
+    "value": "S/200 Dscto con BCP",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Payment",
+    "sortNo": "0",
+    "code": "S/220 Dscto con BCP",
+    "value": "S/220 Dscto con BCP",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Payment",
+    "sortNo": "0",
+    "code": "S/230 Dscto con BCP",
+    "value": "S/230 Dscto con BCP",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Payment",
+    "sortNo": "0",
+    "code": "S/25 Dscto con BCP",
+    "value": "S/25 Dscto con BCP",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Payment",
+    "sortNo": "0",
+    "code": "S/250 Dscto con BCP",
+    "value": "S/250 Dscto con BCP",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Payment",
+    "sortNo": "0",
+    "code": "S/260 Dscto con BCP",
+    "value": "S/260 Dscto con BCP",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Payment",
+    "sortNo": "0",
+    "code": "S/290 Dscto con BCP",
+    "value": "S/290 Dscto con BCP",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Payment",
+    "sortNo": "0",
+    "code": "S/325 Dscto con BCP",
+    "value": "S/325 Dscto con BCP",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Payment",
+    "sortNo": "0",
+    "code": "S/340 Dscto con BCP",
+    "value": "S/340 Dscto con BCP",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Payment",
+    "sortNo": "0",
+    "code": "S/390 Dscto con BCP",
+    "value": "S/390 Dscto con BCP",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Payment",
+    "sortNo": "0",
+    "code": "S/400 Dscto con BCP",
+    "value": "S/400 Dscto con BCP",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Payment",
+    "sortNo": "0",
+    "code": "S/450 Dscto con BCP",
+    "value": "S/450 Dscto con BCP",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Payment",
+    "sortNo": "0",
+    "code": "S/50 Dscto con BCP",
+    "value": "S/50 Dscto con BCP",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Payment",
+    "sortNo": "0",
+    "code": "S/500 Dscto con BCP",
+    "value": "S/500 Dscto con BCP",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Payment",
+    "sortNo": "0",
+    "code": "S/750 Dscto con BCP",
+    "value": "S/750 Dscto con BCP",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Payment",
+    "sortNo": "0",
+    "code": "20 mesi Tasso 0%",
+    "value": "20 mesi Tasso 0%",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Payment",
+    "sortNo": "0",
+    "code": "Cashback 150€",
+    "value": "Cashback 150€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Payment",
+    "sortNo": "0",
+    "code": "Paghi ad Aprile",
+    "value": "Paghi ad Aprile",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Payment",
+    "sortNo": "0",
+    "code": "Gift Card 100€",
+    "value": "Gift Card 100€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Payment",
+    "sortNo": "0",
+    "code": "Paghi a Febbraio",
+    "value": "Paghi a Febbraio",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Payment",
+    "sortNo": "0",
+    "code": "Paghi a Giugno",
+    "value": "Paghi a Giugno",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Payment",
+    "sortNo": "0",
+    "code": "Paghi a Luglio",
+    "value": "Paghi a Luglio",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Payment",
+    "sortNo": "0",
+    "code": "Paghi a Marzo",
+    "value": "Paghi a Marzo",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Payment",
+    "sortNo": "0",
+    "code": "Paghi a Novembre",
+    "value": "Paghi a Novembre",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Payment",
+    "sortNo": "0",
+    "code": "Paghi a Ottobre",
+    "value": "Paghi a Ottobre",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Payment",
+    "sortNo": "0",
+    "code": "Paghi a settembre",
+    "value": "Paghi a settembre",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Payment",
+    "sortNo": "0",
+    "code": "Paghi ad Agosto",
+    "value": "Paghi ad Agosto",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Payment",
+    "sortNo": "0",
+    "code": "Paghi da Agosto",
+    "value": "Paghi da Agosto",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Payment",
+    "sortNo": "0",
+    "code": "Paghi da Aprile",
+    "value": "Paghi da Aprile",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Payment",
+    "sortNo": "0",
+    "code": "Paghi da Dicembre",
+    "value": "Paghi da Dicembre",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Payment",
+    "sortNo": "0",
+    "code": "Paghi da Febbraio",
+    "value": "Paghi da Febbraio",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Payment",
+    "sortNo": "0",
+    "code": "Paghi da Gennaio",
+    "value": "Paghi da Gennaio",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Payment",
+    "sortNo": "0",
+    "code": "Paghi da Giugno",
+    "value": "Paghi da Giugno",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Payment",
+    "sortNo": "0",
+    "code": "Paghi da Luglio",
+    "value": "Paghi da Luglio",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Payment",
+    "sortNo": "0",
+    "code": "Paghi da Maggio",
+    "value": "Paghi da Maggio",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Payment",
+    "sortNo": "0",
+    "code": "Paghi da Marzo",
+    "value": "Paghi da Marzo",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Payment",
+    "sortNo": "0",
+    "code": "Paghi da Novembre",
+    "value": "Paghi da Novembre",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Payment",
+    "sortNo": "0",
+    "code": "Paghi da Ottobre",
+    "value": "Paghi da Ottobre",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Payment",
+    "sortNo": "0",
+    "code": "Paghi da Settembre",
+    "value": "Paghi da Settembre",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Payment",
+    "sortNo": "0",
+    "code": "Paghi in 40 mesi",
+    "value": "Paghi in 40 mesi",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Payment",
+    "sortNo": "0",
+    "code": "Tasso 0%",
+    "value": "Tasso 0%",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Payment",
+    "sortNo": "0",
+    "code": "ZESTAW",
+    "value": "ZESTAW",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Member",
+    "sortNo": "0",
+    "code": "2% welcome discount",
+    "value": "2% welcome discount",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Member",
+    "sortNo": "0",
+    "code": "5% welcome discount",
+    "value": "5% welcome discount",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Member",
+    "sortNo": "0",
+    "code": "Aniversario LG",
+    "value": "Aniversario LG",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Member",
+    "sortNo": "0",
+    "code": "Aniversario LG.com",
+    "value": "Aniversario LG.com",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Member",
+    "sortNo": "0",
+    "code": "Apenas para Membros",
+    "value": "Apenas para Membros",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Member",
+    "sortNo": "0",
+    "code": "Apenas para VIP",
+    "value": "Apenas para VIP",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Member",
+    "sortNo": "0",
+    "code": "Community Exclusive",
+    "value": "Community Exclusive",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Member",
+    "sortNo": "0",
+    "code": "Community Exclusive*",
+    "value": "Community Exclusive*",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Member",
+    "sortNo": "0",
+    "code": "Dscto Member Days",
+    "value": "Dscto Member Days",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Member",
+    "sortNo": "0",
+    "code": "LG.com ’a Özel",
+    "value": "LG.com ’a Özel",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Member",
+    "sortNo": "0",
+    "code": "LG Birthday",
+    "value": "LG Birthday",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Member",
+    "sortNo": "0",
+    "code": "LG DAY",
+    "value": "LG DAY",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Member",
+    "sortNo": "0",
+    "code": "LG Day",
+    "value": "LG Day",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Member",
+    "sortNo": "0",
+    "code": "LG DAY優惠商品",
+    "value": "LG DAY優惠商品",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Member",
+    "sortNo": "0",
+    "code": "LG Design Week",
+    "value": "LG Design Week",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Member",
+    "sortNo": "0",
+    "code": "LG Member Days | Bundle Deal",
+    "value": "LG Member Days | Bundle Deal",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Member",
+    "sortNo": "0",
+    "code": "LG Member Days | Hot Deal",
+    "value": "LG Member Days | Hot Deal",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Member",
+    "sortNo": "0",
+    "code": "LG Member Days | Premium",
+    "value": "LG Member Days | Premium",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Member",
+    "sortNo": "0",
+    "code": "LG Member Days | Limitiert",
+    "value": "LG Member Days | Limitiert",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Member",
+    "sortNo": "0",
+    "code": "LG Memberdays l Combo",
+    "value": "LG Memberdays l Combo",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Member",
+    "sortNo": "0",
+    "code": "LG Memberdays l Exclusives",
+    "value": "LG Memberdays l Exclusives",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Member",
+    "sortNo": "0",
+    "code": "LG Memberdays l Special",
+    "value": "LG Memberdays l Special",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Member",
+    "sortNo": "0",
+    "code": "LG MONTH",
+    "value": "LG MONTH",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Member",
+    "sortNo": "0",
+    "code": "LG Plus",
+    "value": "LG Plus",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Member",
+    "sortNo": "0",
+    "code": "LG Streaming Week",
+    "value": "LG Streaming Week",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Member",
+    "sortNo": "0",
+    "code": "LG Week",
+    "value": "LG Week",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Member",
+    "sortNo": "0",
+    "code": "LG10",
+    "value": "LG10",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Member",
+    "sortNo": "0",
+    "code": "LG\u0027s choice",
+    "value": "LG\u0027s choice",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Member",
+    "sortNo": "0",
+    "code": "Member Days",
+    "value": "Member Days",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Member",
+    "sortNo": "0",
+    "code": "OFERTA DIAS ESPECIAIS PARA MEMBROS",
+    "value": "OFERTA DIAS ESPECIAIS PARA MEMBROS",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Member",
+    "sortNo": "0",
+    "code": "Member Offer",
+    "value": "Member Offer",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Member",
+    "sortNo": "0",
+    "code": "Member Only",
+    "value": "Member Only",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Member",
+    "sortNo": "0",
+    "code": "MEMBER TRADE IN $100",
+    "value": "MEMBER TRADE IN $100",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Member",
+    "sortNo": "0",
+    "code": "MEMBER TRADE IN $150",
+    "value": "MEMBER TRADE IN $150",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Member",
+    "sortNo": "0",
+    "code": "MEMBER TRADE IN $200",
+    "value": "MEMBER TRADE IN $200",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Member",
+    "sortNo": "0",
+    "code": "MEMBER TRADE IN $300",
+    "value": "MEMBER TRADE IN $300",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Member",
+    "sortNo": "0",
+    "code": "MEMBER TRADE IN $400",
+    "value": "MEMBER TRADE IN $400",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Member",
+    "sortNo": "0",
+    "code": "MEMBER TRADE IN $500",
+    "value": "MEMBER TRADE IN $500",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Member",
+    "sortNo": "0",
+    "code": "MONTHLY LG",
+    "value": "MONTHLY LG",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Member",
+    "sortNo": "0",
+    "code": "OFFRE MEMBRES",
+    "value": "OFFRE MEMBRES",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Member",
+    "sortNo": "0",
+    "code": "Online Exclusive Bundle",
+    "value": "Online Exclusive Bundle",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Member",
+    "sortNo": "0",
+    "code": "Partner Exclusive",
+    "value": "Partner Exclusive",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Member",
+    "sortNo": "0",
+    "code": "登錄送贈品",
+    "value": "登錄送贈品",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Member",
+    "sortNo": "0",
+    "code": "Registrate y recibe Dcto",
+    "value": "Registrate y recibe Dcto",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Member",
+    "sortNo": "0",
+    "code": "Retailer exclusive model",
+    "value": "Retailer exclusive model",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Member",
+    "sortNo": "0",
+    "code": "Solo LG Members",
+    "value": "Solo LG Members",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Member",
+    "sortNo": "0",
+    "code": "Thai Price only Lg member",
+    "value": "Thai Price only Lg member",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Member",
+    "sortNo": "0",
+    "code": "Vip Care",
+    "value": "Vip Care",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Member",
+    "sortNo": "0",
+    "code": "VIP installation",
+    "value": "VIP installation",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Member",
+    "sortNo": "0",
+    "code": "VIP Only",
+    "value": "VIP Only",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Member",
+    "sortNo": "0",
+    "code": "Sign in for coupons",
+    "value": "Sign in for coupons",
+    "a": 0
+}, {
+    "commonCodeGroupName": "DeliveryTag",
+    "sortNo": "0",
+    "code": "Despacho Gratis RM",
+    "value": "Despacho Gratis RM",
+    "a": 0
+}, {
+    "commonCodeGroupName": "DeliveryTag",
+    "sortNo": "0",
+    "code": "FREE 1 YEAR AMC",
+    "value": "FREE 1 YEAR AMC",
+    "a": 0
+}, {
+    "commonCodeGroupName": "DeliveryTag",
+    "sortNo": "0",
+    "code": "Despacho Gratis",
+    "value": "Despacho Gratis",
+    "a": 0
+}, {
+    "commonCodeGroupName": "DeliveryTag",
+    "sortNo": "0",
+    "code": "Instalación Básica Gratuita",
+    "value": "Instalación Básica Gratuita",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Exclusive",
+    "sortNo": "0",
+    "code": "Exclusive Bundle Offer",
+    "value": "Exclusive Bundle Offer",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Exclusive",
+    "sortNo": "0",
+    "code": "Exclusive Offer",
+    "value": "Exclusive Offer",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Exclusive",
+    "sortNo": "0",
+    "code": "Exclusivo Online",
+    "value": "Exclusivo Online",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Exclusive",
+    "sortNo": "0",
+    "code": "Online Exclusive Bundle",
+    "value": "Online Exclusive Bundle",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Exclusive",
+    "sortNo": "0",
+    "code": "Solo en línea",
+    "value": "Solo en línea",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Exclusive",
+    "sortNo": "0",
+    "code": "Test Exclusive Offer",
+    "value": "Test Exclusive Offer",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Stock",
+    "sortNo": "0",
+    "code": "Próximamente",
+    "value": "Próximamente",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Stock",
+    "sortNo": "0",
+    "code": "Descontinuado",
+    "value": "Descontinuado",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Stock",
+    "sortNo": "0",
+    "code": "Nuevo",
+    "value": "Nuevo",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Stock",
+    "sortNo": "0",
+    "code": "PRE-VENTA",
+    "value": "PRE-VENTA",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Editor",
+    "sortNo": "0",
+    "code": "¡Gracias Chile!",
+    "value": "¡Gracias Chile!",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Editor",
+    "sortNo": "0",
+    "code": "Premio",
+    "value": "Premio",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Editor",
+    "sortNo": "0",
+    "code": "Mejor vendedor",
+    "value": "Mejor vendedor",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Editor",
+    "sortNo": "0",
+    "code": "Recomendar",
+    "value": "Recomendar",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "10% dscto. adicional Santander",
+    "value": "10% dscto. adicional Santander",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "10% de dscto adicional al añadir al",
+    "value": "10% de dscto adicional al añadir al",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "20% de dscto adicional al añadir al",
+    "value": "20% de dscto adicional al añadir al",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "300.000 CLP de REGALO",
+    "value": "300.000 CLP de REGALO",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Autorización",
+    "value": "Autorización",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Descuento",
+    "value": "Descuento",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Venta",
+    "value": "Venta",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "₹1000 Gift Voucher",
+    "value": "₹1000 Gift Voucher",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "₹1500 Gift Voucher",
+    "value": "₹1500 Gift Voucher",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "₹2000 Gift Voucher",
+    "value": "₹2000 Gift Voucher",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "₹3000 Gift Voucher",
+    "value": "₹3000 Gift Voucher",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "₹4000 Gift Voucher",
+    "value": "₹4000 Gift Voucher",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "₹500 Gift Voucher",
+    "value": "₹500 Gift Voucher",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "+ Play Mobil",
+    "value": "+ Play Mobil",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "10% Additional Off Using Code",
+    "value": "10% Additional Off Using Code",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "400.000 CLP de REGALO",
+    "value": "400.000 CLP de REGALO",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "500.000 CLP de REGALO",
+    "value": "500.000 CLP de REGALO",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "600.000 CLP de REGALO",
+    "value": "600.000 CLP de REGALO",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Air Conditioners Combo Offer",
+    "value": "Air Conditioners Combo Offer",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Audio Combo Offer",
+    "value": "Audio Combo Offer",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Paquete",
+    "value": "Paquete",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Bundle \u0026 Benefit",
+    "value": "Bundle \u0026 Benefit",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Bundle Deal",
+    "value": "Bundle Deal",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Bundle of Joy",
+    "value": "Bundle of Joy",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Bundle offer",
+    "value": "Bundle offer",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Combo",
+    "value": "Combo",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Combo Pack",
+    "value": "Combo Pack",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Cupón disponible",
+    "value": "Cupón disponible",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Dishwasher Combo Offer",
+    "value": "Dishwasher Combo Offer",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Exclusive Voucher",
+    "value": "Exclusive Voucher",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Free Stainless Steel Bottle",
+    "value": "Free Stainless Steel Bottle",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Mega Bundle",
+    "value": "Mega Bundle",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Refrigerators Combo Offer",
+    "value": "Refrigerators Combo Offer",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "TV Combo Offer",
+    "value": "TV Combo Offer",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Washing Machines Combo Offer",
+    "value": "Washing Machines Combo Offer",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Water Purifiers combo Offer",
+    "value": "Water Purifiers combo Offer",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "Welcome Voucher",
+    "value": "Welcome Voucher",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Combo Offer",
+    "value": "Combo Offer",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Oferta del Adviento",
+    "value": "Oferta del Adviento",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "All-in-One Deal",
+    "value": "All-in-One Deal",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Black Friday",
+    "value": "Black Friday",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Oferta de Black Friday",
+    "value": "Oferta de Black Friday",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Oferta de día del boxeo",
+    "value": "Oferta de día del boxeo",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Buy More, Save More",
+    "value": "Buy More, Save More",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "BUY WITH BEST CARE- AMC",
+    "value": "BUY WITH BEST CARE- AMC",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Oferta navideña",
+    "value": "Oferta navideña",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Combo Bonanza",
+    "value": "Combo Bonanza",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Cyber Day",
+    "value": "Cyber Day",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Essential Combo Pack",
+    "value": "Essential Combo Pack",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Oferta del Día del padre",
+    "value": "Oferta del Día del padre",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Festival Combo Offer",
+    "value": "Festival Combo Offer",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "GST Change 28% to 18%",
+    "value": "GST Change 28% to 18%",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "GST Reduction 28% to 18%",
+    "value": "GST Reduction 28% to 18%",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "GST Savings 28% to 18%",
+    "value": "GST Savings 28% to 18%",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Oferta de vacaciones",
+    "value": "Oferta de vacaciones",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Oferta IFA",
+    "value": "Oferta IFA",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Cantidad limitada",
+    "value": "Cantidad limitada",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Limited Time Bundle",
+    "value": "Limited Time Bundle",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Oferta del Día de la Madre",
+    "value": "Oferta del Día de la Madre",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Oferta de año nuevo",
+    "value": "Oferta de año nuevo",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Oferta de un día",
+    "value": "Oferta de un día",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Power Pack Offer",
+    "value": "Power Pack Offer",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "PRE-VENTA",
+    "value": "PRE-VENTA",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Prime Day",
+    "value": "Prime Day",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Promoción",
+    "value": "Promoción",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Favoritos de Santa",
+    "value": "Favoritos de Santa",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Seasonal Bundle Deal",
+    "value": "Seasonal Bundle Deal",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Oferta estacional",
+    "value": "Oferta estacional",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Smart Combo",
+    "value": "Smart Combo",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Special Discount",
+    "value": "Special Discount",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Streaming week",
+    "value": "Streaming week",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Super Saver Combo",
+    "value": "Super Saver Combo",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Oferta única",
+    "value": "Oferta única",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Value Bundle",
+    "value": "Value Bundle",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Venta de bodega",
+    "value": "Venta de bodega",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Weekend Combo Special",
+    "value": "Weekend Combo Special",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Event",
+    "sortNo": "0",
+    "code": "Oferta de fin de semana",
+    "value": "Oferta de fin de semana",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Payment",
+    "sortNo": "0",
+    "code": "30% DCTO AL PAGAR",
+    "value": "30% DCTO AL PAGAR",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Payment",
+    "sortNo": "0",
+    "code": "35% DCTO AL PAGAR",
+    "value": "35% DCTO AL PAGAR",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Member",
+    "sortNo": "0",
+    "code": "Oferta de día del miembro",
+    "value": "Oferta de día del miembro",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Member",
+    "sortNo": "0",
+    "code": "Member Days",
+    "value": "Member Days",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Member",
+    "sortNo": "0",
+    "code": "Solo VIP",
+    "value": "Solo VIP",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "1",
+    "code": "10% discount + 5% extra",
+    "value": "10% discount + 5% extra",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "1",
+    "code": "15% discount + 5% extra",
+    "value": "15% discount + 5% extra",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "1",
+    "code": "Offer",
+    "value": "Offer",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "1",
+    "code": "Trade up 400",
+    "value": "Trade up 400",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Stock",
+    "sortNo": "1",
+    "code": "NEW",
+    "value": "NEW",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Member",
+    "sortNo": "1",
+    "code": "VIP Care",
+    "value": "VIP Care",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Service",
+    "sortNo": "1",
+    "code": "Bảo dưỡng LG",
+    "value": "Bảo dưỡng LG",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "1",
+    "code": "BUY 1 GET 1",
+    "value": "BUY 1 GET 1",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "1",
+    "code": "Free soundbar - £239",
+    "value": "Free soundbar - £239",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "1",
+    "code": "Free speaker - £99",
+    "value": "Free speaker - £99",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Exclusive",
+    "sortNo": "1",
+    "code": "Only at LG",
+    "value": "Only at LG",
+    "a": 0
+}, {
+    "commonCodeGroupName": "DeliveryTag",
+    "sortNo": "1",
+    "code": "test",
+    "value": "test",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Member",
+    "sortNo": "1",
+    "code": "Only at LG",
+    "value": "Only at LG",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "1",
+    "code": "MEMBER TRADE IN $100",
+    "value": "MEMBER TRADE IN $100",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "1",
+    "code": "Free Earbuds worth £199",
+    "value": "Free earbuds - £199",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "BUNDLE \u0026 SAVE $1000",
+    "value": "BUNDLE \u0026 SAVE $1000",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "BUNDLE \u0026 SAVE $600",
+    "value": "BUNDLE \u0026 SAVE $600",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "BUNDLE \u0026 SAVE $300",
+    "value": "BUNDLE \u0026 SAVE $300",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "1",
+    "code": "Online Özel Ekstra Gece İndirimi",
+    "value": "Online Özel Ekstra Gece İndirimi",
+    "a": 0
+}, {
+    "commonCodeGroupName": "DeliveryTag",
+    "sortNo": "1",
+    "code": "Livraison gratuite*",
+    "value": "Livraison gratuite*",
+    "a": 0
+}, {
+    "commonCodeGroupName": "DeliveryTag",
+    "sortNo": "1",
+    "code": "Free Delivery*",
+    "value": "Free Delivery*",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "1",
+    "code": "Rebates",
+    "value": "Rebates",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "1",
+    "code": "Remises",
+    "value": "Remises",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "1",
+    "code": "Get a Prepaid Card*",
+    "value": "Get a Prepaid Card*",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "1",
+    "code": "Obtenez une carte prépayée*",
+    "value": "Obtenez une carte prépayée*",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Service",
+    "sortNo": "1",
+    "code": "ENERGY STAR® Certified",
+    "value": "ENERGY STAR® Certified",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Service",
+    "sortNo": "1",
+    "code": "Certifié ENERGY STAR®",
+    "value": "Certifié ENERGY STAR®",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "1",
+    "code": "$50 MEMBER TRADE IN",
+    "value": "$50 MEMBER TRADE IN",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "1",
+    "code": "$75 MEMBER TRADE IN",
+    "value": "$75 MEMBER TRADE IN",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "1",
+    "code": "$100 MEMBER TRADE IN",
+    "value": "$100 MEMBER TRADE IN",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "1",
+    "code": "$150 MEMBER TRADE IN",
+    "value": "$150 MEMBER TRADE IN",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "1",
+    "code": "$200 MEMBER TRADE IN",
+    "value": "$200 MEMBER TRADE IN",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "1",
+    "code": "$250 MEMBER TRADE IN",
+    "value": "$250 MEMBER TRADE IN",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "1",
+    "code": "$300 MEMBER TRADE IN",
+    "value": "$300 MEMBER TRADE IN",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "1",
+    "code": "$350 MEMBER TRADE IN",
+    "value": "$350 MEMBER TRADE IN",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "1",
+    "code": "$400 MEMBER TRADE IN",
+    "value": "$400 MEMBER TRADE IN",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "1",
+    "code": "$450 MEMBER TRADE IN",
+    "value": "$450 MEMBER TRADE IN",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "1",
+    "code": "$500 MEMBER TRADE IN",
+    "value": "$500 MEMBER TRADE IN",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "1",
+    "code": "Free Microwave -£109",
+    "value": "Free microwave - £109",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "1",
+    "code": "Free speaker - £79",
+    "value": "Free speaker - £79",
+    "a": 0
+}, {
+    "commonCodeGroupName": "DeliveryTag",
+    "sortNo": "1",
+    "code": "Premium Shipping and Installation",
+    "value": "Premium Shipping and Installation",
+    "a": 0
+}, {
+    "commonCodeGroupName": "DeliveryTag",
+    "sortNo": "1",
+    "code": "Free Elite Shipping and Installation",
+    "value": "Free Elite Shipping and Installation",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "2",
+    "code": "Free Earbuds worth £129",
+    "value": "Free earbuds - £129",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "3",
+    "code": "Free Earbuds worth £149",
+    "value": "Free earbuds - £149",
+    "a": 0
+}, {
+    "commonCodeGroupName": "DeliveryTag",
+    "sortNo": "10",
+    "code": "Free Delivery / Installation",
+    "value": "Free Delivery / Installation.",
+    "a": 0
+}, {
+    "commonCodeGroupName": "DeliveryTag",
+    "sortNo": "11",
+    "code": "Free Delivery, Wall Mount \u0026 Disposal",
+    "value": "Free Delivery, Wall Mount \u0026 Disposal",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "1",
+    "code": "Trade Up - 200€ Discount",
+    "value": "Trade Up - 200€ Discount",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "1",
+    "code": "Trade Up - 150€ Discount",
+    "value": "Trade Up - 150€ Discount",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "1",
+    "code": "Trade Up - 100€ Discount",
+    "value": "Trade Up - 100€ Discount",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "1",
+    "code": "Trade Up - 75€ Discount",
+    "value": "Trade Up - 75€ Discount",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "1",
+    "code": "Trade Up - 60€ Discount",
+    "value": "Trade Up - 60€ Discount",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "1",
+    "code": "Trade Up - 50€ Discount",
+    "value": "Trade Up - 50€ Discount",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "1",
+    "code": "8% discount in checkout",
+    "value": "8% discount in checkout",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "1",
+    "code": "13% discount in checkout",
+    "value": "13% discount in checkout",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "1",
+    "code": "18% discount in checkout",
+    "value": "18% discount in checkout",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "1",
+    "code": "23% discount in checkout",
+    "value": "23% discount in checkout",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "1",
+    "code": "1+1 Gift",
+    "value": "1+1 Gift",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "50",
+    "code": "Bundle offer",
+    "value": "Bundle offer",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Dscto extra de $160.010 en el carro",
+    "value": "Dscto extra de $160.010 en el carro",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Dscto extra de $230.010 en el carro",
+    "value": "Dscto extra de $230.010 en el carro",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Dscto extra de $250.010 en el carro",
+    "value": "Dscto extra de $250.010 en el carro",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Dscto extra de $210.010 en el carro",
+    "value": "Dscto extra de $210.010 en el carro",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Dscto extra $210.010",
+    "value": "Dscto extra $210.010",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Dscto extra $160.010",
+    "value": "Dscto extra $160.010",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Dscto extra $250.010",
+    "value": "Dscto extra $250.010",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Dscto extra $230.010",
+    "value": "Dscto extra $230.010",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "1",
+    "code": "Free speaker - £119",
+    "value": "Free speaker - £119",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "1",
+    "code": "£50 Cashback",
+    "value": "£50 Cashback",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "DESCONTO PIX",
+    "value": "DESCONTO PIX",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "8%",
+    "value": "8%",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "10%",
+    "value": "10%",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "12%",
+    "value": "12%",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "15%",
+    "value": "15%",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "20%",
+    "value": "20%",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "1",
+    "code": "Free monitor - £179",
+    "value": "Free monitor - £179",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Exclusive",
+    "sortNo": "0",
+    "code": "FRETE GRATIS - CAPITAIS",
+    "value": "FRETE GRATIS - CAPITAIS",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Stock",
+    "sortNo": "0",
+    "code": "P/ CAPITAIS",
+    "value": "P/ CAPITAIS",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Exclusive",
+    "sortNo": "1",
+    "code": "Бесплатная установка",
+    "value": "Бесплатная установка",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Exclusive",
+    "sortNo": "1",
+    "code": "20% на сушильную машину",
+    "value": "20% на сушильную машину",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Service",
+    "sortNo": "1",
+    "code": "Бесплатная установка",
+    "value": "Бесплатная установка",
+    "a": 0
+}, {
+    "commonCodeGroupName": "DeliveryTag",
+    "sortNo": "1",
+    "code": "Бесплатная доставка",
+    "value": "Бесплатная доставка",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "1",
+    "code": "Free monitor - £299",
+    "value": "Free monitor - £299",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "1",
+    "code": "Free monitor - £749",
+    "value": "Free monitor - £749",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "1",
+    "code": "Free monitor - £899",
+    "value": "Free monitor - £899",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Exclusive",
+    "sortNo": "0",
+    "code": "P/ CAPITAIS",
+    "value": "P/ CAPITAIS",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "1",
+    "code": "Free monitor - £729",
+    "value": "Free monitor - £729",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "1",
+    "code": "Free monitor - £229",
+    "value": "Free monitor - £229",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "1",
+    "code": "Free monitor - £889",
+    "value": "Free monitor - £889",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "1",
+    "code": "Free monitor - £779",
+    "value": "Free monitor - £779",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "1",
+    "code": "Free monitor offer",
+    "value": "Free monitor offer",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "1",
+    "code": "Trade-Up for £40 off",
+    "value": "Trade-Up for £40 off",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "1",
+    "code": "Flash offer",
+    "value": "Flash offer",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Exclusive",
+    "sortNo": "0",
+    "code": "LGNOTA10",
+    "value": "LGNOTA10",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "DESCONTO PIX 8%",
+    "value": "DESCONTO PIX 8%",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "DESCONTO PIX 10%",
+    "value": "DESCONTO PIX 10%",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "DESCONTO PIX 12%",
+    "value": "DESCONTO PIX 12%",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "DESCONTO PIX 15%",
+    "value": "DESCONTO PIX 15%",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "DESCONTO PIX 20%",
+    "value": "DESCONTO PIX 20%",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Exclusive",
+    "sortNo": "0",
+    "code": "LGNOTA15",
+    "value": "LGNOTA15",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "1",
+    "code": "Free monitor - £329",
+    "value": "Free monitor - £329",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "1",
+    "code": "Free monitor - £999",
+    "value": "Free monitor - £999",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "1",
+    "code": "Free monitor - £1199",
+    "value": "Free monitor - £1199",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "1",
+    "code": "Free monitor - £1099",
+    "value": "Free monitor - £1099",
+    "a": 0
+}, {
+    "commonCodeGroupName": "DeliveryTag",
+    "sortNo": "0",
+    "code": "Frete Grátis Para Capitais",
+    "value": "Frete Grátis Para Capitais",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Exclusive",
+    "sortNo": "0",
+    "code": "LGBESTDAY",
+    "value": "LGBESTDAY",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Exclusive",
+    "sortNo": "0",
+    "code": "ULTIMACHANCE30AC",
+    "value": "ULTIMACHANCE30AC",
+    "a": 0
+}, {
+    "commonCodeGroupName": "DeliveryTag",
+    "sortNo": "0",
+    "code": "Últimas unidades",
+    "value": "Últimas unidades",
+    "a": 0
+}, {
+    "commonCodeGroupName": "DeliveryTag",
+    "sortNo": "0",
+    "code": "Adicione LG Instala Plus",
+    "value": "Adicione LG Instala Plus",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "LGBESTDAY",
+    "value": "LGBESTDAY",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "1",
+    "code": "Ecover Promotion",
+    "value": "Ecover Promotion",
+    "a": 0
+}, {
+    "commonCodeGroupName": "DeliveryTag",
+    "sortNo": "0",
+    "code": "CONS_MONTH",
+    "value": "Mês do Consumidor",
+    "a": 0
+}, {
+    "commonCodeGroupName": "DeliveryTag",
+    "sortNo": "0",
+    "code": "REV_DOOR",
+    "value": "Porta Reversível",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "ITDESC8",
+    "value": "ITDESC8",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "ITDESC5",
+    "value": "ITDESC5",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "AVDESC10",
+    "value": "AVDESC10",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Exclusive",
+    "sortNo": "0",
+    "code": "REV_DOOR",
+    "value": "Porta Reversível",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Exclusive",
+    "sortNo": "0",
+    "code": "CONS_MONTH",
+    "value": "Mês do Consumidor",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "1",
+    "code": "Free soundbar - £149",
+    "value": "Free soundbar - £149",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "1",
+    "code": "Free monitor - £279",
+    "value": "Free monitor - £279",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "1",
+    "code": "Free monitor - £199",
+    "value": "Free monitor - £199",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "1",
+    "code": "Free Ecover",
+    "value": "Free Ecover",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Exclusive",
+    "sortNo": "0",
+    "code": "HISTORIASMAR",
+    "value": "HISTORIASMAR",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "1",
+    "code": "Free monitor - £699",
+    "value": "Free monitor - £699",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "1",
+    "code": "Free monitor - £854",
+    "value": "Free monitor - £854",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "1",
+    "code": "Free Folio Cover - £132",
+    "value": "Free Folio Cover - £132",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "1",
+    "code": "Free soundbar - £719",
+    "value": "Free soundbar - £719",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "1",
+    "code": "Free soundbar - £234",
+    "value": "Free soundbar - £234",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "1",
+    "code": "Free soundbar - £139",
+    "value": "Free soundbar - £139",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "1",
+    "code": "Free soundbar - £74",
+    "value": "Free soundbar - £74",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "1",
+    "code": "Free soundbar - £629",
+    "value": "Free soundbar - £629",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "1",
+    "code": "Free soundbar - £189",
+    "value": "Free soundbar - £189",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "1",
+    "code": "Free monitor - £879",
+    "value": "Free monitor - £879",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "1",
+    "code": "Free soundbar - £749",
+    "value": "Free soundbar - £749",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "1",
+    "code": "Free monitor - £849",
+    "value": "Free monitor - £849",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Exclusive",
+    "sortNo": "0",
+    "code": "-10% bancos adheridos",
+    "value": "-10% bancos adheridos",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "1",
+    "code": "Free monitor - £249",
+    "value": "Free monitor - £249",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "1",
+    "code": "Free monitor - £169",
+    "value": "Free monitor - £169",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "1",
+    "code": "Free sound - £599",
+    "value": "Free sound - £599",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "1",
+    "code": "Free soundbar - £599",
+    "value": "Free soundbar - £599",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "1",
+    "code": "Free monitor - £219",
+    "value": "Free monitor - £219",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Service",
+    "sortNo": "1",
+    "code": "Free installation",
+    "value": "Free installation",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Gift",
+    "sortNo": "0",
+    "code": "10% extra",
+    "value": "10% extra",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Exclusive",
+    "sortNo": "0",
+    "code": "Lanzamiento 2026",
+    "value": "Lanzamiento 2026",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Payment",
+    "sortNo": "0",
+    "code": "12x s/interés",
+    "value": "12x s/interés",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Trade Up 400€",
+    "value": "Trade Up 400€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Trade Up 500€",
+    "value": "Trade Up 500€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Trade Up 700€",
+    "value": "Trade Up 700€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Trade Up 1000€",
+    "value": "Trade Up 1000€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Trade Up 2500€",
+    "value": "Trade Up 2500€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Discount",
+    "sortNo": "0",
+    "code": "Trade Up 3000€",
+    "value": "Trade Up 3000€",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Exclusive",
+    "sortNo": "0",
+    "code": "ARCOND10",
+    "value": "ARCOND10",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Exclusive",
+    "sortNo": "0",
+    "code": "ELETRO5",
+    "value": "ELETRO5",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Exclusive",
+    "sortNo": "0",
+    "code": "ELETRO10",
+    "value": "ELETRO10",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Exclusive",
+    "sortNo": "0",
+    "code": "ELETRO15",
+    "value": "ELETRO15",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Exclusive",
+    "sortNo": "0",
+    "code": "ELETRO20",
+    "value": "ELETRO20",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Exclusive",
+    "sortNo": "0",
+    "code": "ARCOND5",
+    "value": "ARCOND5",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Exclusive",
+    "sortNo": "0",
+    "code": "ARCOND12",
+    "value": "ARCOND12",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Exclusive",
+    "sortNo": "0",
+    "code": "REF5",
+    "value": "REF5",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Exclusive",
+    "sortNo": "0",
+    "code": "REF10",
+    "value": "REF10",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Exclusive",
+    "sortNo": "0",
+    "code": "REF15",
+    "value": "REF15",
+    "a": 0
+}, {
+    "commonCodeGroupName": "ProductTag Exclusive",
+    "sortNo": "0",
+    "code": "MIBR",
+    "value": "MIBR",
+    "a": 0
+}, {
+    "commonCodeGroupName": "DeliveryTag",
+    "sortNo": "0",
+    "code": "Instalación Gratis",
+    "value": "Instalación Gratis",
+    "a": 0
+}, {
+    "commonCodeGroupName": "DeliveryTag",
+    "sortNo": "0",
+    "code": "Envió Gratis",
+    "value": "Envió Gratis",
+    "a": 0
+}, {
+    "commonCodeGroupName": "PromotionTag Payment",
+    "sortNo": "1",
+    "code": "3x s/juros",
+    "value": "3x s/juros",
+    "a": 0
+}];
 
-const tagArray = {Product : {}, Promotion : {}, Delivery : []};
-mktTagData.forEach((each)=>{
+const tagArray = {
+    Product: {},
+    Promotion: {},
+    Delivery: []
+};
+mktTagData.forEach( (each) => {
     const groupName = each.commonCodeGroupName;
-    if(groupName) {
+    if (groupName) {
         const groupSplit = groupName.split(' ');
         const categoryName = groupSplit[0];
         const category2Name = groupSplit[1];
-        if(categoryName === 'ProductTag') {
-            if(!tagArray.Product[category2Name]) {
+        if (categoryName === 'ProductTag') {
+            if (!tagArray.Product[category2Name]) {
                 tagArray.Product[category2Name] = [];
             }
-            tagArray.Product[category2Name].push({code: each.code, value: each.value, groupName, sortNo: each.sortNo});
+            tagArray.Product[category2Name].push({
+                code: each.code,
+                value: each.value,
+                groupName,
+                sortNo: each.sortNo
+            });
         } else if (categoryName === 'PromotionTag') {
-            if(!tagArray.Promotion[category2Name]) {
+            if (!tagArray.Promotion[category2Name]) {
                 tagArray.Promotion[category2Name] = [];
             }
-            tagArray.Promotion[category2Name].push({code: each.code, value: each.value, groupName, sortNo: each.sortNo});
+            tagArray.Promotion[category2Name].push({
+                code: each.code,
+                value: each.value,
+                groupName,
+                sortNo: each.sortNo
+            });
         } else if (categoryName === 'DeliveryTag') {
-            tagArray.Delivery.push({code: each.code, value: each.value, groupName, sortNo: each.sortNo});
+            tagArray.Delivery.push({
+                code: each.code,
+                value: each.value,
+                groupName,
+                sortNo: each.sortNo
+            });
         }
     }
-})
+}
+)
 
 Rui.onReady(function() {
-if(modelId != ''){
-	/* LGCOMRB-3604 Start */
-	if(mtsModelSyncFlag == 'Y'){
-		
-		if(mtsShopCodeDataSet != null){
-			mtsShopCodeDataSet.clearData();		
-		}
-		mtsShopCodeDataSet = new Rui.data.LJsonDataSet({
-	        id: 'mtsShopCodeDataSet',
-	        focusFirstRow: -1,
-	        canMarkableEvent: true,
-	        fields: [
-	        	{ id: 'shopCode' },
-	        	{ id: 'shopName' },
-	        	{ id: 'modelId' }
-	        ]
-	    });
-		
-		var mtsShopCodeColumnModel = new Rui.ui.grid.LColumnModel({
-			autoWidth: true,
-			columns: [
-				new Rui.ui.grid.LSelectionColumn({ label: ' ' }),
-				new Rui.ui.grid.LNumberColumn(),
-				{ field: "shopName", label: "SITE",align: "center", width:200},
-				{ field: "shopCode", label: "Shop Code",align: "center", width:100},
-				{ field: "modelId", label: "Model Id",align: "center", width:100, hidden: true}
-			]
-		});
-		
-		var mtsShopCodeGrid = new Rui.ui.grid.LGridPanel({
-			columnModel: mtsShopCodeColumnModel,
-			autoWidthResize: false,
-			autoWidth: false,
-			autoToEdit: true,
-			width: 500,
-			height: 125,
-			borderWidth: 1,
-			dataSet: mtsShopCodeDataSet
-		});
-		
-		mtsShopCodeDataSet.on('load', function(e) {
-			initShopCode = ""
-			markedShopCode = "";
-	    });
-		
-		mtsShopCodeDataSet.on('marked', function(e) {
-			mtsShopCodeDataSet.setMarkOnly(e.row, e.isSelect);
-			for(var j = 0; j < mtsShopCodeDataSet.getCount() ; j++) {
-				if(mtsShopCodeDataSet.isMarked(j)) {
-					markedShopCode = mtsShopCodeDataSet.getNameValue(j, 'shopCode');
-				}
-			}
-			if(mtsShopCodeDataSet.getMarkedCount()==0){
-				markedShopCode ="";
-			}			
-		});
-		
-		var params = {
-				"modelId" : modelId,
-				"localeCode": localeCode
-				};
-		
-		Rui.util.ruiCommonRetrieve(mtsShopCodeDataSet,'Offer.retrieveOfferMtsModelShopList',schema,params,true);
-		mtsShopCodeGrid.render('mtsShopCodeGrid');
-			
-	}
-	/* LGCOMRB-3604 End */
-	
-	if(offerPromotionDataSet != null){
-		offerPromotionDataSet.clearData();		
-	}
-	offerPromotionDataSet = new Rui.data.LJsonDataSet({
-        id: 'offerPromotionDataSet',
-        focusFirstRow: -1,
-        canMarkableEvent: true,
-        fields: [
-        	{ id: 'promotionOrderNo' },
-        	{ id: 'promotionId' },
-        	{ id: 'promotionTag' },
-        	{ id: 'title' },
-            { id: 'date' },
-            { id: 'useFlag' }
-        ]
-    });
-	
-	var offerPromotionColumnModel = new Rui.ui.grid.LColumnModel({
-		autoWidth: true,
-		columns: [
-			new Rui.ui.grid.LSelectionColumn({ label: ' ' }),
-			new Rui.ui.grid.LNumberColumn(),
-			{ field: "promotionId", label: "Promotion ID",align: "center", width:120},
-			{ field: "promotionTag", label: "Promotion Tag",align: "center", width:160},
-			{ field: "title", label: "Title",align: "center", width:160},
-			{ field: "date", label: "Date",align: "center", width:120},
-			{ field: "useFlag", label: "Use",align: "center", width:60}
-		]
-	});
-	var offerPromotionGrid = new Rui.ui.grid.LGridPanel({
-		columnModel: offerPromotionColumnModel,
-		autoWidthResize: true,
-		autoWidth: true,
-		autoToEdit: true,
-		width: 950,
-		height: 185,
-		borderWidth: 1,
-		dataSet: offerPromotionDataSet
-	});
-	
-	offerPromotionDataSet.on('load', function(e) {
-		initPromotionId = "";
-		for (var i=0; i < offerPromotionDataSet.getCount(); i++) {
-			if (offerPromotionDataSet.getNameValue(i, "promotionTagUseFlag") == "Y") {
-				initPromotionId = offerPromotionDataSet.getNameValue(i, 'promotionId');
-				offerPromotionDataSet.setMark(i, true, true);
-			}
-		}
-    });
-	offerPromotionDataSet.on('marked', function(e) {
-		markedPromotionId = "";
-		offerPromotionDataSet.setMarkOnly(e.row, e.isSelect);
-		for(var j = 0; j < offerPromotionDataSet.getCount() ; j++) {
-			if(offerPromotionDataSet.isMarked(j)) {
-				markedPromotionId = offerPromotionDataSet.getNameValue(j, 'promotionId');
-			}
-		}
-		if(offerPromotionDataSet.getMarkedCount()==0){
-			markedPromotionId ="";
-		}
-	});
-	var params = {
-			"modelId" : modelId,
-			"localeCode": localeCode,
-			"shopCode": shopCode
-			};
-	if ("B2C" == shopCode || "B2B" == shopCode) {
-		Rui.util.ruiCommonRetrieve(offerPromotionDataSet,'Offer.retrieveOfferPromotionList',schema,params,true);
-	} else {
-		Rui.util.ruiCommonRetrieve(offerPromotionDataSet,'Offer.retrieveMtsOfferPromotionList',schema,params,true);
-	}
-	offerPromotionGrid.render('offerPromotionGrid');
-	
-	offerPromotionDataSet.on('canMarkable', function(e) {
-		if(schema == "publ") return false;
-	});
-}
+    if (modelId != '') {
+        /* LGCOMRB-3604 Start */
+        if (mtsModelSyncFlag == 'Y') {
+
+            if (mtsShopCodeDataSet != null) {
+                mtsShopCodeDataSet.clearData();
+            }
+            mtsShopCodeDataSet = new Rui.data.LJsonDataSet({
+                id: 'mtsShopCodeDataSet',
+                focusFirstRow: -1,
+                canMarkableEvent: true,
+                fields: [{
+                    id: 'shopCode'
+                }, {
+                    id: 'shopName'
+                }, {
+                    id: 'modelId'
+                }]
+            });
+
+            var mtsShopCodeColumnModel = new Rui.ui.grid.LColumnModel({
+                autoWidth: true,
+                columns: [new Rui.ui.grid.LSelectionColumn({
+                    label: ' '
+                }), new Rui.ui.grid.LNumberColumn(), {
+                    field: "shopName",
+                    label: "SITE",
+                    align: "center",
+                    width: 200
+                }, {
+                    field: "shopCode",
+                    label: "Shop Code",
+                    align: "center",
+                    width: 100
+                }, {
+                    field: "modelId",
+                    label: "Model Id",
+                    align: "center",
+                    width: 100,
+                    hidden: true
+                }]
+            });
+
+            var mtsShopCodeGrid = new Rui.ui.grid.LGridPanel({
+                columnModel: mtsShopCodeColumnModel,
+                autoWidthResize: false,
+                autoWidth: false,
+                autoToEdit: true,
+                width: 500,
+                height: 125,
+                borderWidth: 1,
+                dataSet: mtsShopCodeDataSet
+            });
+
+            mtsShopCodeDataSet.on('load', function(e) {
+                initShopCode = ""
+                markedShopCode = "";
+            });
+
+            mtsShopCodeDataSet.on('marked', function(e) {
+                mtsShopCodeDataSet.setMarkOnly(e.row, e.isSelect);
+                for (var j = 0; j < mtsShopCodeDataSet.getCount(); j++) {
+                    if (mtsShopCodeDataSet.isMarked(j)) {
+                        markedShopCode = mtsShopCodeDataSet.getNameValue(j, 'shopCode');
+                    }
+                }
+                if (mtsShopCodeDataSet.getMarkedCount() == 0) {
+                    markedShopCode = "";
+                }
+            });
+
+            var params = {
+                "modelId": modelId,
+                "localeCode": localeCode
+            };
+
+            Rui.util.ruiCommonRetrieve(mtsShopCodeDataSet, 'Offer.retrieveOfferMtsModelShopList', schema, params, true);
+            mtsShopCodeGrid.render('mtsShopCodeGrid');
+
+        }
+        /* LGCOMRB-3604 End */
+
+        if (offerPromotionDataSet != null) {
+            offerPromotionDataSet.clearData();
+        }
+        offerPromotionDataSet = new Rui.data.LJsonDataSet({
+            id: 'offerPromotionDataSet',
+            focusFirstRow: -1,
+            canMarkableEvent: true,
+            fields: [{
+                id: 'promotionOrderNo'
+            }, {
+                id: 'promotionId'
+            }, {
+                id: 'promotionTag'
+            }, {
+                id: 'title'
+            }, {
+                id: 'date'
+            }, {
+                id: 'useFlag'
+            }]
+        });
+
+        var offerPromotionColumnModel = new Rui.ui.grid.LColumnModel({
+            autoWidth: true,
+            columns: [new Rui.ui.grid.LSelectionColumn({
+                label: ' '
+            }), new Rui.ui.grid.LNumberColumn(), {
+                field: "promotionId",
+                label: "Promotion ID",
+                align: "center",
+                width: 120
+            }, {
+                field: "promotionTag",
+                label: "Promotion Tag",
+                align: "center",
+                width: 160
+            }, {
+                field: "title",
+                label: "Title",
+                align: "center",
+                width: 160
+            }, {
+                field: "date",
+                label: "Date",
+                align: "center",
+                width: 120
+            }, {
+                field: "useFlag",
+                label: "Use",
+                align: "center",
+                width: 60
+            }]
+        });
+        var offerPromotionGrid = new Rui.ui.grid.LGridPanel({
+            columnModel: offerPromotionColumnModel,
+            autoWidthResize: true,
+            autoWidth: true,
+            autoToEdit: true,
+            width: 950,
+            height: 185,
+            borderWidth: 1,
+            dataSet: offerPromotionDataSet
+        });
+
+        offerPromotionDataSet.on('load', function(e) {
+            initPromotionId = "";
+            for (var i = 0; i < offerPromotionDataSet.getCount(); i++) {
+                if (offerPromotionDataSet.getNameValue(i, "promotionTagUseFlag") == "Y") {
+                    initPromotionId = offerPromotionDataSet.getNameValue(i, 'promotionId');
+                    offerPromotionDataSet.setMark(i, true, true);
+                }
+            }
+        });
+        offerPromotionDataSet.on('marked', function(e) {
+            markedPromotionId = "";
+            offerPromotionDataSet.setMarkOnly(e.row, e.isSelect);
+            for (var j = 0; j < offerPromotionDataSet.getCount(); j++) {
+                if (offerPromotionDataSet.isMarked(j)) {
+                    markedPromotionId = offerPromotionDataSet.getNameValue(j, 'promotionId');
+                }
+            }
+            if (offerPromotionDataSet.getMarkedCount() == 0) {
+                markedPromotionId = "";
+            }
+        });
+        var params = {
+            "modelId": modelId,
+            "localeCode": localeCode,
+            "shopCode": shopCode
+        };
+        if ("B2C" == shopCode || "B2B" == shopCode) {
+            Rui.util.ruiCommonRetrieve(offerPromotionDataSet, 'Offer.retrieveOfferPromotionList', schema, params, true);
+        } else {
+            Rui.util.ruiCommonRetrieve(offerPromotionDataSet, 'Offer.retrieveMtsOfferPromotionList', schema, params, true);
+        }
+        offerPromotionGrid.render('offerPromotionGrid');
+
+        offerPromotionDataSet.on('canMarkable', function(e) {
+            if (schema == "publ")
+                return false;
+        });
+    }
 
     console.log(tagArray.Delivery, ":: tagArray.Delivery");
-    tagArray.Delivery.forEach((deliveryTag) => {
+    tagArray.Delivery.forEach( (deliveryTag) => {
         const liEl = document.createElement('li');
         liEl.id = 'cb1-' + deliveryTag.value;
         liEl.setAttribute('role', 'option');
         liEl.setAttribute('aria-selected', 'false');
         liEl.textContent = deliveryTag.value;
         $('#deliveryTag').parent().parent().find('[role=listbox]').append(liEl);
-    })
+    }
+    )
     reBindAutocompleteLi($('#deliveryTag').closest('.combobox-list')[0]);
-	
 
-    $('#productTagCategory1').on('change', async ()=>{
+    $('#productTagCategory1').on('change', async () => {
         var category1 = $('#productTagCategory1').val();
         var category2 = $('#productTagCategory2').val();
         $('#productTagGroup1')[0].autocompleteConstruct.allOptions = [];
         $('#productTagGroup1').parent().parent().find('[role=listbox]').html('');
         $('#productTagCategory2').html('')
         $('#productTagCategory2')[0].options.add($(document.createElement('option')).val('').text('Choose 2nd Category')[0]);
-		$('#productTag1').val('');
-		$('#productTag2').val('');
-		$('#productTagGroup2').val('');
-        if(category1 === 'Product'){
+        $('#productTag1').val('');
+        $('#productTag2').val('');
+        $('#productTagGroup2').val('');
+        if (category1 === 'Product') {
             $('#productTagGroup1').val('');
-            Object.keys(tagArray.Product).forEach((groupName)=>{
+            Object.keys(tagArray.Product).forEach( (groupName) => {
                 const liEl = document.createElement('li');
                 liEl.id = 'cb1-' + groupName;
                 liEl.setAttribute('role', 'option');
@@ -229,16 +11629,17 @@ if(modelId != ''){
                 liEl.textContent = groupName;
                 $('#productTagGroup1').parent().parent().find('[role=listbox]').append(liEl);
                 // $('#productTagGroup1')[0].autocompleteConstruct.allOptions.push(liEl)
-            })
+            }
+            )
             $('#productTagCategory2')[0].options.add($(document.createElement('option')).val('Product').text('Product')[0]);
             $('#productTag1Type').html('');
             $('#productTag1Type')[0].options.add($(document.createElement('option')).val('').text('-- Select --')[0]);
             $('#productTag1Type')[0].options.add($(document.createElement('option')).val('line').text('Line')[0]);
             $('#productTag1Type').val('line');
-			$('#productTag1Type').css('pointer-events', 'none');
+            $('#productTag1Type').css('pointer-events', 'none');
         } else if (category1 === 'Promotion') {
             $('#productTagGroup1').val('');
-            Object.keys(tagArray.Promotion).forEach((groupName)=>{
+            Object.keys(tagArray.Promotion).forEach( (groupName) => {
                 const liEl = document.createElement('li');
                 liEl.id = 'cb1-' + groupName;
                 liEl.setAttribute('role', 'option');
@@ -246,36 +11647,38 @@ if(modelId != ''){
                 liEl.textContent = groupName;
                 $('#productTagGroup1').parent().parent().find('[role=listbox]').append(liEl);
                 // $('#productTagGroup1')[0].autocompleteConstruct.allOptions.push(liEl)
-            })
+            }
+            )
             $('#productTagCategory2')[0].options.add($(document.createElement('option')).val('Product').text('Product')[0]);
             $('#productTagCategory2')[0].options.add($(document.createElement('option')).val('Promotion').text('Promotion')[0]);
             $('#productTag1Type').html('');
             $('#productTag1Type')[0].options.add($(document.createElement('option')).val('').text('-- Select --')[0]);
             $('#productTag1Type')[0].options.add($(document.createElement('option')).val('gradient').text('Gradient')[0]);
             $('#productTag1Type')[0].options.add($(document.createElement('option')).val('solid').text('Solid')[0]);
-            if(category2 != ''){
-            	$('#productTag1Type').val('gradient');
-            }else{
-				$('#productTag1Type').val('solid');
-			}
-			$('#productTag1Type').css('pointer-events', 'auto');
-        }else{
-			$('#productTagGroup1').val('');
-			$('#productTag1Type').val('');
-		}
+            if (category2 != '') {
+                $('#productTag1Type').val('gradient');
+            } else {
+                $('#productTag1Type').val('solid');
+            }
+            $('#productTag1Type').css('pointer-events', 'auto');
+        } else {
+            $('#productTagGroup1').val('');
+            $('#productTag1Type').val('');
+        }
         reBindAutocompleteLi($('#productTagGroup1').closest('.combobox-list')[0]);
-    });
+    }
+    );
 
-    $('#productTagCategory2').on('change', async ()=>{
+    $('#productTagCategory2').on('change', async () => {
         var category2 = $('#productTagCategory2').val();
         var category1 = $('#productTagCategory1').val();
         $('#productTagGroup2')[0].autocompleteConstruct.allOptions = [];
         $('#productTagGroup2').parent().parent().find('[role=listbox]').html('');
-		$('#productTag2').val('');
-		$('#productTagGroup2').val('');
-        if(category2 === 'Product'){
+        $('#productTag2').val('');
+        $('#productTagGroup2').val('');
+        if (category2 === 'Product') {
             $('#productTagGroup2').val('');
-            Object.keys(tagArray.Product).forEach((groupName)=>{
+            Object.keys(tagArray.Product).forEach( (groupName) => {
                 const liEl = document.createElement('li');
                 liEl.id = 'cb1-' + groupName;
                 liEl.setAttribute('role', 'option');
@@ -283,17 +11686,18 @@ if(modelId != ''){
                 liEl.textContent = groupName;
                 $('#productTagGroup2').parent().parent().find('[role=listbox]').append(liEl);
                 // $('#productTagGroup2')[0].autocompleteConstruct.allOptions.push(liEl)
-            })
+            }
+            )
             if (category1 === 'Promotion') {
-            	$('#productTag1Type').val('gradient');
-            	$('#productTag2Type').val('line');
-            }else{
-            	$('#productTag2Type').val('line');
+                $('#productTag1Type').val('gradient');
+                $('#productTag2Type').val('line');
+            } else {
+                $('#productTag2Type').val('line');
             }
             // productTagCategory2 select option only solid
         } else if (category2 === 'Promotion') {
             $('#productTagGroup2').val('');
-            Object.keys(tagArray.Promotion).forEach((groupName)=>{
+            Object.keys(tagArray.Promotion).forEach( (groupName) => {
                 const liEl = document.createElement('li');
                 liEl.id = 'cb1-' + groupName;
                 liEl.setAttribute('role', 'option');
@@ -301,24 +11705,26 @@ if(modelId != ''){
                 liEl.textContent = groupName;
                 $('#productTagGroup2').parent().parent().find('[role=listbox]').append(liEl);
                 // $('#productTagGroup2')[0].autocompleteConstruct.allOptions.push(liEl)
-            });
-			if (category1 === 'Promotion') {
-				$('#productTag1Type').val('gradient');
-				$('#productTag2Type').val('solid');
-			}
-        }else{
-        	if (category1 === 'Promotion') {
-				$('#productTag1Type').val('solid');
-				$('#productTag1Type').css('pointer-events', 'auto');
-        	}else{
-				$('#productTag1Type').css('pointer-events', 'none');
-        	}
-			$('#productTagGroup2').val('');
+            }
+            );
+            if (category1 === 'Promotion') {
+                $('#productTag1Type').val('gradient');
+                $('#productTag2Type').val('solid');
+            }
+        } else {
+            if (category1 === 'Promotion') {
+                $('#productTag1Type').val('solid');
+                $('#productTag1Type').css('pointer-events', 'auto');
+            } else {
+                $('#productTag1Type').css('pointer-events', 'none');
+            }
+            $('#productTagGroup2').val('');
         }
         reBindAutocompleteLi($('#productTagGroup2').closest('.combobox-list')[0]);
-    });
+    }
+    );
 
-    $('#productTagGroup1').on('change', async ()=>{
+    $('#productTagGroup1').on('change', async () => {
         $('#productTag1')[0].autocompleteConstruct.allOptions = [];
         $('#productTag1').parent().parent().find('[role=listbox]').html('');
         var group1 = $('#productTagGroup1').val();
@@ -326,7 +11732,7 @@ if(modelId != ''){
         console.log(group1);
         $('#productTag1').val('');
         console.log(tagArray[category1][group1]);
-        tagArray[category1][group1].forEach((tag)=>{
+        tagArray[category1][group1].forEach( (tag) => {
             console.log(tag);
             const liEl = document.createElement('li');
             liEl.id = 'cb1-' + tag.value;
@@ -334,11 +11740,13 @@ if(modelId != ''){
             liEl.setAttribute('aria-selected', 'false');
             liEl.textContent = tag.value;
             $('#productTag1').parent().parent().find('[role=listbox]').append(liEl);
-        })
+        }
+        )
         reBindAutocompleteLi($('#productTag1').closest('.combobox-list')[0]);
-    })
+    }
+    )
 
-    $('#productTagGroup2').on('change', async ()=>{
+    $('#productTagGroup2').on('change', async () => {
         $('#productTag2')[0].autocompleteConstruct.allOptions = [];
         $('#productTag2').parent().parent().find('[role=listbox]').html('');
         var group2 = $('#productTagGroup2').val();
@@ -346,7 +11754,7 @@ if(modelId != ''){
         console.log(group2);
         $('#productTag2').val('');
         console.log(tagArray[category2][group2]);
-        tagArray[category2][group2].forEach((tag)=>{
+        tagArray[category2][group2].forEach( (tag) => {
             console.log(tag);
             const liEl = document.createElement('li');
             liEl.id = 'cb2-' + tag.value;
@@ -354,430 +11762,88 @@ if(modelId != ''){
             liEl.setAttribute('aria-selected', 'false');
             liEl.textContent = tag.value;
             $('#productTag2').parent().parent().find('[role=listbox]').append(liEl);
-        })
+        }
+        )
         reBindAutocompleteLi($('#productTag2').closest('.combobox-list')[0]);
-    })
-	var category1 = $('#productTagCategory1').val();
-	var category2 = $('#productTagCategory2').val();
-	var group1 = $('#productTagGroup1').val();
-	var group2 = $('#productTagGroup2').val();
-	if(category1 === 'Product'){
-		Object.keys(tagArray.Product).forEach((groupName)=>{
-			const liEl = document.createElement('li');
-			liEl.id = 'cb1-' + groupName;
-			liEl.setAttribute('role', 'option');
-			liEl.setAttribute('aria-selected', 'false');
-			liEl.textContent = groupName;
-			$('#productTagGroup1').parent().parent().find('[role=listbox]').append(liEl);
-		})
-		reBindAutocompleteLi($('#productTagGroup1').closest('.combobox-list')[0]);
-		$('#productTag1Type').css('pointer-events', 'none');
-	}else if(category1 === 'Promotion'){
-		Object.keys(tagArray.Promotion).forEach((groupName)=>{
-			const liEl = document.createElement('li');
-			liEl.id = 'cb1-' + groupName;
-			liEl.setAttribute('role', 'option');
-			liEl.setAttribute('aria-selected', 'false');
-			liEl.textContent = groupName;
-			$('#productTagGroup1').parent().parent().find('[role=listbox]').append(liEl);
-		})
-		reBindAutocompleteLi($('#productTagGroup1').closest('.combobox-list')[0]);
-	}else{
-		if(category2 ==''){
-			$('#productTagCategory2').html('')
-			$('#productTagCategory2')[0].options.add($(document.createElement('option')).val('').text('Choose 2nd Category')[0]);
-		}
-	}
-	if(category2 === 'Product'){
-		Object.keys(tagArray.Product).forEach((groupName)=>{
-			const liEl = document.createElement('li');
-			liEl.id = 'cb1-' + groupName;
-			liEl.setAttribute('role', 'option');
-			liEl.setAttribute('aria-selected', 'false');
-			liEl.textContent = groupName;
-			$('#productTagGroup2').parent().parent().find('[role=listbox]').append(liEl);
-		})
-		reBindAutocompleteLi($('#productTagGroup2').closest('.combobox-list')[0]);
-	}else if(category2 === 'Promotion'){
-		Object.keys(tagArray.Promotion).forEach((groupName)=>{
-			const liEl = document.createElement('li');
-			liEl.id = 'cb1-' + groupName;
-			liEl.setAttribute('role', 'option');
-			liEl.setAttribute('aria-selected', 'false');
-			liEl.textContent = groupName;
-			$('#productTagGroup2').parent().parent().find('[role=listbox]').append(liEl);
-		})
-		reBindAutocompleteLi($('#productTagGroup2').closest('.combobox-list')[0]);
-	}
-	tagArray[category1][group1].forEach((tag)=>{
-		console.log(tag);
-		const liEl = document.createElement('li');
-		liEl.id = 'cb1-' + tag.value;
-		liEl.setAttribute('role', 'option');
-		liEl.setAttribute('aria-selected', 'false');
-		liEl.textContent = tag.value;
-		$('#productTag1').parent().parent().find('[role=listbox]').append(liEl);
-	})
-	reBindAutocompleteLi($('#productTag1').closest('.combobox-list')[0]);
+    }
+    )
+    var category1 = $('#productTagCategory1').val();
+    var category2 = $('#productTagCategory2').val();
+    var group1 = $('#productTagGroup1').val();
+    var group2 = $('#productTagGroup2').val();
+    if (category1 === 'Product') {
+        Object.keys(tagArray.Product).forEach( (groupName) => {
+            const liEl = document.createElement('li');
+            liEl.id = 'cb1-' + groupName;
+            liEl.setAttribute('role', 'option');
+            liEl.setAttribute('aria-selected', 'false');
+            liEl.textContent = groupName;
+            $('#productTagGroup1').parent().parent().find('[role=listbox]').append(liEl);
+        }
+        )
+        reBindAutocompleteLi($('#productTagGroup1').closest('.combobox-list')[0]);
+        $('#productTag1Type').css('pointer-events', 'none');
+    } else if (category1 === 'Promotion') {
+        Object.keys(tagArray.Promotion).forEach( (groupName) => {
+            const liEl = document.createElement('li');
+            liEl.id = 'cb1-' + groupName;
+            liEl.setAttribute('role', 'option');
+            liEl.setAttribute('aria-selected', 'false');
+            liEl.textContent = groupName;
+            $('#productTagGroup1').parent().parent().find('[role=listbox]').append(liEl);
+        }
+        )
+        reBindAutocompleteLi($('#productTagGroup1').closest('.combobox-list')[0]);
+    } else {
+        if (category2 == '') {
+            $('#productTagCategory2').html('')
+            $('#productTagCategory2')[0].options.add($(document.createElement('option')).val('').text('Choose 2nd Category')[0]);
+        }
+    }
+    if (category2 === 'Product') {
+        Object.keys(tagArray.Product).forEach( (groupName) => {
+            const liEl = document.createElement('li');
+            liEl.id = 'cb1-' + groupName;
+            liEl.setAttribute('role', 'option');
+            liEl.setAttribute('aria-selected', 'false');
+            liEl.textContent = groupName;
+            $('#productTagGroup2').parent().parent().find('[role=listbox]').append(liEl);
+        }
+        )
+        reBindAutocompleteLi($('#productTagGroup2').closest('.combobox-list')[0]);
+    } else if (category2 === 'Promotion') {
+        Object.keys(tagArray.Promotion).forEach( (groupName) => {
+            const liEl = document.createElement('li');
+            liEl.id = 'cb1-' + groupName;
+            liEl.setAttribute('role', 'option');
+            liEl.setAttribute('aria-selected', 'false');
+            liEl.textContent = groupName;
+            $('#productTagGroup2').parent().parent().find('[role=listbox]').append(liEl);
+        }
+        )
+        reBindAutocompleteLi($('#productTagGroup2').closest('.combobox-list')[0]);
+    }
+    tagArray[category1][group1].forEach( (tag) => {
+        console.log(tag);
+        const liEl = document.createElement('li');
+        liEl.id = 'cb1-' + tag.value;
+        liEl.setAttribute('role', 'option');
+        liEl.setAttribute('aria-selected', 'false');
+        liEl.textContent = tag.value;
+        $('#productTag1').parent().parent().find('[role=listbox]').append(liEl);
+    }
+    )
+    reBindAutocompleteLi($('#productTag1').closest('.combobox-list')[0]);
 
-	tagArray[category2][group2].forEach((tag)=>{
-		console.log(tag);
-		const liEl = document.createElement('li');
-		liEl.id = 'cb2-' + tag.value;
-		liEl.setAttribute('role', 'option');
-		liEl.setAttribute('aria-selected', 'false');
-		liEl.textContent = tag.value;
-		$('#productTag2').parent().parent().find('[role=listbox]').append(liEl);
-	})
-	reBindAutocompleteLi($('#productTag2').closest('.combobox-list')[0]);
-});</script><form action="/admin/offer/saveOfferInfoForm.lgajax"id="L-gen356"method="post"name="frm"><input id="bSchema"name="schema"type="hidden"value="save"> <input id="bDamUrl"name="damUrl"type="hidden"value="https://admin.gp1.aws.lge.com"> <input id="bLocaleCode"name="localeCode"type="hidden"value="CL"> <input id="bModelId"name="modelId"type="hidden"value="MD07551161"> <input id="bBizType"name="bizType"type="hidden"value="B2C"> <input id="bRow"name="row"type="hidden"value="0"> <input id="bMigDataFlag"name="migDataFlag"type="hidden"> <input id="bPdrUseFlag"name="pdrUseFlag"type="hidden"> <input id="useWtbRetailer"name="useWtbRetailer"type="hidden"> <input id="useCountries"name="useCountries"type="hidden"> <input id="bObsMessageFlag"name="obsMessageFlag"type="hidden"> <input id="bObsAdditionalDisclaimerTextUseFlag"name="obsAdditionalDisclaimerTextUseFlag"type="hidden"value="Y"> <input id="bLabelType"name="labelType"type="hidden"> <input id="bMdmsCategory"name="mdmsCategory"type="hidden"> <input id="pimCategoryNull"name="pimCategoryNull"type="hidden"> <input id="isBulkEdit"name="isBulkEdit"type="hidden"> <input id="bShopCode"name="shopCode"type="hidden"value="B2C"> <input id="bTimezone"name="timezone"type="hidden"value="America/Santiago"><div class="pop_model_info"id="L-gen355"><div class="pop_cnt_area"id="L-gen354"style="max-height:660px;padding-top:0"><div class="sub_group"id="L-gen353"style="margin-top:0;border-top:0;padding-top:0"><p class="g_sub_title">Brand Logo to display on PLP<div class="grid_area"><table style="max-width:290px"><caption>detail<col style="width:40px"><col style="width:200px"><col style="width:50px"><thead><tr><th><div><div><span><input id="chk_all1"name="chk_all1"class="type_chk"type="checkbox"onclick='checkBoxAll("chk_all1")'><label class="no_label"for="chk_all1"><span class="blind">all check</span></label></span></div></div><th><div><div><span>Logo</span></div></div><th><div><div><span>Use</span></div></div><tbody><tr><td class="txt_center"><div><div><input id="thinqChk"name="thinqChk"class="type_chk"value="N"type="checkbox"> <label class="no_label"for="thinqChk"><span class="blind">check</span></label></div></div><td class="txt_left"><div><div>ThinQ</div></div><td class="txt_center"><div><div><input id="thinqFlag"name="thinqFlag"class="type_chk"value="N"type="checkbox"> <label class="no_label"for="thinqFlag"><span class="blind">use</span></label></div></div><tr><td class="txt_center"><div><div><input id="signatureChk"name="signatureChk"class="type_chk"value="N"type="checkbox"> <label class="no_label"for="signatureChk"><span class="blind">check</span></label></div></div><td class="txt_left"><div><div>Signature</div></div><td class="txt_center"><div><div><input id="signatureFlag"name="signatureFlag"class="type_chk"value="N"type="checkbox"> <label class="no_label"for="signatureFlag"><span class="blind">use</span></label></div></div></table></div><input id="productTag"type="hidden"><p class="g_sub_title">Product Tag(Categorized into Product, Promotion, Delivery) to display PLP/PDP/PBP <span style="float:right;font-size:10px">* Please check Windows Update is up to date before scheduling.</span><div class="grid_area"><table><caption>detail<col style="width:1rem"><col style="width:32rem"><col style="width:8rem"><col style="width:1rem"><col style="width:9rem"><col><thead><tr><th><div><div><span><input id="chk_all2"name="chk_all2"class="type_chk"type="checkbox"onclick='checkBoxAll("chk_all2","productTag")'><label class="no_label"for="chk_all2"><span class="blind">all check</span></label></span></div></div><th><div><div><span>Tag <span class="tooltip-icon"data-tooltip="About Tag
-									Registered tags are grouped by category.
-									
-									1. Category Structure
-									1st Category (Primary Selection Menu)
-									Options: None, Product, Promotion
-									
-									2nd Category (Secondary Selection Menu)
-									2nd Category options are dynamically displayed based on the 1st Category selection.
-									If 1st Category = Product → 2nd Category Options: None, Product
-									If 1st Category = Promotion → 2nd Category Options: None, Product, Promotion
-									
-									2. Color Option Rules
-									If 1st Category = Promotion 
-									→ Color type can be selected as either Gradient or Solid.
-									
-									If 1st Category = Promotion and 2nd Category = Promotion 
-									→ Solid option is disabled, and only Gradient is available.">i</span></span></div></div><th><div><div><span>Type</span></div></div><th><div><div><span>Use</span></div></div><th><div><div><span>User Type</span></div></div><th><div><div><span style="padding-top:12px">Schedule</span><div style="font-size:10px;text-align:right;padding-right:15px">timezone : America/Santiago</div></div></div><tbody><tr><td class="txt_center"><div><div><input id="productTag1Chk"name="productTag1Chk"class="type_chk"value="N"type="checkbox"onclick='checkBoxUnCheckAll("productTag1Chk","productTag")'> <label class="no_label"for="productTag1Chk"><span class="blind">check</span></label></div></div><td><div><div style="display:flex"><div style="padding:4px;position:relative;width:100%"><select class="type_select"id="productTagCategory1"name="productTagCategory1"><option value="">Choose 1st Category<option value="Product">Product<option value="Promotion">Promotion</select></div><div class="combobox combobox-list"id="comboboxGroup"><div class="group"><input id="productTagGroup1"name="productTagGroup1"class="cb_edit"placeholder="Choose a group"autocomplete="off"aria-activedescendant=""aria-autocomplete="both"aria-controls="cb1-listbox"aria-expanded="false"role="combobox"> <button type="button"aria-controls="cb1-listbox"aria-expanded="false"aria-label="States"id="cb1-button"tabindex="0"></button></div><ul id="cb1-listbox"role="listbox"></ul></div><div class="combobox combobox-list"id="comboboxGroup"><div class="group"><input id="productTag1"name="productTag1"class="cb_edit"placeholder="Choose a tag"autocomplete="off"aria-activedescendant=""aria-autocomplete="both"aria-controls="cb1-listbox"aria-expanded="false"role="combobox"> <button type="button"aria-controls="cb1-listbox"aria-expanded="false"aria-label="States"id="cb1-button"tabindex="0"></button></div><ul id="cb1-listbox"role="listbox"></ul></div></div></div><td class="txt_center"><div><div><select class="type_select"id="productTag1Type"name="productTag1Type"><option value="">-- Select --<option value="gradient">Gradient<option value="solid">Solid<option value="line">Line</select></div></div><td class="txt_center"><div><div><input id="productTag1UseFlag"name="productTag1UseFlag"class="type_chk"type="checkbox"> <label class="no_label"for="productTag1UseFlag"><span class="blind">use</span></label></div></div><td><div><div><input id="productTag1UserType"name="productTag1UserType"type="hidden"> <select class="type_select"id="useType1"name="productTag1UserType"><option value="ALL">All<option value="NON_VIP">Non-VIP only<option value="VIP">VIP</select></div></div><td><div><div><div class="date_input_wrap"style="display:flex"><input id="productTag1BeginDay"name="productTag1BeginDay"class="type_txt date datePick hasDatepicker"placeholder="YYYY-MM-DD"autocomplete="off"><div class="combobox combobox-list"id="comboboxGroup"><div class="group"style="padding:0 4px"><input id="productTag1BeginTime"name="productTag1BeginTime"class="cb_edit time_picker"placeholder="00:00"autocomplete="off"aria-activedescendant=""aria-autocomplete="both"aria-controls="cb-pt1-start-listbox"aria-expanded="false"role="combobox"> <button type="button"aria-controls="cb-pt1-start-listbox"aria-expanded="false"aria-label="States"id="cb1-button"tabindex="0"></button></div><ul id="cb-pt1-start-listbox"role="listbox"><li id="cb1-0000">00:00<li id="cb1-0030">00:30<li id="cb1-0100">01:00<li id="cb1-0130">01:30<li id="cb1-0200">02:00<li id="cb1-0230">02:30<li id="cb1-0300">03:00<li id="cb1-0330">03:30<li id="cb1-0400">04:00<li id="cb1-0430">04:30<li id="cb1-0500">05:00<li id="cb1-0530">05:30<li id="cb1-0600">06:00<li id="cb1-0630">06:30<li id="cb1-0700">07:00<li id="cb1-0730">07:30<li id="cb1-0800">08:00<li id="cb1-0830">08:30<li id="cb1-0900">09:00<li id="cb1-0930">09:30<li id="cb1-1000">10:00<li id="cb1-1030">10:30<li id="cb1-1100">11:00<li id="cb1-1130">11:30<li id="cb1-1200">12:00<li id="cb1-1230">12:30<li id="cb1-1300">13:00<li id="cb1-1330">13:30<li id="cb1-1400">14:00<li id="cb1-1430">14:30<li id="cb1-1500">15:00<li id="cb1-1530">15:30<li id="cb1-1600">16:00<li id="cb1-1630">16:30<li id="cb1-1700">17:00<li id="cb1-1730">17:30<li id="cb1-1800">18:00<li id="cb1-1830">18:30<li id="cb1-1900">19:00<li id="cb1-1930">19:30<li id="cb1-2000">20:00<li id="cb1-2030">20:30<li id="cb1-2100">21:00<li id="cb1-2130">21:30<li id="cb1-2200">22:00<li id="cb1-2230">22:30<li id="cb1-2300">23:00<li id="cb1-2330">23:30</ul></div><span style="padding:0 18px 0 0">~</span> <input id="productTag1EndDay"name="productTag1EndDay"class="type_txt date datePick hasDatepicker"placeholder="YYYY-MM-DD"autocomplete="off"><div class="combobox combobox-list"id="comboboxGroup"><div class="group"style="padding:0 4px"><input id="productTag1EndTime"name="productTag1EndTime"class="cb_edit time_picker"placeholder="00:00"autocomplete="off"aria-activedescendant=""aria-autocomplete="both"aria-controls="cb-pt1-end-listbox"aria-expanded="false"role="combobox"> <button type="button"aria-controls="cb-pt1-end-listbox"aria-expanded="false"aria-label="States"id="cb1-button"tabindex="0"></button></div><ul id="cb-pt1-end-listbox"role="listbox"><li id="cb1-0000">00:00<li id="cb1-0030">00:30<li id="cb1-0100">01:00<li id="cb1-0130">01:30<li id="cb1-0200">02:00<li id="cb1-0230">02:30<li id="cb1-0300">03:00<li id="cb1-0330">03:30<li id="cb1-0400">04:00<li id="cb1-0430">04:30<li id="cb1-0500">05:00<li id="cb1-0530">05:30<li id="cb1-0600">06:00<li id="cb1-0630">06:30<li id="cb1-0700">07:00<li id="cb1-0730">07:30<li id="cb1-0800">08:00<li id="cb1-0830">08:30<li id="cb1-0900">09:00<li id="cb1-0930">09:30<li id="cb1-1000">10:00<li id="cb1-1030">10:30<li id="cb1-1100">11:00<li id="cb1-1130">11:30<li id="cb1-1200">12:00<li id="cb1-1230">12:30<li id="cb1-1300">13:00<li id="cb1-1330">13:30<li id="cb1-1400">14:00<li id="cb1-1430">14:30<li id="cb1-1500">15:00<li id="cb1-1530">15:30<li id="cb1-1600">16:00<li id="cb1-1630">16:30<li id="cb1-1700">17:00<li id="cb1-1730">17:30<li id="cb1-1800">18:00<li id="cb1-1830">18:30<li id="cb1-1900">19:00<li id="cb1-1930">19:30<li id="cb1-2000">20:00<li id="cb1-2030">20:30<li id="cb1-2100">21:00<li id="cb1-2130">21:30<li id="cb1-2200">22:00<li id="cb1-2230">22:30<li id="cb1-2300">23:00<li id="cb1-2330">23:30</ul></div></div></div></div><tr><td class="txt_center"><div><div><input id="productTag2Chk"name="productTag2Chk"class="type_chk"value="N"type="checkbox"onclick='checkBoxUnCheckAll("productTag2Chk","productTag")'> <label class="no_label"for="productTag2Chk"><span class="blind">check</span></label></div></div><td><div><div style="display:flex"><div style="padding:4px;position:relative;width:100%"><select class="type_select"id="productTagCategory2"name="productTagCategory2"><option value="">Choose 2nd Category</select></div><div class="combobox combobox-list"id="comboboxGroup"><div class="group"><input id="productTagGroup2"name="productTagGroup2"class="cb_edit"placeholder="Choose a group"autocomplete="off"aria-activedescendant=""aria-autocomplete="both"aria-controls="cb1-listbox"aria-expanded="false"role="combobox"> <button type="button"aria-controls="cb1-listbox"aria-expanded="false"aria-label="States"id="cb1-button"tabindex="0"></button></div><ul id="cb1-listbox"role="listbox"></ul></div><div class="combobox combobox-list"id="comboboxGroup"><div class="group"><input id="productTag2"name="productTag2"class="cb_edit"placeholder="Choose a tag"autocomplete="off"aria-activedescendant=""aria-autocomplete="both"aria-controls="cb2-listbox"aria-expanded="false"role="combobox"> <button type="button"aria-controls="cb2-listbox"aria-expanded="false"aria-label="States"id="cb2-button"tabindex="0"></button></div><ul id="cb2-listbox"role="listbox"></ul></div></div></div><td class="txt_center"><div><div><select class="type_select"id="productTag2Type"name="productTag2Type"style="display:none"><option value="">-- Select --<option value="solid">Solid<option value="line">Line</select></div></div><td class="txt_center"><div><div><input id="productTag2UseFlag"name="productTag2UseFlag"class="type_chk"type="checkbox"> <label class="no_label"for="productTag2UseFlag"><span class="blind">use</span></label></div></div><td><div><div><input id="productTag2UserType"name="productTag2UserType"type="hidden"> <select class="type_select"id="useType2"name="productTag2UserType"><option value="ALL">All<option value="NON_VIP">Non-VIP only<option value="VIP">VIP</select></div></div><td><div><div><div class="date_input_wrap"style="display:flex"><input id="productTag2BeginDay"name="productTag2BeginDay"class="type_txt date datePick hasDatepicker"placeholder="YYYY-MM-DD"autocomplete="off"><div class="combobox combobox-list"id="comboboxGroup"><div class="group"style="padding:0 4px"><input id="productTag2BeginTime"name="productTag2BeginTime"class="cb_edit time_picker"placeholder="00:00"autocomplete="off"aria-activedescendant=""aria-autocomplete="both"aria-controls="cb-pt2-start-listbox"aria-expanded="false"role="combobox"> <button type="button"aria-controls="cb-pt2-start-listbox"aria-expanded="false"aria-label="States"id="cb1-button"tabindex="0"></button></div><ul id="cb-pt2-start-listbox"role="listbox"><li id="cb1-0000">00:00<li id="cb1-0030">00:30<li id="cb1-0100">01:00<li id="cb1-0130">01:30<li id="cb1-0200">02:00<li id="cb1-0230">02:30<li id="cb1-0300">03:00<li id="cb1-0330">03:30<li id="cb1-0400">04:00<li id="cb1-0430">04:30<li id="cb1-0500">05:00<li id="cb1-0530">05:30<li id="cb1-0600">06:00<li id="cb1-0630">06:30<li id="cb1-0700">07:00<li id="cb1-0730">07:30<li id="cb1-0800">08:00<li id="cb1-0830">08:30<li id="cb1-0900">09:00<li id="cb1-0930">09:30<li id="cb1-1000">10:00<li id="cb1-1030">10:30<li id="cb1-1100">11:00<li id="cb1-1130">11:30<li id="cb1-1200">12:00<li id="cb1-1230">12:30<li id="cb1-1300">13:00<li id="cb1-1330">13:30<li id="cb1-1400">14:00<li id="cb1-1430">14:30<li id="cb1-1500">15:00<li id="cb1-1530">15:30<li id="cb1-1600">16:00<li id="cb1-1630">16:30<li id="cb1-1700">17:00<li id="cb1-1730">17:30<li id="cb1-1800">18:00<li id="cb1-1830">18:30<li id="cb1-1900">19:00<li id="cb1-1930">19:30<li id="cb1-2000">20:00<li id="cb1-2030">20:30<li id="cb1-2100">21:00<li id="cb1-2130">21:30<li id="cb1-2200">22:00<li id="cb1-2230">22:30<li id="cb1-2300">23:00<li id="cb1-2330">23:30</ul></div><span style="padding:0 18px 0 0">~</span> <input id="productTag2EndDay"name="productTag2EndDay"class="type_txt date datePick hasDatepicker"placeholder="YYYY-MM-DD"autocomplete="off"><div class="combobox combobox-list"id="comboboxGroup"><div class="group"style="padding:0 4px"><input id="productTag2EndTime"name="productTag2EndTime"class="cb_edit time_picker"placeholder="00:00"autocomplete="off"aria-activedescendant=""aria-autocomplete="both"aria-controls="cb-pt2-end-listbox"aria-expanded="false"role="combobox"> <button type="button"aria-controls="cb-pt2-end-listbox"aria-expanded="false"aria-label="States"id="cb1-button"tabindex="0"></button></div><ul id="cb-pt2-end-listbox"role="listbox"><li id="cb1-0000">00:00<li id="cb1-0030">00:30<li id="cb1-0100">01:00<li id="cb1-0130">01:30<li id="cb1-0200">02:00<li id="cb1-0230">02:30<li id="cb1-0300">03:00<li id="cb1-0330">03:30<li id="cb1-0400">04:00<li id="cb1-0430">04:30<li id="cb1-0500">05:00<li id="cb1-0530">05:30<li id="cb1-0600">06:00<li id="cb1-0630">06:30<li id="cb1-0700">07:00<li id="cb1-0730">07:30<li id="cb1-0800">08:00<li id="cb1-0830">08:30<li id="cb1-0900">09:00<li id="cb1-0930">09:30<li id="cb1-1000">10:00<li id="cb1-1030">10:30<li id="cb1-1100">11:00<li id="cb1-1130">11:30<li id="cb1-1200">12:00<li id="cb1-1230">12:30<li id="cb1-1300">13:00<li id="cb1-1330">13:30<li id="cb1-1400">14:00<li id="cb1-1430">14:30<li id="cb1-1500">15:00<li id="cb1-1530">15:30<li id="cb1-1600">16:00<li id="cb1-1630">16:30<li id="cb1-1700">17:00<li id="cb1-1730">17:30<li id="cb1-1800">18:00<li id="cb1-1830">18:30<li id="cb1-1900">19:00<li id="cb1-1930">19:30<li id="cb1-2000">20:00<li id="cb1-2030">20:30<li id="cb1-2100">21:00<li id="cb1-2130">21:30<li id="cb1-2200">22:00<li id="cb1-2230">22:30<li id="cb1-2300">23:00<li id="cb1-2330">23:30</ul></div></div></div></div><tr><td class="txt_center"><div><div><input id="deliveryTagChk"name="productTagDeliveryChk"class="type_chk"value="N"type="checkbox"onclick='checkBoxUnCheckAll("deliveryTagChk","productTag")'> <label class="no_label"for="deliveryTagChk"><span class="blind">check</span></label></div></div><td><div><div style="display:flex;align-items:center"><div style="flex:1">Delivery</div><div style="flex:1"></div><div class="combobox combobox-list"id="comboboxGroup"style="flex:1;padding-left:5px"><div class="group"><input id="deliveryTag"name="deliveryTag"class="cb_edit"placeholder="Choose a state"autocomplete="off"aria-activedescendant=""aria-autocomplete="both"aria-controls="cb2-listbox"aria-expanded="false"role="combobox"> <button type="button"aria-controls="cb2-listbox"aria-expanded="false"aria-label="States"id="cb2-button"tabindex="0"></button></div><ul id="cb2-listbox"role="listbox"><li id="cb1-Despacho Gratis RM"aria-selected="false"role="option">Despacho Gratis RM<li id="cb1-ENVÍO 24HRS"aria-selected="false"role="option">ENVÍO 24HRS<li id="cb1-Express Delivery"aria-selected="false"role="option">Express Delivery<li id="cb1-Floor Delivery"aria-selected="false"role="option">Floor Delivery<li id="cb1-FREE 1 YEAR AMC"aria-selected="false"role="option">FREE 1 YEAR AMC<li id="cb1-Free delivery"aria-selected="false"role="option">Free delivery<li id="cb1-Free Delivery"aria-selected="false"role="option">Free Delivery<li id="cb1-Free delivery/installation/disposal"aria-selected="false"role="option">Free delivery/installation/disposal<li id="cb1-Free Express Delivery"aria-selected="false"role="option">Free Express Delivery<li id="cb1-FREE INSTALLATION"aria-selected="false"role="option">FREE INSTALLATION<li id="cb1-Free Installation"aria-selected="false"role="option">Free Installation<li id="cb1-Free Premium Delivery"aria-selected="false"role="option">Free Premium Delivery<li id="cb1-Free Premium Delivery*"aria-selected="false"role="option">Free Premium Delivery*<li id="cb1-FREE SHIPPING"aria-selected="false"role="option">FREE SHIPPING<li id="cb1-Free Shipping"aria-selected="false"role="option">Free Shipping<li id="cb1-FREE SHIPPING INSTALLATION"aria-selected="false"role="option">FREE SHIPPING INSTALLATION<li id="cb1-Gratis transport och installation"aria-selected="false"role="option">Gratis transport och installation<li id="cb1-Incluye instalación VIP"aria-selected="false"role="option">Incluye instalación VIP<li id="cb1-INST.PARED GRATIS"aria-selected="false"role="option">INST.PARED GRATIS<li id="cb1-Instalacion Basica Gratuita"aria-selected="false"role="option">Instalacion Basica Gratuita<li id="cb1-Instalación Básica Gratuita"aria-selected="false"role="option">Instalación Básica Gratuita<li id="cb1-INSTALACJA GRATIS"aria-selected="false"role="option">INSTALACJA GRATIS<li id="cb1-Installation gratuite"aria-selected="false"role="option">Installation gratuite<li id="cb1-Livraison gratuite"aria-selected="false"role="option">Livraison gratuite<li id="cb1-Livraison prioritaire"aria-selected="false"role="option">Livraison prioritaire<li id="cb1-尊榮安裝"aria-selected="false"role="option">尊榮安裝<li id="cb1-REGALO INSTALACIÓN"aria-selected="false"role="option">REGALO INSTALACIÓN<li id="cb1-WNIESIENIE GRATIS"aria-selected="false"role="option">WNIESIENIE GRATIS<li id="cb1-Despacho Gratis RM"aria-selected="false"role="option">Despacho Gratis RM<li id="cb1-FREE 1 YEAR AMC"aria-selected="false"role="option">FREE 1 YEAR AMC<li id="cb1-Despacho Gratis"aria-selected="false"role="option">Despacho Gratis<li id="cb1-Instalación Básica Gratuita"aria-selected="false"role="option">Instalación Básica Gratuita<li id="cb1-test"aria-selected="false"role="option">test<li id="cb1-Livraison gratuite*"aria-selected="false"role="option">Livraison gratuite*<li id="cb1-Free Delivery*"aria-selected="false"role="option">Free Delivery*<li id="cb1-Premium Shipping and Installation"aria-selected="false"role="option">Premium Shipping and Installation<li id="cb1-Free Elite Shipping and Installation"aria-selected="false"role="option">Free Elite Shipping and Installation<li id="cb1-Free Delivery / Installation."aria-selected="false"role="option">Free Delivery / Installation.<li id="cb1-Free Delivery, Wall Mount & Disposal"aria-selected="false"role="option">Free Delivery, Wall Mount & Disposal<li id="cb1-Бесплатная доставка"aria-selected="false"role="option">Бесплатная доставка<li id="cb1-Frete Grátis Para Capitais"aria-selected="false"role="option">Frete Grátis Para Capitais<li id="cb1-Últimas unidades"aria-selected="false"role="option">Últimas unidades<li id="cb1-Adicione LG Instala Plus"aria-selected="false"role="option">Adicione LG Instala Plus<li id="cb1-Mês do Consumidor"aria-selected="false"role="option">Mês do Consumidor<li id="cb1-Porta Reversível"aria-selected="false"role="option">Porta Reversível<li id="cb1-Instalación Gratis"aria-selected="false"role="option">Instalación Gratis<li id="cb1-Envió Gratis"aria-selected="false"role="option">Envió Gratis</ul></div></div></div><td><td class="txt_center"><div><div><input id="deliveryTagUseFlag"name="deliveryTagUseFlag"class="type_chk"type="checkbox"> <label class="no_label"for="deliveryTagUseFlag"><span class="blind">use</span></label></div></div><td><div><div><input id="deliveryTagUserType"name="deliveryTagUserType"type="hidden"> <select class="type_select"id="deliveryTagUserType"name="deliveryTagUserType"><option value="ALL">All<option value="NON_VIP">Non-VIP only<option value="VIP">VIP</select></div></div><td><div><div><div class="date_input_wrap"style="display:flex"><input id="deliveryTagBeginDay"name="deliveryTagBeginDay"class="type_txt date datePick hasDatepicker"placeholder="YYYY-MM-DD"autocomplete="off"><div class="combobox combobox-list"id="comboboxGroup"><div class="group"style="padding:0 4px"><input id="deliveryTagBeginTime"name="deliveryTagBeginTime"class="cb_edit time_picker"placeholder="00:00"autocomplete="off"aria-activedescendant=""aria-autocomplete="both"aria-controls="cb-dt-start-listbox"aria-expanded="false"role="combobox"> <button type="button"aria-controls="cb-dt-start-listbox"aria-expanded="false"aria-label="States"id="cb1-button"tabindex="0"></button></div><ul id="cb-dt-start-listbox"role="listbox"><li id="cb1-0000">00:00<li id="cb1-0030">00:30<li id="cb1-0100">01:00<li id="cb1-0130">01:30<li id="cb1-0200">02:00<li id="cb1-0230">02:30<li id="cb1-0300">03:00<li id="cb1-0330">03:30<li id="cb1-0400">04:00<li id="cb1-0430">04:30<li id="cb1-0500">05:00<li id="cb1-0530">05:30<li id="cb1-0600">06:00<li id="cb1-0630">06:30<li id="cb1-0700">07:00<li id="cb1-0730">07:30<li id="cb1-0800">08:00<li id="cb1-0830">08:30<li id="cb1-0900">09:00<li id="cb1-0930">09:30<li id="cb1-1000">10:00<li id="cb1-1030">10:30<li id="cb1-1100">11:00<li id="cb1-1130">11:30<li id="cb1-1200">12:00<li id="cb1-1230">12:30<li id="cb1-1300">13:00<li id="cb1-1330">13:30<li id="cb1-1400">14:00<li id="cb1-1430">14:30<li id="cb1-1500">15:00<li id="cb1-1530">15:30<li id="cb1-1600">16:00<li id="cb1-1630">16:30<li id="cb1-1700">17:00<li id="cb1-1730">17:30<li id="cb1-1800">18:00<li id="cb1-1830">18:30<li id="cb1-1900">19:00<li id="cb1-1930">19:30<li id="cb1-2000">20:00<li id="cb1-2030">20:30<li id="cb1-2100">21:00<li id="cb1-2130">21:30<li id="cb1-2200">22:00<li id="cb1-2230">22:30<li id="cb1-2300">23:00<li id="cb1-2330">23:30</ul></div><span style="padding:0 18px 0 0">~</span> <input id="deliveryTagEndDay"name="deliveryTagEndDay"class="type_txt date datePick hasDatepicker"placeholder="YYYY-MM-DD"autocomplete="off"><div class="combobox combobox-list"id="comboboxGroup"><div class="group"style="padding:0 4px"><input id="deliveryTagEndTime"name="deliveryTagEndTime"class="cb_edit time_picker"placeholder="00:00"autocomplete="off"aria-activedescendant=""aria-autocomplete="both"aria-controls="cb-dt-end-listbox"aria-expanded="false"role="combobox"> <button type="button"aria-controls="cb-dt-end-listbox"aria-expanded="false"aria-label="States"id="cb1-button"tabindex="0"></button></div><ul id="cb-dt-end-listbox"role="listbox"><li id="cb1-0000">00:00<li id="cb1-0030">00:30<li id="cb1-0100">01:00<li id="cb1-0130">01:30<li id="cb1-0200">02:00<li id="cb1-0230">02:30<li id="cb1-0300">03:00<li id="cb1-0330">03:30<li id="cb1-0400">04:00<li id="cb1-0430">04:30<li id="cb1-0500">05:00<li id="cb1-0530">05:30<li id="cb1-0600">06:00<li id="cb1-0630">06:30<li id="cb1-0700">07:00<li id="cb1-0730">07:30<li id="cb1-0800">08:00<li id="cb1-0830">08:30<li id="cb1-0900">09:00<li id="cb1-0930">09:30<li id="cb1-1000">10:00<li id="cb1-1030">10:30<li id="cb1-1100">11:00<li id="cb1-1130">11:30<li id="cb1-1200">12:00<li id="cb1-1230">12:30<li id="cb1-1300">13:00<li id="cb1-1330">13:30<li id="cb1-1400">14:00<li id="cb1-1430">14:30<li id="cb1-1500">15:00<li id="cb1-1530">15:30<li id="cb1-1600">16:00<li id="cb1-1630">16:30<li id="cb1-1700">17:00<li id="cb1-1730">17:30<li id="cb1-1800">18:00<li id="cb1-1830">18:30<li id="cb1-1900">19:00<li id="cb1-1930">19:30<li id="cb1-2000">20:00<li id="cb1-2030">20:30<li id="cb1-2100">21:00<li id="cb1-2130">21:30<li id="cb1-2200">22:00<li id="cb1-2230">22:30<li id="cb1-2300">23:00<li id="cb1-2330">23:30</ul></div></div></div></div></table></div><p class="g_sub_title">LG Offer to display on PDP/PBP<div class="grid_area"><table><caption>detail<col style="width:40px"><col style="width:110px"><col style="width:50px"><col><col style="width:140px"><col style="width:140px"><thead><tr><th><div><div><span><input id="chk_all3"name="chk_all3"class="type_chk"type="checkbox"onclick='checkBoxAll("chk_all3","obsAdditionalDisclaimerText")'><label class="no_label"for="chk_all3"><span class="blind">all check</span></label></span></div></div><th><div><div><span>Icon</span></div></div><th><div><div><span>Use</span></div></div><th><div><div><span>Description</span></div></div><th><div><div><span>Start Date</span></div></div><th><div><div><span>End Date</span></div></div><tbody id="labelTbody"><tr><td class="txt_center"><div><div><input id="obsAdditionalDisclaimerText1Chk"name="obsAdditionalDisclaimerText1Chk"class="type_chk"value="N"type="checkbox"> <label class="no_label"for="obsAdditionalDisclaimerText1Chk"><span class="blind">check</span></label></div></div><td class="txt_left"><div><div><div class="icon_img"><img src="/admin/images/offer/icon-gift-card-32-32.svg"alt="Gift Card Icon">Gift</div></div></div><td class="txt_center"><div><div><input id="obsAdditionalDisclaimerText1Flag"name="obsAdditionalDisclaimerText1Flag"class="type_chk"value="Y"type="checkbox"checked> <label class="no_label"for="obsAdditionalDisclaimerText1Flag"><span class="blind">use</span></label></div></div><td class="txt_center"><div><div><input id="obsAdditionalDisclaimerText1Msg"name="obsAdditionalDisclaimerText1Msg"class="type_txt"value="Producto con servicio de instalación. Para validar si el servicio está disponible en su ciudad o comuna, por favor contacte a nuestro Call Center 📞 800 542000 o al WhatsApp 💬 + 56 2 22995450"></div></div><td><div><div><input id="obsAdditionalDisclaimerText1StartDate"name="obsAdditionalDisclaimerText1StartDate"class="type_txt date datePick hasDatepicker"placeholder="YYYY-MM-DD"value="2025-06-01"></div></div><td><div><div><input id="obsAdditionalDisclaimerText1EndDate"name="obsAdditionalDisclaimerText1EndDate"class="type_txt date datePick hasDatepicker"placeholder="YYYY-MM-DD"value="2027-02-08"></div></div><tr><td class="txt_center"><div><div><input id="obsAdditionalDisclaimerText2Chk"name="obsAdditionalDisclaimerText2Chk"class="type_chk"value="N"type="checkbox"> <label class="no_label"for="obsAdditionalDisclaimerText2Chk"><span class="blind">check</span></label></div></div><td class="txt_left"><div><div><div class="icon_img"><img src="/admin/images/offer/icon-discount-32-32.svg"alt="Discount Icon">Discount</div></div></div><td class="txt_center"><div><div><input id="obsAdditionalDisclaimerText2Flag"name="obsAdditionalDisclaimerText2Flag"class="type_chk"value="N"type="checkbox"> <label class="no_label"for="obsAdditionalDisclaimerText2Flag"><span class="blind">use</span></label></div></div><td class="txt_center"><div><div><input id="obsAdditionalDisclaimerText2Msg"name="obsAdditionalDisclaimerText2Msg"class="type_txt"></div></div><td><div><div><input id="obsAdditionalDisclaimerText2StartDate"name="obsAdditionalDisclaimerText2StartDate"class="type_txt date datePick hasDatepicker"placeholder="YYYY-MM-DD"></div></div><td><div><div><input id="obsAdditionalDisclaimerText2EndDate"name="obsAdditionalDisclaimerText2EndDate"class="type_txt date datePick hasDatepicker"placeholder="YYYY-MM-DD"></div></div><tr><td class="txt_center"><div><div><input id="obsAdditionalDisclaimerText3Chk"name="obsAdditionalDisclaimerText3Chk"class="type_chk"value="N"type="checkbox"> <label class="no_label"for="obsAdditionalDisclaimerText3Chk"><span class="blind">check</span></label></div></div><td class="txt_left"><div><div><div class="icon_img"><img src="/admin/images/offer/icon-coupon-32-32.svg"alt="Coupon Icon">Coupon</div></div></div><td class="txt_center"><div><div><input id="obsAdditionalDisclaimerText3Flag"name="obsAdditionalDisclaimerText3Flag"class="type_chk"value="Y"type="checkbox"checked> <label class="no_label"for="obsAdditionalDisclaimerText3Flag"><span class="blind">use</span></label></div></div><td class="txt_center"><div><div><input id="obsAdditionalDisclaimerText3Msg"name="obsAdditionalDisclaimerText3Msg"class="type_txt"value=" 10% de descuento extra utilizando los primeros 6 dígitos de tu tarjeta del Banco Santander como cupón al momento del checkout"></div></div><td><div><div><input id="obsAdditionalDisclaimerText3StartDate"name="obsAdditionalDisclaimerText3StartDate"class="type_txt date datePick hasDatepicker"placeholder="YYYY-MM-DD"value="2025-01-01"></div></div><td><div><div><input id="obsAdditionalDisclaimerText3EndDate"name="obsAdditionalDisclaimerText3EndDate"class="type_txt date datePick hasDatepicker"placeholder="YYYY-MM-DD"value="2026-01-31"></div></div><tr><td class="txt_center"><div><div><input id="obsAdditionalDisclaimerText4Chk"name="obsAdditionalDisclaimerText4Chk"class="type_chk"value="N"type="checkbox"> <label class="no_label"for="obsAdditionalDisclaimerText4Chk"><span class="blind">check</span></label></div></div><td class="txt_left"><div><div><div class="icon_img"><img src="/admin/images/offer/icon-truck-32-32.svg"alt="Truck Icon">Truck</div></div></div><td class="txt_center"><div><div><input id="obsAdditionalDisclaimerText4Flag"name="obsAdditionalDisclaimerText4Flag"class="type_chk"value="Y"type="checkbox"checked> <label class="no_label"for="obsAdditionalDisclaimerText4Flag"><span class="blind">use</span></label></div></div><td class="txt_center"><div><div><input id="obsAdditionalDisclaimerText4Msg"name="obsAdditionalDisclaimerText4Msg"class="type_txt"value="La Entrega Agendada corresponde únicamente al despacho del producto. Este servicio no incluye la instalación en la misma fecha de entrega. Para coordinar instalación, comunicarse al 📞 Call Center: 800 542 000 o al 💬 WhatsApp: (+56) 2 2299 5450."></div></div><td><div><div><input id="obsAdditionalDisclaimerText4StartDate"name="obsAdditionalDisclaimerText4StartDate"class="type_txt date datePick hasDatepicker"placeholder="YYYY-MM-DD"value="2025-09-10"></div></div><td><div><div><input id="obsAdditionalDisclaimerText4EndDate"name="obsAdditionalDisclaimerText4EndDate"class="type_txt date datePick hasDatepicker"placeholder="YYYY-MM-DD"value="2026-12-31"></div></div></table></div><p>Please select the default promotion tag to be used in category and promotion PLP for this model<div id="offerPromotionGrid"><div class="L-overlay L-panel L-panel-container L-gen350 L-grid-panel"id="L-gen351"style="height:184.2px;overflow:hidden;z-index:2"><div class="bd"id="L-gen352"style="width:100%;height:184px"><div class="L-editable L-fixed L-grid"id="L-gen359"><div class="L-grid-header"id="L-gen360"><div class="L-grid-header-offset"id="L-gen361"style="width:1335px"><ul class="L-grid-ul"><li class="L-grid-li-first"><table cellpadding="0"cellspacing="0"border="0"class="L-grid-header-table"id="L-gen368"><thead><tr class="L-grid-header-row L-grid-header-row-first L-grid-header-row-last"></thead></table><li class="L-grid-li-last"><table cellpadding="0"cellspacing="0"style="width:1330px"border="0"class="L-grid-header-table"id="L-gen369"><thead><tr class="L-grid-header-row L-grid-header-row-first L-grid-header-row-last"><td class="L-grid-cell L-grid-header-cell L-grid-cell-first L-grid-cell-selection"colspan="1"rowspan="1"style="width:27px"><div class="L-grid-header-inner L-grid-header-selection"><a class="L-grid-header-btn"></a><img src="/rui/resources/images/default/s.gif"class="L-grid-sort-icon"></div><td class="L-grid-cell L-grid-header-cell L-grid-cell-num"colspan="1"rowspan="1"style="width:34px"><div class="L-grid-header-inner L-grid-header-num"><a class="L-grid-header-btn">No.</a><img src="/rui/resources/images/default/s.gif"class="L-grid-sort-icon"></div><td class="L-grid-cell L-grid-header-cell L-grid-cell-promotionId"colspan="1"rowspan="1"style="width:245px"><div class="L-grid-header-inner L-grid-header-promotionId"><a class="L-grid-header-btn">Promotion ID</a><img src="/rui/resources/images/default/s.gif"class="L-grid-sort-icon"></div><td class="L-grid-cell L-grid-header-cell L-grid-cell-promotionTag"colspan="1"rowspan="1"style="width:327px"><div class="L-grid-header-inner L-grid-header-promotionTag"><a class="L-grid-header-btn">Promotion Tag</a><img src="/rui/resources/images/default/s.gif"class="L-grid-sort-icon"></div><td class="L-grid-cell L-grid-header-cell L-grid-cell-title"colspan="1"rowspan="1"style="width:327px"><div class="L-grid-header-inner L-grid-header-title"><a class="L-grid-header-btn">Title</a><img src="/rui/resources/images/default/s.gif"class="L-grid-sort-icon"></div><td class="L-grid-cell L-grid-header-cell L-grid-cell-date"colspan="1"rowspan="1"style="width:245px"><div class="L-grid-header-inner L-grid-header-date"><a class="L-grid-header-btn">Date</a><img src="/rui/resources/images/default/s.gif"class="L-grid-sort-icon"></div><td class="L-grid-cell L-grid-header-cell L-grid-cell-last L-grid-cell-useFlag"colspan="1"rowspan="1"style="width:123px"><div class="L-grid-header-inner L-grid-header-useFlag"><a class="L-grid-header-btn">Use</a><img src="/rui/resources/images/default/s.gif"class="L-grid-sort-icon"></div></thead></table></ul></div><div class="L-grid-header-tool L-hide-display"><span class="L-grid-header-tool-icon"></span></div></div><div class="L-ignore-event L-grid-scroller L-scroller"id="L-gen362"style="height:153px"><div class="L-scroll"id="L-gen375"style="width:1338px;height:153px"><div class="L-grid-body L-grid-col-line L-scroll-content"id="L-gen363"style="width:1335px"><ul class="L-grid-ul"><li class="L-grid-li-first"><table cellpadding="0"cellspacing="0"style="width:100px"></table><li id="L-gen378"class="L-grid-li-last"><table cellpadding="0"cellspacing="0"style="width:1330px"><tr class="L-grid-row L-grid-row-editable L-grid-row-odd L-grid-row-first L-grid-row-r2815"style="width:1330px"><td class="L-grid-cell L-grid-col L-grid-cell-selection"colspan=""rowspan=""style="width:27px;text-align:center"><div class="L-grid-cell-inner L-grid-col-selection"><div class="L-grid-row-checkBox L-grid-row-checkBox"style="width:16px"></div></div><td class="L-grid-cell L-grid-col L-grid-cell-num"colspan=""rowspan=""style="width:34px;text-align:right"><div class="L-grid-cell-inner L-grid-col-num">1</div><td class="L-grid-cell L-grid-col L-grid-cell-promotionId"colspan=""rowspan=""style="width:245px;text-align:center"><div class="L-grid-cell-inner L-grid-col-promotionId">PM00035791</div><td class="L-grid-cell L-grid-col L-grid-cell-promotionTag"colspan=""rowspan=""style="width:327px;text-align:center"><div class="L-grid-cell-inner L-grid-col-promotionTag"></div><td class="L-grid-cell L-grid-col L-grid-cell-title"colspan=""rowspan=""style="width:327px;text-align:center"><div class="L-grid-cell-inner L-grid-col-title">Elige LG, vive mejor</div><td class="L-grid-cell L-grid-col L-grid-cell-date"colspan=""rowspan=""style="width:245px;text-align:center"><div class="L-grid-cell-inner L-grid-col-date">2025-12-25 ~ 2027-01-30</div><td class="L-grid-cell L-grid-col L-grid-cell-useFlag"colspan=""rowspan=""style="width:123px;text-align:center"><div class="L-grid-cell-inner L-grid-col-useFlag">Y</div><tr class="L-grid-row L-grid-row-editable L-grid-row-even L-grid-row-r2816"style="width:1330px"><td class="L-grid-cell L-grid-col L-grid-cell-selection"colspan=""rowspan=""style="width:27px;text-align:center"><div class="L-grid-cell-inner L-grid-col-selection"><div class="L-grid-row-checkBox L-grid-row-checkBox"style="width:16px"></div></div><td class="L-grid-cell L-grid-col L-grid-cell-num"colspan=""rowspan=""style="width:34px;text-align:right"><div class="L-grid-cell-inner L-grid-col-num">2</div><td class="L-grid-cell L-grid-col L-grid-cell-promotionId"colspan=""rowspan=""style="width:245px;text-align:center"><div class="L-grid-cell-inner L-grid-col-promotionId">PM00036674</div><td class="L-grid-cell L-grid-col L-grid-cell-promotionTag"colspan=""rowspan=""style="width:327px;text-align:center"><div class="L-grid-cell-inner L-grid-col-promotionTag"></div><td class="L-grid-cell L-grid-col L-grid-cell-title"colspan=""rowspan=""style="width:327px;text-align:center"><div class="L-grid-cell-inner L-grid-col-title">Back to Home V20260303</div><td class="L-grid-cell L-grid-col L-grid-cell-date"colspan=""rowspan=""style="width:245px;text-align:center"><div class="L-grid-cell-inner L-grid-col-date">2026-03-03 ~ 2026-09-03</div><td class="L-grid-cell L-grid-col L-grid-cell-useFlag"colspan=""rowspan=""style="width:123px;text-align:center"><div class="L-grid-cell-inner L-grid-col-useFlag">Y</div><tr class="L-grid-row L-grid-row-editable L-grid-row-odd L-grid-row-r2817"style="width:1330px"><td class="L-grid-cell L-grid-col L-grid-cell-selection"colspan=""rowspan=""style="width:27px;text-align:center"><div class="L-grid-cell-inner L-grid-col-selection"><div class="L-grid-row-checkBox L-grid-row-checkBox"style="width:16px"></div></div><td class="L-grid-cell L-grid-col L-grid-cell-num"colspan=""rowspan=""style="width:34px;text-align:right"><div class="L-grid-cell-inner L-grid-col-num">3</div><td class="L-grid-cell L-grid-col L-grid-cell-promotionId"colspan=""rowspan=""style="width:245px;text-align:center"><div class="L-grid-cell-inner L-grid-col-promotionId">PM00025899</div><td class="L-grid-cell L-grid-col L-grid-cell-promotionTag"colspan=""rowspan=""style="width:327px;text-align:center"><div class="L-grid-cell-inner L-grid-col-promotionTag"></div><td class="L-grid-cell L-grid-col L-grid-cell-title"colspan=""rowspan=""style="width:327px;text-align:center"><div class="L-grid-cell-inner L-grid-col-title">Convenios</div><td class="L-grid-cell L-grid-col L-grid-cell-date"colspan=""rowspan=""style="width:245px;text-align:center"><div class="L-grid-cell-inner L-grid-col-date">2025-02-14 ~ 2026-08-14</div><td class="L-grid-cell L-grid-col L-grid-cell-useFlag"colspan=""rowspan=""style="width:123px;text-align:center"><div class="L-grid-cell-inner L-grid-col-useFlag">Y</div><tr class="L-grid-row L-grid-row-editable L-grid-row-even L-grid-row-last L-grid-row-r2818"style="width:1330px"><td class="L-grid-cell L-grid-col L-grid-cell-selection"colspan=""rowspan=""style="width:27px;text-align:center"><div class="L-grid-cell-inner L-grid-col-selection"><div class="L-grid-row-checkBox L-grid-row-checkBox"style="width:16px"></div></div><td class="L-grid-cell L-grid-col L-grid-cell-num"colspan=""rowspan=""style="width:34px;text-align:right"><div class="L-grid-cell-inner L-grid-col-num">4</div><td class="L-grid-cell L-grid-col L-grid-cell-promotionId"colspan=""rowspan=""style="width:245px;text-align:center"><div class="L-grid-cell-inner L-grid-col-promotionId">PM00027931</div><td class="L-grid-cell L-grid-col L-grid-cell-promotionTag"colspan=""rowspan=""style="width:327px;text-align:center"><div class="L-grid-cell-inner L-grid-col-promotionTag"></div><td class="L-grid-cell L-grid-col L-grid-cell-title"colspan=""rowspan=""style="width:327px;text-align:center"><div class="L-grid-cell-inner L-grid-col-title">Instalación Gratis OBS</div><td class="L-grid-cell L-grid-col L-grid-cell-date"colspan=""rowspan=""style="width:245px;text-align:center"><div class="L-grid-cell-inner L-grid-col-date">2025-05-28 ~ 2027-11-19</div><td class="L-grid-cell L-grid-col L-grid-cell-useFlag"colspan=""rowspan=""style="width:123px;text-align:center"><div class="L-grid-cell-inner L-grid-col-useFlag">Y</div></table></ul></div></div><div class="L-ignore-event L-scrollbar-y"id="L-gen376"style="height:153px"><div class="L-scrollbar-y-content"id="L-gen377"style="height:113px"> </div></div><a class="L-grid-focus"id="L-gen364"style="position:absolute"tabindex="-1"></a></div><div class="L-grid-resize-proxy"id="L-gen365"> </div><div class="L-grid-dd-proxy"id="L-gen366"><div> </div></div><div class="L-grid-dd-target"id="L-gen367"> </div></div></div><div class="L-grid-resize-monitor"style="height:0;overflow:hidden"><iframe frameborder="0"scrolling="no"style="width:90%;height:0"></iframe></div></div></div></div><p class="desc"id="prodMessage"><br>※ When you save, <span style="color:red">all selected rows of information registered on the selected model will be reset and updated</span> with the newly entered information.<br>※ If the End Date you entered has passed, the corresponding item will not be displayed in the Frontend.</div></div><div class="pop_page_btns"><div class="right_side"><button type="button"class="final type_btn stg"onclick="formSubmit()"><span>SAVE TO STG</span></button> <button type="button"class="final type_btn"onclick="formSubmitProd()"><span>SAVE TO PROD</span></button></div></div></form></div><a class="container-close"id="Ruievtautoid-2"href="#">Close</a></div>
-
-4- En este caso lo importante es este apartado, donde se colocan los tags, aquí Podemos ver que los productos pueden tener como máximo 2 tags de productos y un tag de delivery:
-
-<div class="grid_area">
-					<table>
-					<caption>detail</caption>
-					<!-- Multishop RO Phase1 Start -->
-					
-					 <!-- LGCOMRB-4374 -->
-						<colgroup>
-							<col style="width: 1rem">
-							<col style="width: 32rem">
-							<col style="width: 8rem">
-							<col style="width: 1rem">
-                            <col style="width: 9rem">
-							<col>
-						</colgroup>	
-					
-					
-					
-					<!-- Multishop RO Phase1 End -->
-						<thead>
-							<tr>
-								<th><div><div><span><input type="checkbox" name="chk_all2" id="chk_all2" class="type_chk" onclick="checkBoxAll('chk_all2', 'productTag')"><label for="chk_all2" class="no_label"><span class="blind">all check</span></label></span></div></div></th>
-								<th><div><div><span>Tag <span class="tooltip-icon" data-tooltip="About Tag
-									Registered tags are grouped by category.
-									
-									1. Category Structure
-									1st Category (Primary Selection Menu)
-									Options: None, Product, Promotion
-									
-									2nd Category (Secondary Selection Menu)
-									2nd Category options are dynamically displayed based on the 1st Category selection.
-									If 1st Category = Product → 2nd Category Options: None, Product
-									If 1st Category = Promotion → 2nd Category Options: None, Product, Promotion
-									
-									2. Color Option Rules
-									If 1st Category = Promotion 
-									→ Color type can be selected as either Gradient or Solid.
-									
-									If 1st Category = Promotion and 2nd Category = Promotion 
-									→ Solid option is disabled, and only Gradient is available.">i</span></span></div></div></th>
-                                <th><div><div><span>Type</span></div></div></th>
-								<th><div><div><span>Use</span></div></div></th>
-							<!-- Multishop RO Phase1 Start -->
-							 <!-- LGCOMRB-4374 -->
-								<th><div><div><span>User Type</span></div></div></th>
-							
-							<th><div><div><span style="
-								padding-top: 12px;
-							">Schedule</span><div style="font-size:10px;text-align: right;padding-right: 15px;">timezone : America/Santiago</div></div>
-							</div></th>
-							<!-- Multishop RO Phase1 End -->	
-							</tr>
-						</thead>
-						<tbody>
-							<tr>
-								<td class="txt_center"><div><div>
-									<input type="checkbox" name="productTag1Chk" id="productTag1Chk" class="type_chk" value="N" onclick="checkBoxUnCheckAll('productTag1Chk','productTag')">
-									<label for="productTag1Chk" class="no_label"><span class="blind">check</span></label>
-								</div></div></td>
-								<td><div><div style="display: flex;">
-                                    
-									<div style="padding: 4px;position: relative;width: 100%;">
-                                        <select name="productTagCategory1" id="productTagCategory1" class="type_select">
-                                            <option value="">Choose 1st Category</option>
-                                            <option value="Product">Product</option>
-                                            <option value="Promotion">Promotion</option>
-                                        </select>
-									</div>
-                                    
-                                        <div id="comboboxGroup" class="combobox combobox-list">
-                                            <div class="group">
-                                                <input id="productTagGroup1" name="productTagGroup1" class="cb_edit" type="text" role="combobox" aria-autocomplete="both" aria-expanded="false" aria-controls="cb1-listbox" aria-activedescendant="" placeholder="Choose a group" autocomplete="off" value="">
-                                                <button type="button" id="cb1-button" aria-label="States" aria-expanded="false" aria-controls="cb1-listbox" tabindex="0"></button>
-                                            </div>
-                                            <ul id="cb1-listbox" role="listbox"></ul>
-                                        </div>
-                                    
-									<div id="comboboxGroup" class="combobox combobox-list">
-										<div class="group">
-											<input id="productTag1" name="productTag1" class="cb_edit" type="text" role="combobox" aria-autocomplete="both" aria-expanded="false" aria-controls="cb1-listbox" aria-activedescendant="" placeholder="Choose a tag" autocomplete="off" value="">
-											<button type="button" id="cb1-button" aria-label="States" aria-expanded="false" aria-controls="cb1-listbox" tabindex="0"></button>
-										</div>
-										<ul id="cb1-listbox" role="listbox"></ul>
-									</div>
-								</div></div></td>
-                                <td class="txt_center ">
-                                    <div>
-                                        <div>
-                                            <select name="productTag1Type" id="productTag1Type" class="type_select ">
-                                                <option value="">-- Select --</option>
-                                                <option value="gradient">Gradient</option>
-                                                <option value="solid">Solid</option>
-												<option value="line">Line</option>
-                                            </select>
-                                        </div>
-                                    </div>
-                                </td>
-								<td class="txt_center"><div><div>
-									<input type="checkbox" name="productTag1UseFlag" id="productTag1UseFlag" class="type_chk" value="">
-									<label for="productTag1UseFlag" class="no_label"><span class="blind">use</span></label>
-								</div></div></td>
-							<!-- Multishop RO Phase1 Start -->
-								<!-- LGCOMRB-4374 -->
-								<td><div><div>
-									<input type="hidden" name="productTag1UserType" id="productTag1UserType" value="">
-									<select name="productTag1UserType" id="useType1" class="type_select">
-										
-											
-											<option value="ALL">All</option>
-										
-											
-											<option value="NON_VIP">Non-VIP only</option>
-										
-											
-											<option value="VIP">VIP</option>
-										
-									</select>
-								</div></div></td>
-								
-							<!-- Multishop RO Phase1 End -->
-								<td><div><div>
-									<div class="date_input_wrap" style="display: flex;">
-										<input type="text" name="productTag1BeginDay" id="productTag1BeginDay" class="type_txt date datePick hasDatepicker" placeholder="YYYY-MM-DD" autocomplete="off">
-
-                                        <div id="comboboxGroup" class="combobox combobox-list">
-                                            <div class="group" style="padding: 0 4px;">
-                                                <input id="productTag1BeginTime" name="productTag1BeginTime" class="cb_edit time_picker" type="text" role="combobox" aria-autocomplete="both" aria-expanded="false" aria-controls="cb-pt1-start-listbox" aria-activedescendant="" placeholder="00:00" autocomplete="off" value="">
-                                                <button type="button" id="cb1-button" aria-label="States" aria-expanded="false" aria-controls="cb-pt1-start-listbox" tabindex="0"></button>
-                                            </div>
-                                            <ul id="cb-pt1-start-listbox" role="listbox"><li id="cb1-0000">00:00</li><li id="cb1-0030">00:30</li><li id="cb1-0100">01:00</li><li id="cb1-0130">01:30</li><li id="cb1-0200">02:00</li><li id="cb1-0230">02:30</li><li id="cb1-0300">03:00</li><li id="cb1-0330">03:30</li><li id="cb1-0400">04:00</li><li id="cb1-0430">04:30</li><li id="cb1-0500">05:00</li><li id="cb1-0530">05:30</li><li id="cb1-0600">06:00</li><li id="cb1-0630">06:30</li><li id="cb1-0700">07:00</li><li id="cb1-0730">07:30</li><li id="cb1-0800">08:00</li><li id="cb1-0830">08:30</li><li id="cb1-0900">09:00</li><li id="cb1-0930">09:30</li><li id="cb1-1000">10:00</li><li id="cb1-1030">10:30</li><li id="cb1-1100">11:00</li><li id="cb1-1130">11:30</li><li id="cb1-1200">12:00</li><li id="cb1-1230">12:30</li><li id="cb1-1300">13:00</li><li id="cb1-1330">13:30</li><li id="cb1-1400">14:00</li><li id="cb1-1430">14:30</li><li id="cb1-1500">15:00</li><li id="cb1-1530">15:30</li><li id="cb1-1600">16:00</li><li id="cb1-1630">16:30</li><li id="cb1-1700">17:00</li><li id="cb1-1730">17:30</li><li id="cb1-1800">18:00</li><li id="cb1-1830">18:30</li><li id="cb1-1900">19:00</li><li id="cb1-1930">19:30</li><li id="cb1-2000">20:00</li><li id="cb1-2030">20:30</li><li id="cb1-2100">21:00</li><li id="cb1-2130">21:30</li><li id="cb1-2200">22:00</li><li id="cb1-2230">22:30</li><li id="cb1-2300">23:00</li><li id="cb1-2330">23:30</li></ul>
-                                        </div>
-										<span style="padding: 0 18px 0 0;">~</span>
-										<input type="text" name="productTag1EndDay" id="productTag1EndDay" class="type_txt date datePick hasDatepicker" placeholder="YYYY-MM-DD" autocomplete="off">
-
-                                        <div id="comboboxGroup" class="combobox combobox-list">
-                                            <div class="group" style="padding: 0 4px;">
-                                                <input id="productTag1EndTime" name="productTag1EndTime" class="cb_edit time_picker" type="text" role="combobox" aria-autocomplete="both" aria-expanded="false" aria-controls="cb-pt1-end-listbox" aria-activedescendant="" placeholder="00:00" autocomplete="off" value="">
-                                                <button type="button" id="cb1-button" aria-label="States" aria-expanded="false" aria-controls="cb-pt1-end-listbox" tabindex="0"></button>
-                                            </div>
-                                            <ul id="cb-pt1-end-listbox" role="listbox"><li id="cb1-0000">00:00</li><li id="cb1-0030">00:30</li><li id="cb1-0100">01:00</li><li id="cb1-0130">01:30</li><li id="cb1-0200">02:00</li><li id="cb1-0230">02:30</li><li id="cb1-0300">03:00</li><li id="cb1-0330">03:30</li><li id="cb1-0400">04:00</li><li id="cb1-0430">04:30</li><li id="cb1-0500">05:00</li><li id="cb1-0530">05:30</li><li id="cb1-0600">06:00</li><li id="cb1-0630">06:30</li><li id="cb1-0700">07:00</li><li id="cb1-0730">07:30</li><li id="cb1-0800">08:00</li><li id="cb1-0830">08:30</li><li id="cb1-0900">09:00</li><li id="cb1-0930">09:30</li><li id="cb1-1000">10:00</li><li id="cb1-1030">10:30</li><li id="cb1-1100">11:00</li><li id="cb1-1130">11:30</li><li id="cb1-1200">12:00</li><li id="cb1-1230">12:30</li><li id="cb1-1300">13:00</li><li id="cb1-1330">13:30</li><li id="cb1-1400">14:00</li><li id="cb1-1430">14:30</li><li id="cb1-1500">15:00</li><li id="cb1-1530">15:30</li><li id="cb1-1600">16:00</li><li id="cb1-1630">16:30</li><li id="cb1-1700">17:00</li><li id="cb1-1730">17:30</li><li id="cb1-1800">18:00</li><li id="cb1-1830">18:30</li><li id="cb1-1900">19:00</li><li id="cb1-1930">19:30</li><li id="cb1-2000">20:00</li><li id="cb1-2030">20:30</li><li id="cb1-2100">21:00</li><li id="cb1-2130">21:30</li><li id="cb1-2200">22:00</li><li id="cb1-2230">22:30</li><li id="cb1-2300">23:00</li><li id="cb1-2330">23:30</li></ul>
-                                        </div>
-
-
-
-
-									</div>
-								</div></div></td>
-							</tr>
-							<tr>
-								<td class="txt_center"><div><div>
-									<input type="checkbox" name="productTag2Chk" id="productTag2Chk" class="type_chk" value="N" onclick="checkBoxUnCheckAll('productTag2Chk','productTag')">
-									<label for="productTag2Chk" class="no_label"><span class="blind">check</span></label>
-								</div></div></td>
-								<td><div><div style="display: flex;">
-                                    
-									<div style="padding: 4px;position: relative;width: 100%;">
-                                        <select name="productTagCategory2" id="productTagCategory2" class="type_select"><option value="">Choose 2nd Category</option></select>
-									</div>
-                                    
-                                    <div id="comboboxGroup" class="combobox combobox-list">
-                                        <div class="group">
-                                            <input id="productTagGroup2" name="productTagGroup2" class="cb_edit" type="text" role="combobox" aria-autocomplete="both" aria-expanded="false" aria-controls="cb1-listbox" aria-activedescendant="" placeholder="Choose a group" value="" autocomplete="off">
-                                            <button type="button" id="cb1-button" aria-label="States" aria-expanded="false" aria-controls="cb1-listbox" tabindex="0"></button>
-                                        </div>
-                                        <ul id="cb1-listbox" role="listbox"></ul>
-                                    </div>
-                                    
-									<div id="comboboxGroup" class="combobox combobox-list">
-										<div class="group">
-											<input id="productTag2" name="productTag2" class="cb_edit" type="text" role="combobox" aria-autocomplete="both" aria-expanded="false" aria-controls="cb2-listbox" aria-activedescendant="" placeholder="Choose a tag" autocomplete="off" value="">
-											<button type="button" id="cb2-button" aria-label="States" aria-expanded="false" aria-controls="cb2-listbox" tabindex="0"></button>
-										</div>
-										<ul id="cb2-listbox" role="listbox"></ul>
-									</div>
-								</div></div></td>
-                                <td class="txt_center">
-                                    <div>
-                                        <div>
-                                            <select name="productTag2Type" id="productTag2Type" class="type_select" style="display:none;">
-                                                <option value="">-- Select --</option>
-                                                <option value="solid">Solid</option>
-                                                <option value="line">Line</option>
-                                            </select>
-                                        </div>
-                                    </div>
-                                </td>
-								<td class="txt_center"><div><div>
-									<input type="checkbox" name="productTag2UseFlag" id="productTag2UseFlag" class="type_chk" value="">
-									<label for="productTag2UseFlag" class="no_label"><span class="blind">use</span></label>
-								</div></div></td>
-							<!-- Multishop RO Phase1 Start -->
-								<!-- LGCOMRB-4374 -->
-								<td><div><div>
-									<input type="hidden" name="productTag2UserType" id="productTag2UserType" value="">
-									<select name="productTag2UserType" id="useType2" class="type_select">
-										
-											
-											<option value="ALL">All</option>
-										
-											
-											<option value="NON_VIP">Non-VIP only</option>
-										
-											
-											<option value="VIP">VIP</option>
-										
-									</select>
-								</div></div></td>
-								
-							<!-- Multishop RO Phase1 End -->
-								<td><div><div>
-									<div class="date_input_wrap" style="display: flex;">
-										<input type="text" name="productTag2BeginDay" id="productTag2BeginDay" class="type_txt date datePick hasDatepicker" autocomplete="off" placeholder="YYYY-MM-DD">
-
-                                        <div id="comboboxGroup" class="combobox combobox-list">
-                                            <div class="group" style="padding: 0 4px;">
-                                                <input id="productTag2BeginTime" name="productTag2BeginTime" class="cb_edit time_picker" type="text" role="combobox" aria-autocomplete="both" aria-expanded="false" aria-controls="cb-pt2-start-listbox" aria-activedescendant="" placeholder="00:00" autocomplete="off" value="">
-                                                <button type="button" id="cb1-button" aria-label="States" aria-expanded="false" aria-controls="cb-pt2-start-listbox" tabindex="0"></button>
-                                            </div>
-                                            <ul id="cb-pt2-start-listbox" role="listbox"><li id="cb1-0000">00:00</li><li id="cb1-0030">00:30</li><li id="cb1-0100">01:00</li><li id="cb1-0130">01:30</li><li id="cb1-0200">02:00</li><li id="cb1-0230">02:30</li><li id="cb1-0300">03:00</li><li id="cb1-0330">03:30</li><li id="cb1-0400">04:00</li><li id="cb1-0430">04:30</li><li id="cb1-0500">05:00</li><li id="cb1-0530">05:30</li><li id="cb1-0600">06:00</li><li id="cb1-0630">06:30</li><li id="cb1-0700">07:00</li><li id="cb1-0730">07:30</li><li id="cb1-0800">08:00</li><li id="cb1-0830">08:30</li><li id="cb1-0900">09:00</li><li id="cb1-0930">09:30</li><li id="cb1-1000">10:00</li><li id="cb1-1030">10:30</li><li id="cb1-1100">11:00</li><li id="cb1-1130">11:30</li><li id="cb1-1200">12:00</li><li id="cb1-1230">12:30</li><li id="cb1-1300">13:00</li><li id="cb1-1330">13:30</li><li id="cb1-1400">14:00</li><li id="cb1-1430">14:30</li><li id="cb1-1500">15:00</li><li id="cb1-1530">15:30</li><li id="cb1-1600">16:00</li><li id="cb1-1630">16:30</li><li id="cb1-1700">17:00</li><li id="cb1-1730">17:30</li><li id="cb1-1800">18:00</li><li id="cb1-1830">18:30</li><li id="cb1-1900">19:00</li><li id="cb1-1930">19:30</li><li id="cb1-2000">20:00</li><li id="cb1-2030">20:30</li><li id="cb1-2100">21:00</li><li id="cb1-2130">21:30</li><li id="cb1-2200">22:00</li><li id="cb1-2230">22:30</li><li id="cb1-2300">23:00</li><li id="cb1-2330">23:30</li></ul>
-                                        </div>
-										<span style="padding: 0 18px 0 0;">~</span>
-										<input type="text" name="productTag2EndDay" id="productTag2EndDay" class="type_txt date datePick hasDatepicker" placeholder="YYYY-MM-DD" autocomplete="off">
-
-                                        <div id="comboboxGroup" class="combobox combobox-list">
-                                            <div class="group" style="padding: 0 4px;">
-                                                <input id="productTag2EndTime" name="productTag2EndTime" class="cb_edit time_picker" type="text" role="combobox" aria-autocomplete="both" aria-expanded="false" aria-controls="cb-pt2-end-listbox" aria-activedescendant="" placeholder="00:00" autocomplete="off" value="">
-                                                <button type="button" id="cb1-button" aria-label="States" aria-expanded="false" aria-controls="cb-pt2-end-listbox" tabindex="0"></button>
-                                            </div>
-                                            <ul id="cb-pt2-end-listbox" role="listbox"><li id="cb1-0000">00:00</li><li id="cb1-0030">00:30</li><li id="cb1-0100">01:00</li><li id="cb1-0130">01:30</li><li id="cb1-0200">02:00</li><li id="cb1-0230">02:30</li><li id="cb1-0300">03:00</li><li id="cb1-0330">03:30</li><li id="cb1-0400">04:00</li><li id="cb1-0430">04:30</li><li id="cb1-0500">05:00</li><li id="cb1-0530">05:30</li><li id="cb1-0600">06:00</li><li id="cb1-0630">06:30</li><li id="cb1-0700">07:00</li><li id="cb1-0730">07:30</li><li id="cb1-0800">08:00</li><li id="cb1-0830">08:30</li><li id="cb1-0900">09:00</li><li id="cb1-0930">09:30</li><li id="cb1-1000">10:00</li><li id="cb1-1030">10:30</li><li id="cb1-1100">11:00</li><li id="cb1-1130">11:30</li><li id="cb1-1200">12:00</li><li id="cb1-1230">12:30</li><li id="cb1-1300">13:00</li><li id="cb1-1330">13:30</li><li id="cb1-1400">14:00</li><li id="cb1-1430">14:30</li><li id="cb1-1500">15:00</li><li id="cb1-1530">15:30</li><li id="cb1-1600">16:00</li><li id="cb1-1630">16:30</li><li id="cb1-1700">17:00</li><li id="cb1-1730">17:30</li><li id="cb1-1800">18:00</li><li id="cb1-1830">18:30</li><li id="cb1-1900">19:00</li><li id="cb1-1930">19:30</li><li id="cb1-2000">20:00</li><li id="cb1-2030">20:30</li><li id="cb1-2100">21:00</li><li id="cb1-2130">21:30</li><li id="cb1-2200">22:00</li><li id="cb1-2230">22:30</li><li id="cb1-2300">23:00</li><li id="cb1-2330">23:30</li></ul>
-                                        </div>
-
-
-
-
-									</div>
-								</div></div></td>
-							</tr>
-                            <tr>
-                                <td class="txt_center"><div><div>
-                                    <input type="checkbox" name="productTagDeliveryChk" id="deliveryTagChk" class="type_chk" value="N" onclick="checkBoxUnCheckAll('deliveryTagChk','productTag')">
-                                    <label for="deliveryTagChk" class="no_label"><span class="blind">check</span></label>
-                                </div></div></td>
-                                <td><div><div style="display: flex;align-items: center;">
-                                    <div style="flex: 1;">Delivery</div>
-                                    <div style="flex: 1;"> </div>
-                                    
-                                    <div id="comboboxGroup" class="combobox combobox-list" style="flex: 1; padding-left: 5px;">
-                                        <div class="group">
-                                            <input id="deliveryTag" name="deliveryTag" class="cb_edit" type="text" role="combobox" aria-autocomplete="both" aria-expanded="false" aria-controls="cb2-listbox" aria-activedescendant="" placeholder="Choose a state" autocomplete="off" value="">
-                                            <button type="button" id="cb2-button" aria-label="States" aria-expanded="false" aria-controls="cb2-listbox" tabindex="0"></button>
-                                        </div>
-                                        <ul id="cb2-listbox" role="listbox"><li id="cb1-Despacho Gratis RM" role="option" aria-selected="false">Despacho Gratis RM</li><li id="cb1-ENVÍO 24HRS" role="option" aria-selected="false">ENVÍO 24HRS</li><li id="cb1-Express Delivery" role="option" aria-selected="false">Express Delivery</li><li id="cb1-Floor Delivery" role="option" aria-selected="false">Floor Delivery</li><li id="cb1-FREE 1 YEAR AMC" role="option" aria-selected="false">FREE 1 YEAR AMC</li><li id="cb1-Free delivery" role="option" aria-selected="false">Free delivery</li><li id="cb1-Free Delivery" role="option" aria-selected="false">Free Delivery</li><li id="cb1-Free delivery/installation/disposal" role="option" aria-selected="false">Free delivery/installation/disposal</li><li id="cb1-Free Express Delivery" role="option" aria-selected="false">Free Express Delivery</li><li id="cb1-FREE INSTALLATION" role="option" aria-selected="false">FREE INSTALLATION</li><li id="cb1-Free Installation" role="option" aria-selected="false">Free Installation</li><li id="cb1-Free Premium Delivery" role="option" aria-selected="false">Free Premium Delivery</li><li id="cb1-Free Premium Delivery*" role="option" aria-selected="false">Free Premium Delivery*</li><li id="cb1-FREE SHIPPING" role="option" aria-selected="false">FREE SHIPPING</li><li id="cb1-Free Shipping" role="option" aria-selected="false">Free Shipping</li><li id="cb1-FREE SHIPPING INSTALLATION" role="option" aria-selected="false">FREE SHIPPING INSTALLATION</li><li id="cb1-Gratis transport och installation" role="option" aria-selected="false">Gratis transport och installation</li><li id="cb1-Incluye instalación VIP" role="option" aria-selected="false">Incluye instalación VIP</li><li id="cb1-INST.PARED GRATIS" role="option" aria-selected="false">INST.PARED GRATIS</li><li id="cb1-Instalacion Basica Gratuita" role="option" aria-selected="false">Instalacion Basica Gratuita</li><li id="cb1-Instalación Básica Gratuita" role="option" aria-selected="false">Instalación Básica Gratuita</li><li id="cb1-INSTALACJA GRATIS" role="option" aria-selected="false">INSTALACJA GRATIS</li><li id="cb1-Installation gratuite" role="option" aria-selected="false">Installation gratuite</li><li id="cb1-Livraison gratuite" role="option" aria-selected="false">Livraison gratuite</li><li id="cb1-Livraison prioritaire" role="option" aria-selected="false">Livraison prioritaire</li><li id="cb1-尊榮安裝" role="option" aria-selected="false">尊榮安裝</li><li id="cb1-REGALO INSTALACIÓN" role="option" aria-selected="false">REGALO INSTALACIÓN</li><li id="cb1-WNIESIENIE GRATIS" role="option" aria-selected="false">WNIESIENIE GRATIS</li><li id="cb1-Despacho Gratis RM" role="option" aria-selected="false">Despacho Gratis RM</li><li id="cb1-FREE 1 YEAR AMC" role="option" aria-selected="false">FREE 1 YEAR AMC</li><li id="cb1-Despacho Gratis" role="option" aria-selected="false">Despacho Gratis</li><li id="cb1-Instalación Básica Gratuita" role="option" aria-selected="false">Instalación Básica Gratuita</li><li id="cb1-test" role="option" aria-selected="false">test</li><li id="cb1-Livraison gratuite*" role="option" aria-selected="false">Livraison gratuite*</li><li id="cb1-Free Delivery*" role="option" aria-selected="false">Free Delivery*</li><li id="cb1-Premium Shipping and Installation" role="option" aria-selected="false">Premium Shipping and Installation</li><li id="cb1-Free Elite Shipping and Installation" role="option" aria-selected="false">Free Elite Shipping and Installation</li><li id="cb1-Free Delivery / Installation." role="option" aria-selected="false">Free Delivery / Installation.</li><li id="cb1-Free Delivery, Wall Mount &amp; Disposal" role="option" aria-selected="false">Free Delivery, Wall Mount &amp; Disposal</li><li id="cb1-Бесплатная доставка" role="option" aria-selected="false">Бесплатная доставка</li><li id="cb1-Frete Grátis Para Capitais" role="option" aria-selected="false">Frete Grátis Para Capitais</li><li id="cb1-Últimas unidades" role="option" aria-selected="false">Últimas unidades</li><li id="cb1-Adicione LG Instala Plus" role="option" aria-selected="false">Adicione LG Instala Plus</li><li id="cb1-Mês do Consumidor" role="option" aria-selected="false">Mês do Consumidor</li><li id="cb1-Porta Reversível" role="option" aria-selected="false">Porta Reversível</li><li id="cb1-Instalación Gratis" role="option" aria-selected="false">Instalación Gratis</li><li id="cb1-Envió Gratis" role="option" aria-selected="false">Envió Gratis</li></ul>
-                                    </div>
-                                </div></div></td>
-                                <td></td>
-                                <td class="txt_center"><div><div>
-                                    <input type="checkbox" name="deliveryTagUseFlag" id="deliveryTagUseFlag" class="type_chk" value="">
-                                    <label for="deliveryTagUseFlag" class="no_label"><span class="blind">use</span></label>
-                                </div></div></td>
-                                <!-- Multishop RO Phase1 Start -->
-                                
-                                    <td><div><div>
-                                        <input type="hidden" name="deliveryTagUserType" id="deliveryTagUserType" value="">
-                                        <select name="deliveryTagUserType" id="deliveryTagUserType" class="type_select">
-                                            
-                                                
-                                                <option value="ALL">All</option>
-                                            
-                                                
-                                                <option value="NON_VIP">Non-VIP only</option>
-                                            
-                                                
-                                                <option value="VIP">VIP</option>
-                                            
-                                        </select>
-                                    </div></div></td>
-                                
-                                <!-- Multishop RO Phase1 End -->
-                                <td><div><div>
-                                    <div class="date_input_wrap" style="display: flex;">
-                                        <input type="text" name="deliveryTagBeginDay" id="deliveryTagBeginDay" class="type_txt date datePick hasDatepicker" autocomplete="off" placeholder="YYYY-MM-DD">
-
-                                        <div id="comboboxGroup" class="combobox combobox-list">
-                                            <div class="group" style="padding: 0 4px;">
-                                                <input id="deliveryTagBeginTime" name="deliveryTagBeginTime" class="cb_edit time_picker" type="text" role="combobox" aria-autocomplete="both" aria-expanded="false" aria-controls="cb-dt-start-listbox" aria-activedescendant="" placeholder="00:00" autocomplete="off" value="">
-                                                <button type="button" id="cb1-button" aria-label="States" aria-expanded="false" aria-controls="cb-dt-start-listbox" tabindex="0"></button>
-                                            </div>
-                                            <ul id="cb-dt-start-listbox" role="listbox"><li id="cb1-0000">00:00</li><li id="cb1-0030">00:30</li><li id="cb1-0100">01:00</li><li id="cb1-0130">01:30</li><li id="cb1-0200">02:00</li><li id="cb1-0230">02:30</li><li id="cb1-0300">03:00</li><li id="cb1-0330">03:30</li><li id="cb1-0400">04:00</li><li id="cb1-0430">04:30</li><li id="cb1-0500">05:00</li><li id="cb1-0530">05:30</li><li id="cb1-0600">06:00</li><li id="cb1-0630">06:30</li><li id="cb1-0700">07:00</li><li id="cb1-0730">07:30</li><li id="cb1-0800">08:00</li><li id="cb1-0830">08:30</li><li id="cb1-0900">09:00</li><li id="cb1-0930">09:30</li><li id="cb1-1000">10:00</li><li id="cb1-1030">10:30</li><li id="cb1-1100">11:00</li><li id="cb1-1130">11:30</li><li id="cb1-1200">12:00</li><li id="cb1-1230">12:30</li><li id="cb1-1300">13:00</li><li id="cb1-1330">13:30</li><li id="cb1-1400">14:00</li><li id="cb1-1430">14:30</li><li id="cb1-1500">15:00</li><li id="cb1-1530">15:30</li><li id="cb1-1600">16:00</li><li id="cb1-1630">16:30</li><li id="cb1-1700">17:00</li><li id="cb1-1730">17:30</li><li id="cb1-1800">18:00</li><li id="cb1-1830">18:30</li><li id="cb1-1900">19:00</li><li id="cb1-1930">19:30</li><li id="cb1-2000">20:00</li><li id="cb1-2030">20:30</li><li id="cb1-2100">21:00</li><li id="cb1-2130">21:30</li><li id="cb1-2200">22:00</li><li id="cb1-2230">22:30</li><li id="cb1-2300">23:00</li><li id="cb1-2330">23:30</li></ul>
-                                        </div>
-                                        <span style="padding: 0 18px 0 0;">~</span>
-                                        <input type="text" name="deliveryTagEndDay" id="deliveryTagEndDay" class="type_txt date datePick hasDatepicker" autocomplete="off" placeholder="YYYY-MM-DD">
-
-                                        <div id="comboboxGroup" class="combobox combobox-list">
-                                            <div class="group" style="padding: 0 4px;">
-                                                <input id="deliveryTagEndTime" name="deliveryTagEndTime" class="cb_edit time_picker" type="text" role="combobox" aria-autocomplete="both" aria-expanded="false" aria-controls="cb-dt-end-listbox" aria-activedescendant="" placeholder="00:00" autocomplete="off" value="">
-                                                <button type="button" id="cb1-button" aria-label="States" aria-expanded="false" aria-controls="cb-dt-end-listbox" tabindex="0"></button>
-                                            </div>
-                                            <ul id="cb-dt-end-listbox" role="listbox"><li id="cb1-0000">00:00</li><li id="cb1-0030">00:30</li><li id="cb1-0100">01:00</li><li id="cb1-0130">01:30</li><li id="cb1-0200">02:00</li><li id="cb1-0230">02:30</li><li id="cb1-0300">03:00</li><li id="cb1-0330">03:30</li><li id="cb1-0400">04:00</li><li id="cb1-0430">04:30</li><li id="cb1-0500">05:00</li><li id="cb1-0530">05:30</li><li id="cb1-0600">06:00</li><li id="cb1-0630">06:30</li><li id="cb1-0700">07:00</li><li id="cb1-0730">07:30</li><li id="cb1-0800">08:00</li><li id="cb1-0830">08:30</li><li id="cb1-0900">09:00</li><li id="cb1-0930">09:30</li><li id="cb1-1000">10:00</li><li id="cb1-1030">10:30</li><li id="cb1-1100">11:00</li><li id="cb1-1130">11:30</li><li id="cb1-1200">12:00</li><li id="cb1-1230">12:30</li><li id="cb1-1300">13:00</li><li id="cb1-1330">13:30</li><li id="cb1-1400">14:00</li><li id="cb1-1430">14:30</li><li id="cb1-1500">15:00</li><li id="cb1-1530">15:30</li><li id="cb1-1600">16:00</li><li id="cb1-1630">16:30</li><li id="cb1-1700">17:00</li><li id="cb1-1730">17:30</li><li id="cb1-1800">18:00</li><li id="cb1-1830">18:30</li><li id="cb1-1900">19:00</li><li id="cb1-1930">19:30</li><li id="cb1-2000">20:00</li><li id="cb1-2030">20:30</li><li id="cb1-2100">21:00</li><li id="cb1-2130">21:30</li><li id="cb1-2200">22:00</li><li id="cb1-2230">22:30</li><li id="cb1-2300">23:00</li><li id="cb1-2330">23:30</li></ul>
-                                        </div>
-                                    </div>
-                                </div></div></td>
-                            </tr>
-						</tbody>
-					</table>
-				</div>
-
-5- Para poder un Tag de Producto se sigue una lógica:
-5.1- Se marca el checkbox.
-5.2- En la columna Tag, hay 3 selector desplegables, estos van por orden, o sea, primero debes seleccionar el primer, después el 2do y por ultimo el 3ro. (Estos 3 los deberíamos pasar en la extension, indicando qué palabras se deben colocar ahí).
-5.3- En la columna Type seleccionar una opción (este indica el 'estilo' que tiene el tag en el front). Esto también debería ser pasado por el usuario en la extension.
-5.4- Marcar el checkbox de la columna Use.
-5.5- En la columna User Type, dejar en "All".
-5.6- Ahora, en la columna Schedule, hay un campo de fecha con formato "YYYY-MM-DD" y un selector de horas que está cada 30min. Estos indicando la fecha y hora de inicio del tag hasta su fecha y hora de finalización del tag. Esto debe ser pasado por el usuario en la extension.
-
-Consideración1: Si un product ya tiene un tag y se coloca uno nuevo en el primer tag (recordemos que los productos pueden tener hasta 2), se sobreescribe el 2do y solo quedaría el primero nuevo.
-Consideración2: Si se van a colocar 2 Tag, se debe colocar el primero y luego el 2do.
-
-6- Cuando estén listos y colocados toda la información de los tags se debe guardar tanto en staging como en producción. Primero le daremos clic al botó "SAVE TO STG":
-
-<div class="pop_page_btns"><div class="right_side"><button class="final type_btn stg"onclick="formSubmit()"type="button"><span>SAVE TO STG</span></button> <button class="final type_btn"onclick="formSubmitProd()"type="button"><span>SAVE TO PROD</span></button></div></div>
-
-7- Luego de darle a cada botón aparece un popup de confirmación como:
-<div class="L-dialog L-overlay L-panel L-panel-container L-simple-dialog messagebox"id="L-gen388"style="width:300px;left:758px;top:481px;z-index:6"><div class="hd"id="messagebox_h"style="cursor:move">Information</div><div class="bd"><p>When you save, <span style="color:red">all selected rows of information registered on the selected model will be reset and updated</span> with the newly entered information.<form id="L-gen392"name="frm_messagebox"></form></div><div class="ft"><span class="button-group"><span class="L-button default"id="L-gen390"><span class="first-child"><button id="L-gen390-button"type="button">YES</button></span></span><span class="L-button"id="L-gen391"><span class="first-child"><button id="L-gen391-button"type="button">NO</button></span></span></span></div></div>
-
-8- Primero guardar en stg, luego darle a ok al pop up de confirmación y luego darle a SAVE TO PROD, darle al ok del pop up de confirmación.
-
-9- Cuando se le da ok a ese ultimo pop up, se Cierra el modal automáticamente.
-Ya queda listo, ahora podríamos seguir con el siguiente product y todo el flujo nuevamente.
-
-Nota: Entonces, en la extension el usuario debería poder colocar el o los skus, el o los tags a colocar (máximo 2). Cada tag debe tener sus 4 campos, los 3 de Tag y el de User Type. Tambien la fecha y hora de inicio con la fecha y hora de finalización.
-Me gustaría una interfaz facil e intuitive de usar, con un Sistema de seguimiento para saber qué sku está procesando ahora, con un botón de detener de emergencia. Con un buen Sistema de logs, que respite el ordenamiento de archivos y carpetas, que sea modular, extensible, que no tenga todo en un solo archive. Y que sea professional.
+    tagArray[category2][group2].forEach( (tag) => {
+        console.log(tag);
+        const liEl = document.createElement('li');
+        liEl.id = 'cb2-' + tag.value;
+        liEl.setAttribute('role', 'option');
+        liEl.setAttribute('aria-selected', 'false');
+        liEl.textContent = tag.value;
+        $('#productTag2').parent().parent().find('[role=listbox]').append(liEl);
+    }
+    )
+    reBindAutocompleteLi($('#productTag2').closest('.combobox-list')[0]);
+});
