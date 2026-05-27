@@ -246,19 +246,26 @@ Pantalla objetivo: **Marketing Info Mapping** dentro de GP1 (SPA).
 2. Popup abre port `colocar-tags:product-run` con `START + config`.
 3. Content (frame que detecta MIM) itera SKUs:
    - `searchProductBySku(sku)` — idéntico al flujo Delivery.
-   - `applyProductTags({ tags, skipProd, userType: 'ALL' })`:
-     - Para cada tag (orden 1 → 2):
-       1. Marcar `#productTag<N>Chk`.
-       2. `select#productTagCategory<N>` ← `category` (Product/Promotion).
-       3. Combobox `#productTagGroup<N>` ← `group` (depende de category, esperamos a que se populen los `<li>`).
-       4. Combobox `#productTag<N>` ← `tag` (depende de group).
-       5. `select#productTag<N>Type` ← `type` (gradient/solid/line).
-       6. Marcar `#productTag<N>UseFlag`.
-       7. `select#useType<N>` ← `ALL` (el id `#productTag<N>UserType` está duplicado en un hidden, hay que tomar el visible).
-       8. Setear `#productTag<N>BeginDay/BeginTime/EndDay/EndTime`.
+   - `applyProductTags({ tags, skipProd, userType: 'ALL' })` ejecuta en 3 FASES:
+     - **FASE 1 — llenar campos por fila (orden 1 → 2), SIN marcar el row chk:**
+       1. `select#productTagCategory<N>` ← `category` (Product/Promotion).
+       2. Combobox `#productTagGroup<N>` ← `group` (depende de category, esperamos a que se populen los `<li>`).
+       3. Combobox `#productTag<N>` ← `tag` (depende de group).
+       4. `select#productTag<N>Type` ← `type` (gradient/solid/line).
+       5. `select#useType<N>` ← `ALL` (el id `#productTag<N>UserType` está duplicado en un hidden, hay que tomar el visible).
+       6. Setear `#productTag<N>BeginDay/BeginTime/EndDay/EndTime` via `setDateRange`.
+       7. Marcar `#productTag<N>UseFlag`.
+     - **FASE 2 — re-setear `productTag<N>Type` (1 → 2)**: el handler `productTagCategory2.on('change')` pisa `productTag1Type` según combinación cat1/cat2. Tras llenar ambas filas, reaplicamos el `type` que pidió el usuario.
+     - **FASE 3 — marcar `#productTag<N>Chk` (1 → 2), con `sleep(150)` entre cada uno**: el row chk es lo que le indica a GP1 "esta fila tiene data nueva, inclúyela en el save". Marcarlo al final actúa como el "commit" explícito.
      - Click `SAVE TO STG` → confirm YES → ack OK.
-     - Si `!skipProd`: SAVE PROD + confirm + ack. Magento cierra el modal solo tras el último OK.
+     - Si `!skipProd`: SAVE PROD + confirm + ack. GP1 cierra el modal solo tras el último OK.
 4. Mismo protocolo de progreso por SKU que delivery; los pasos del flujo de cada tag llevan `detail.tagIndex` para que el popup pinte "Tag 1 — Setteando Type" / "Tag 2 — …".
+
+**Quirk crítico — orden de checkboxes en Product Tag:** Si se marca `#productTag<N>Chk` ANTES de llenar los campos de la fila, `formSubmit()` reporta "No changes were made." aunque visualmente los campos hayan quedado bien seteados. El row chk hay que marcarlo DESPUÉS de todo el resto (ver FASE 3 arriba). Síntoma: el flow corre sin errores, los fields se ven correctos en el modal, pero el messagebox de éxito nunca llega y aparece "No changes were made." en su lugar.
+
+**Quirk — Type pisado por handler de cat2:** Si la combinación es `cat1='Promotion' + cat2='Product'` (o `cat2='Promotion'`), `productTagCategory2.on('change')` (líneas 11691-11713 de Pedida.md) fuerza `productTag1Type` a un valor concreto y pisa lo que hayamos seteado al llenar la fila 1. Por eso la FASE 2 re-aplica los Type al final, después de que ambas categorías estén comprometidas.
+
+**Quirk — crash benigno de GP1 al abrir modal sin tags previos:** El init de `offerRetrieveModelBasicInfo.js` hace `tagArray[category1][group1].forEach(...)` sin null-check. Para SKUs sin tags previos, `category1=''` y `group1=''` → `tagArray[''][''].forEach` → `TypeError: Cannot read properties of undefined (reading '')`. Es un bug de GP1, no nuestro. Es **benigno**: los handlers `.on('change')` ya quedaron registrados antes del crash, y nuestro flow re-cascadea los populates al setear category/group, así que el modal funciona igual.
 
 **Particularidad del combobox de Product Tag:** los `<ul role="listbox">` de los combos comparten IDs (`cb1-listbox`, `cb2-listbox`) — HTML técnicamente inválido pero existente. Por eso `selectComboboxByInput` (en `gp1/combobox.js`) resuelve el botón y el listbox desde el input usando `input.closest('.combobox.combobox-list')` en vez de querySelector por id. Además espera a que el listbox tenga `<li>` antes de buscar la opción, porque los combos están encadenados (group depende de category, tag depende de group) y el populate es asíncrono.
 

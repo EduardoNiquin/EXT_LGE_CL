@@ -61,15 +61,43 @@ export async function applyProductTags(args) {
 
   validateTags(tags);
 
-  // Llenar cada fila en orden (1 primero, después 2).
+  // FASE 1: llenar todos los campos de cada fila en orden (1 → 2), SIN marcar
+  // el checkbox de la fila todavía. El "row chk" (#productTagNChk) es lo que
+  // le indica a GP1 "esta fila tiene data nueva, inclúyela en el save". Si
+  // lo marcamos al principio, GP1 toma snapshot del estado vacío y al
+  // formSubmit() detecta "no changes". Marcarlo al final actúa como el commit
+  // explícito de la fila (igual a como lo hace un usuario humano).
   for (let i = 0; i < tags.length; i++) {
-    const tagIndex = i + 1; // 1 ó 2
+    const tagIndex = i + 1;
     const tag = tags[i];
     await fillTagRow({ tagIndex, tag, userType, onStep, signal });
   }
 
-  // Pequeño respiro para asegurar que los datepickers comitearon sus valores.
-  await sleep(250, signal);
+  // FASE 2: re-setear los Type. El handler de `productTagCategory2.on('change')`
+  // (ver Pedida.md líneas 11691-11713) PISA `productTag1Type` según la
+  // combinación cat1/cat2 (ej. si cat1='Promotion' y cat2='Product' fuerza
+  // Tag1.Type='gradient'). Cuando se aplican 2 tags, el seteo de Tag1.Type
+  // dentro de fillTagRow(1) queda invalidado al setear cat2 en fillTagRow(2).
+  // Reaplicar al final garantiza el valor que pidió el usuario.
+  for (let i = 0; i < tags.length; i++) {
+    const tagIndex = i + 1;
+    const typeSel = await waitForElement(PT.typeSel(tagIndex), { signal });
+    setSelectValue(typeSel, tags[i].type);
+  }
+
+  // FASE 3: marcar los checkboxes de fila al final, en orden, con respiro
+  // entre cada uno para que GP1 registre la "inclusión" de cada fila antes
+  // de que entre la siguiente (y antes del formSubmit).
+  for (let i = 0; i < tags.length; i++) {
+    const tagIndex = i + 1;
+    onStep(STEPS.PROD_CHECK_ROW, { tagIndex });
+    const rowChk = await waitForElement(PT.chk(tagIndex), { signal });
+    setChecked(rowChk, true);
+    await sleep(150, signal);
+  }
+
+  // Pequeño respiro extra para que los datepickers comitearon sus valores.
+  await sleep(200, signal);
 
   // === STG ===
   onStep(STEPS.PROD_SAVE_STG);
@@ -116,19 +144,18 @@ export async function applyProductTags(args) {
 async function fillTagRow({ tagIndex, tag, userType, onStep, signal }) {
   const { category, group, tag: tagValue, type, beginDay, beginTime, endDay, endTime } = tag;
 
-  // 1. Checkbox de la fila
-  onStep(STEPS.PROD_CHECK_ROW, { tagIndex });
-  const rowChk = await waitForElement(PT.chk(tagIndex), { signal });
-  setChecked(rowChk, true);
+  // OJO: el row chk (#productTagNChk) NO se marca acá — se marca después en
+  // FASE 3 del orquestador. Marcarlo antes hace que GP1 considere "no
+  // changes" al formSubmit().
 
-  // 2. 1st Category (select normal: Product/Promotion)
+  // 1. 1st Category (select normal: Product/Promotion)
   onStep(STEPS.PROD_CATEGORY, { tagIndex, category });
   const catSel = await waitForElement(PT.categorySel(tagIndex), { signal });
   setSelectValue(catSel, category);
   // El siguiente combo (group) se populates dependiente de category — sleep corto.
   await sleep(150, signal);
 
-  // 3. Group (combobox, depende de category — opciones dinámicas de GP1)
+  // 2. Group (combobox, depende de category — opciones dinámicas de GP1)
   onStep(STEPS.PROD_GROUP, { tagIndex, group });
   await selectComboboxByInput({
     inputSelector: PT.groupInput(tagIndex),
@@ -137,7 +164,7 @@ async function fillTagRow({ tagIndex, tag, userType, onStep, signal }) {
   });
   await sleep(150, signal);
 
-  // 4. Tag value (combobox, depende de group)
+  // 3. Tag value (combobox, depende de group)
   onStep(STEPS.PROD_TAG_VALUE, { tagIndex, tag: tagValue });
   await selectComboboxByInput({
     inputSelector: PT.valueInput(tagIndex),
@@ -145,22 +172,19 @@ async function fillTagRow({ tagIndex, tag, userType, onStep, signal }) {
     signal,
   });
 
-  // 5. Type (select: gradient/solid/line)
+  // 4. Type (select: gradient/solid/line). NOTA: si hay 2 tags, el handler de
+  // cat2 puede pisar este valor — el orquestador lo re-setea en FASE 2 luego
+  // de llenar ambas filas.
   onStep(STEPS.PROD_TYPE, { tagIndex, type });
   const typeSel = await waitForElement(PT.typeSel(tagIndex), { signal });
   setSelectValue(typeSel, type);
 
-  // 6. Use checkbox
-  onStep(STEPS.PROD_USE, { tagIndex });
-  const useChk = await waitForElement(PT.useFlag(tagIndex), { signal });
-  setChecked(useChk, true);
-
-  // 7. User Type — siempre "ALL" salvo override
+  // 5. User Type — siempre "ALL" salvo override (el visible es `select#useTypeN`)
   onStep(STEPS.PROD_USER_TYPE, { tagIndex, userType });
   const userTypeSel = await waitForElement(PT.userType(tagIndex), { signal });
   setSelectValue(userTypeSel, userType);
 
-  // 8. Schedule — vía setDateRange para evitar el rebote por orden de seteo
+  // 6. Schedule — vía setDateRange para evitar el rebote por orden de seteo
   // (ver gp1/daterange.js).
   onStep(STEPS.PROD_DATES, { tagIndex, beginDay, beginTime, endDay, endTime });
   const beginDayEl  = await waitForElement(PT.beginDay(tagIndex),  { signal });
@@ -168,6 +192,11 @@ async function fillTagRow({ tagIndex, tag, userType, onStep, signal }) {
   const endDayEl    = await waitForElement(PT.endDay(tagIndex),    { signal });
   const endTimeEl   = await waitForElement(PT.endTime(tagIndex),   { signal });
   setDateRange({ beginDayEl, beginTimeEl, endDayEl, endTimeEl, beginDay, beginTime, endDay, endTime });
+
+  // 7. Use flag (#productTagNUseFlag) — marca la fila como "activa"
+  onStep(STEPS.PROD_USE, { tagIndex });
+  const useChk = await waitForElement(PT.useFlag(tagIndex), { signal });
+  setChecked(useChk, true);
 
   onStep(STEPS.PROD_TAG_DONE, { tagIndex });
 }
