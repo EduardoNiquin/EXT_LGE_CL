@@ -4,11 +4,14 @@
 //
 //   LISTING:
 //     ├─ Si un item quedó EDITING (volvimos del edit con save OK) → marcarlo OK.
-//     ├─ Tomar el próximo item PENDING.
-//     ├─ Limpiar filtros del grid (lo pide explícitamente el usuario).
-//     ├─ Aplicar filtro por ID o por Rule (según run.searchBy).
-//     ├─ Buscar la fila que matchea exactamente.
-//     │    └─ Si no aparece → marcar NOT_FOUND y seguir con el próximo.
+//     ├─ Tomar el próximo item PENDING o SEARCHING-sin-match (esto último cubre
+//     │   el caso en que el grid de Magento haya hecho navegación full-page tras
+//     │   el filter, y nuestro tick previo quedó truncado por el unload).
+//     ├─ Si el filtro ya está aplicado para este item (caso post-nav) → no
+//     │   refiltramos; vamos directo a buscar la fila.
+//     ├─ Caso contrario: clearFilters + applyFilter.
+//     ├─ Buscar la fila exacta (por ID o por Rule).
+//     │    └─ Si no aparece → marcar NOT_FOUND (log warn con muestra de IDs).
 //     │    └─ Si hay match → marcar EDITING, navegar al editHref.
 //     └─ Si no quedan items pendientes → finalize().
 //
@@ -23,7 +26,12 @@ import { logger } from '../../../../shared/utils/logger.js';
 import { ITEM_STATUS, PAGE_TYPE, SEARCH_BY } from '../../constants.js';
 import { appendLog, getRun, setRun } from '../../state.js';
 import { detectPage } from '../detector.js';
-import { applyFilter, clearFilters, waitForGridReady } from '../magento/filters.js';
+import {
+  applyFilter,
+  clearFilters,
+  isFilterAppliedFor,
+  waitForGridReady,
+} from '../magento/filters.js';
 import { parseListingRows } from '../parser.js';
 import {
   clickSave,
@@ -36,10 +44,6 @@ const log = logger('cupones/run');
 
 let running = false;
 
-/**
- * Punto de entrada. Llamar en el init del content script y en cada
- * storage.onChanged del key del run.
- */
 export async function tickIfActive() {
   if (running) return;
   if (window !== window.top) return;
@@ -87,27 +91,51 @@ async function onListing(run) {
   }
   if (touched) await setRun(run);
 
-  // 2) ¿Quedan items pendientes?
-  const nextIdx = run.items.findIndex((it) => it.status === ITEM_STATUS.PENDING);
+  // 2) Buscar el próximo item a procesar.
+  //    Incluimos los SEARCHING sin matched: es el rastro de un tick anterior
+  //    interrumpido por una navegación full-page del grid legacy.
+  const nextIdx = run.items.findIndex((it) =>
+    it.status === ITEM_STATUS.PENDING ||
+    (it.status === ITEM_STATUS.SEARCHING && !it.matchedRuleId),
+  );
   if (nextIdx === -1) {
     await finalize(run, { reason: 'done' });
     return;
   }
 
-  // 3) Procesar el siguiente.
   const item = run.items[nextIdx];
-  item.status = ITEM_STATUS.SEARCHING;
-  run.currentItemIndex = nextIdx;
-  await setRun(run);
-  await appendLog({
-    level: 'info',
-    message: `Buscando ${run.searchBy === SEARCH_BY.RULE ? 'Rule' : 'ID'}: ${item.query}`,
-  });
+  const isResuming = item.status === ITEM_STATUS.SEARCHING;
+  if (!isResuming) {
+    item.status = ITEM_STATUS.SEARCHING;
+    run.currentItemIndex = nextIdx;
+    await setRun(run);
+    await appendLog({
+      level: 'info',
+      message: `Buscando ${run.searchBy === SEARCH_BY.RULE ? 'Rule' : 'ID'}: ${item.query}`,
+    });
+  } else {
+    await appendLog({
+      level: 'info',
+      message: `Reanudando búsqueda de ${run.searchBy === SEARCH_BY.RULE ? 'Rule' : 'ID'}: ${item.query} (tras navegación)`,
+    });
+  }
 
+  // 3) Filtro: si ya está aplicado para este query (post-nav), saltamos.
   try {
     await waitForGridReady();
-    await clearFilters();
-    await applyFilter({ searchBy: run.searchBy, value: item.query });
+    if (isFilterAppliedFor(run.searchBy, item.query)) {
+      await appendLog({
+        level: 'info',
+        message: `Filtro ya aplicado en la URL; saltando refiltrado`,
+      });
+    } else {
+      await clearFilters();
+      const { rowCount, changed } = await applyFilter({ searchBy: run.searchBy, value: item.query });
+      await appendLog({
+        level: 'info',
+        message: `Filtro aplicado: ${rowCount} fila(s) ${changed ? '' : '(snapshot no cambió)'}`,
+      });
+    }
   } catch (err) {
     item.status = ITEM_STATUS.ERROR;
     item.error  = `Falló al filtrar: ${err?.message || String(err)}`;
@@ -116,14 +144,24 @@ async function onListing(run) {
     return;
   }
 
-  const match = findMatchingRow(run.searchBy, item.query);
+  // 4) Buscar la fila exacta.
+  const rows = parseListingRows();
+  const match = findMatchingRow(run.searchBy, item.query, rows);
   if (!match) {
+    const sample = rows
+      .slice(0, 5)
+      .map((r) => (run.searchBy === SEARCH_BY.RULE ? `"${r.name}"` : r.ruleId))
+      .filter((v) => v != null && v !== '')
+      .join(', ');
     item.status = ITEM_STATUS.NOT_FOUND;
     item.error  = run.searchBy === SEARCH_BY.RULE
       ? 'No se encontró cupón con ese nombre exacto'
       : 'No se encontró cupón con ese ID';
     await setRun(run);
-    await appendLog({ level: 'warn', message: `${item.query}: no encontrado` });
+    await appendLog({
+      level: 'warn',
+      message: `${item.query}: no encontrado (${rows.length} fila(s)${sample ? `: ${sample}` : ''})`,
+    });
     return;
   }
 
@@ -134,10 +172,9 @@ async function onListing(run) {
   await setRun(run);
   await appendLog({
     level: 'info',
-    message: `Editando ${labelOf(item)} (id=${match.ruleId})`,
+    message: `Encontrado: ${match.name} (#${match.ruleId}) → navegando a edit`,
   });
 
-  // Navegar al edit URL — el próximo tick corre al cargar.
   window.location.href = match.editHref;
 }
 
@@ -165,8 +202,6 @@ async function onEdit(run, page) {
       message: `${labelOf(item)}: ${removed} condición(es) eliminada(s) — guardando`,
     });
     await clickSave();
-    // Save dispara navegación. No marcamos OK acá — el próximo tick en el
-    // listing detecta el EDITING y lo pasa a OK.
   } catch (err) {
     item.status = ITEM_STATUS.ERROR;
     item.error  = err?.message || String(err);
@@ -182,14 +217,12 @@ async function onEdit(run, page) {
 
 /**
  * Busca en el grid actual la fila que matchea exactamente el query del item.
- * Si filtramos por ID, comparamos ruleId numérico. Si filtramos por Rule, el
- * filtro de Magento es "contains" — por lo que necesitamos confirmar match
- * exacto (case-insensitive, trim) sobre la columna name. Si no hay exacto pero
- * hay una sola fila, la aceptamos.
+ * Filtros del backend de Magento usan LIKE %valor%, por eso siempre exigimos
+ * match exacto post-filtrado; si no hay exacto pero hay una sola fila, la
+ * aceptamos como fallback razonable.
  */
-function findMatchingRow(searchBy, query) {
-  const rows = parseListingRows();
-  if (rows.length === 0) return null;
+function findMatchingRow(searchBy, query, rows) {
+  if (!Array.isArray(rows) || rows.length === 0) return null;
 
   if (searchBy === SEARCH_BY.ID) {
     const q = Number(String(query).trim());
@@ -199,7 +232,7 @@ function findMatchingRow(searchBy, query) {
     return rows.length === 1 ? rows[0] : null;
   }
 
-  // searchBy === SEARCH_BY.RULE
+  // SEARCH_BY.RULE
   const q = String(query).trim().toLowerCase();
   const exact = rows.find((r) => (r.name || '').trim().toLowerCase() === q);
   if (exact) return exact;

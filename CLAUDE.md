@@ -517,7 +517,9 @@ src/features/cupones/
 
 **Quirk del grid legacy de Magento (Cart Price Rules):**
 - A diferencia del grid moderno (lead-times), los filtros son inputs inline en el `<tr class="data-grid-filters">` y **no hay botón Apply Filters**. Se aplica presionando Enter sobre el input editado.
-- `pressEnter(input)` despacha `keydown` + `keypress` + `keyup` con `key: 'Enter'`, `keyCode: 13`, `which: 13` para cubrir todas las versiones del handler (jQuery / prototype). Como red de seguridad llama `form.requestSubmit()` si el input está dentro de un form.
+- **`keyCode` en KeyboardEvent moderno:** los handlers de Magento legacy (prototype.js / jQuery) verifican `event.keyCode == 13`. El constructor `new KeyboardEvent('keypress', { keyCode: 13 })` IGNORA el init dict para `keyCode`/`which` y los deja en 0 — el handler nunca dispara. Solución: `Object.defineProperty(ev, 'keyCode', { get: () => 13 })` (también `which` y `charCode`) antes de despachar. Sin este truco la grid no recarga y los items quedan como NOT_FOUND con muestra de IDs visibles del grid sin filtrar.
+- **Fallback de inyección:** si el Enter sintético no logra refresh tras 1.5 s, `triggerGridDoFilter()` inyecta un `<script>` en el page-world que llama directamente `window.promo_quote_gridJsObject.doFilter()` (o `promo_quote_grid.doFilter()`). Es necesario porque el content script vive en isolated world y no puede acceder a esos objetos directamente.
+- **Modo AJAX vs nav full-page:** Magento puede operar el grid legacy en modo AJAX (refresh en sitio) o no-AJAX (`setLocation` con filtro base64 en la URL). En modo nav el page reload corta el tick a mitad de camino y deja el item en SEARCHING. `onListing` retoma items en estado SEARCHING-sin-match al próximo tick; si el filtro ya está aplicado en los inputs (caso post-nav), `isFilterAppliedFor(searchBy, query)` retorna true y saltamos `clearFilters` + `applyFilter`, yendo directo a `findMatchingRow`.
 - `applyFilter()` / `clearFilters()` esperan el refresh detectando cambio de snapshot del grid (`{count, firstRuleId}`) en lugar de un chip de filtro activo (el grid legacy no tiene esa señal).
 
 **Modos de búsqueda (`SEARCH_BY`):**

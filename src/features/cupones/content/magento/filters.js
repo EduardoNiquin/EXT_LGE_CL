@@ -1,9 +1,10 @@
 // Driver del grid legacy de Magento admin para Cart Price Rules.
 //
 // A diferencia del grid moderno de Manage Address Level 2 (lead-times), este
-// grid no tiene panel desplegable con botón "Apply Filters" — los filtros son
+// grid NO tiene panel desplegable con botón "Apply Filters" — los filtros son
 // inputs inline sobre la tabla y se aplican presionando Enter sobre el input
-// editado. Magento legacy reload de la grid vía AJAX.
+// editado. El grid puede operar en modo AJAX (refresca en sitio) o no-AJAX
+// (navega a una URL con el filtro en base64). Soportamos ambos.
 
 import { SELECTORS, SEARCH_BY } from '../../constants.js';
 import { parseListingRows, getRowCount } from '../parser.js';
@@ -16,27 +17,63 @@ function selectorForMode(searchBy) {
 }
 
 /**
- * Simula presionar Enter sobre un input. Despacha keydown/keypress/keyup con
- * keyCode=13 + key='Enter' porque el grid legacy escucha cualquiera de los tres
- * según la versión de Magento. Si todo falla, intenta enviar `submit` sobre el
- * form de filtros como último recurso.
+ * Simula presionar Enter sobre un input.
+ *
+ * Detalle crítico: el grid legacy de Magento (prototype.js / jQuery) checkea
+ * `event.keyCode == 13` o `event.which == 13`. Los `KeyboardEvent` construidos
+ * con el constructor moderno IGNORAN `keyCode` y `which` del init dict y los
+ * dejan en 0. Por eso forzamos los getters via `Object.defineProperty`.
+ * Sin este truco, el handler de Magento ignora el Enter y la grid no recarga.
  */
-function pressEnter(input) {
-  const opts = {
+function buildEnterEvent(type) {
+  const ev = new KeyboardEvent(type, {
     bubbles:    true,
     cancelable: true,
     key:        'Enter',
     code:       'Enter',
-    keyCode:    13,
-    which:      13,
-  };
+  });
+  try { Object.defineProperty(ev, 'keyCode', { get: () => 13 }); } catch { /* readonly en algún browser */ }
+  try { Object.defineProperty(ev, 'which',   { get: () => 13 }); } catch { /* idem */ }
+  try { Object.defineProperty(ev, 'charCode', { get: () => 13 }); } catch { /* idem */ }
+  return ev;
+}
+
+function pressEnter(input) {
   input.focus();
-  input.dispatchEvent(new KeyboardEvent('keydown',  opts));
-  input.dispatchEvent(new KeyboardEvent('keypress', opts));
-  input.dispatchEvent(new KeyboardEvent('keyup',    opts));
-  const form = input.closest('form, [data-role="filter-form"]');
-  if (form && typeof form.requestSubmit === 'function') {
-    try { form.requestSubmit(); } catch { /* el handler de Magento ya intercepta */ }
+  input.dispatchEvent(buildEnterEvent('keydown'));
+  input.dispatchEvent(buildEnterEvent('keypress'));
+  input.dispatchEvent(buildEnterEvent('keyup'));
+}
+
+/**
+ * Fallback: inyecta un <script> en el page-world que invoca directamente
+ * `<gridId>JsObject.doFilter()` o `<gridId>.doFilter()` si están expuestos en
+ * `window`. Esto cubre el caso de que el Enter sintético no llegue al handler
+ * (CSP-friendly: el script vive sólo durante la inyección y se remueve).
+ *
+ * Magento expone el grid de Cart Price Rules como `promo_quote_gridJsObject`.
+ * Probamos varios nombres por compatibilidad.
+ */
+function triggerGridDoFilter() {
+  try {
+    const code = `
+      (function(){
+        try {
+          var names = ['promo_quote_gridJsObject', 'promo_quote_grid'];
+          for (var i = 0; i < names.length; i++) {
+            var g = window[names[i]];
+            if (g && typeof g.doFilter === 'function') { g.doFilter(); return; }
+          }
+        } catch (e) { /* silent */ }
+      })();
+    `;
+    const script = document.createElement('script');
+    script.textContent = code;
+    (document.head || document.documentElement).appendChild(script);
+    script.remove();
+    return true;
+  } catch {
+    return false;
   }
 }
 
@@ -49,7 +86,7 @@ function pressEnter(input) {
 function gridSnapshot() {
   const rows = parseListingRows();
   return {
-    count:      rows.length,
+    count:       rows.length,
     firstRuleId: rows[0]?.ruleId ?? null,
   };
 }
@@ -72,18 +109,48 @@ function loadingMaskVisible() {
 export async function waitForGridReady({ signal, timeout = 15000 } = {}) {
   return waitFor(() => {
     if (loadingMaskVisible()) return null;
-    // Grid presente con al menos 1 row, o vacío explícito (no rows).
     const rows = document.querySelectorAll(SELECTORS.gridRow);
     if (rows.length > 0) return rows;
-    // Si la tabla existe pero no hay filas, es un grid vacío post-filtro: válido.
     if (document.querySelector(SELECTORS.gridTable)) return 'empty';
     return null;
   }, { signal, timeout, interval: 150, description: 'grid Cart Price Rules listo' });
 }
 
 /**
- * Limpia todos los filtros de búsqueda relevantes (rule_id, name, coupon_code).
- * Solo dispara una recarga del grid si había algún filtro con valor previo.
+ * Dispara una recarga del grid: presiona Enter sobre el input pasado y, si tras
+ * un breve respiro el snapshot no cambió, intenta el fallback de inyección.
+ * Devuelve `true` si detectó refresh, `false` si timeout (no implica error —
+ * el llamador decide).
+ */
+async function triggerReloadAndWait(input, { signal, timeout = 12000 } = {}) {
+  const before = gridSnapshot();
+  pressEnter(input);
+
+  // Primer intento: Enter sintético. Esperamos hasta 1.5s antes de probar el
+  // fallback — suficiente para que el handler de Magento dispare la AJAX.
+  let changed = await waitForSnapshotChange(before, { signal, timeout: 1500 });
+  if (!changed) {
+    triggerGridDoFilter();
+    changed = await waitForSnapshotChange(before, { signal, timeout: timeout - 1500 });
+  }
+  return Boolean(changed);
+}
+
+async function waitForSnapshotChange(before, { signal, timeout } = {}) {
+  try {
+    return await waitFor(() => {
+      if (loadingMaskVisible()) return null;
+      const now = gridSnapshot();
+      return snapshotsEqual(now, before) ? null : now;
+    }, { signal, timeout, interval: 150, description: 'cambio de snapshot del grid' });
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Limpia todos los filtros relevantes (rule_id, name, coupon_code). Solo
+ * dispara una recarga si había algún valor previo.
  */
 export async function clearFilters({ signal, timeout = 15000 } = {}) {
   const ids = [SELECTORS.filterRuleId, SELECTORS.filterName, SELECTORS.filterCouponCode];
@@ -98,19 +165,7 @@ export async function clearFilters({ signal, timeout = 15000 } = {}) {
   }
   if (!toReload) return;
 
-  const before = gridSnapshot();
-  pressEnter(toReload);
-
-  // Esperar a que el grid refresque (snapshot cambia) o quede vacío.
-  try {
-    await waitFor(() => {
-      const now = gridSnapshot();
-      if (!snapshotsEqual(now, before)) return now;
-      return null;
-    }, { signal, timeout, interval: 200, description: 'grid refrescado tras clear filters' });
-  } catch {
-    // No siempre cambia (si ya estaba en el estado pedido). Fallback corto.
-  }
+  await triggerReloadAndWait(toReload, { signal, timeout });
   await waitForGridReady({ signal });
   await sleep(150, signal);
 }
@@ -123,33 +178,24 @@ export async function applyFilter({ searchBy, value, signal, timeout = 15000 } =
   const selector = selectorForMode(searchBy);
   const input = await waitForElement(selector, { signal, timeout: 5000, description: `filtro ${searchBy}` });
 
-  const before = gridSnapshot();
   setInputValue(input, String(value));
-  pressEnter(input);
-
-  // El grid legacy a veces no muestra loading mask. Detectamos el refresh por
-  // cambio de snapshot o por filas → 0 (no encontrado).
-  try {
-    await waitFor(() => {
-      // Si aparece la máscara, no estamos listos.
-      if (loadingMaskVisible()) return null;
-      const now = gridSnapshot();
-      if (!snapshotsEqual(now, before)) return now;
-      // Caso límite: la grid ya estaba mostrando exactamente lo que buscamos
-      // (mismo filtro, mismo set de resultados). Si la primera fila ya
-      // contiene el query, lo damos por bueno tras un breve respiro.
-      return null;
-    }, { signal, timeout, interval: 200, description: 'grid refrescado tras filter' });
-  } catch (err) {
-    // Si nada cambió, podría ser que la grid ya estaba en el estado final.
-    // Verificamos con un waitForGridReady; si falla, propagamos.
-    await waitForGridReady({ signal });
-    if (getRowCount() === 0) return; // grid vacío, manejamos arriba como not-found
-    throw err;
-  }
+  const changed = await triggerReloadAndWait(input, { signal, timeout });
   await waitForGridReady({ signal });
-  await sleep(200, signal);
+  await sleep(150, signal);
+
+  // Si el snapshot no cambió, igual aceptamos: puede que el filtro previo ya
+  // mostrara estos mismos resultados. El llamador hará findMatchingRow sobre
+  // el estado actual del grid y resolverá NOT_FOUND si hace falta.
+  return { changed, rowCount: getRowCount() };
 }
 
-/** Helper para los tests / debug: dispara Enter sobre un input explícito. */
+/** True si el input de filtro asociado al modo ya tiene este valor. */
+export function isFilterAppliedFor(searchBy, query) {
+  const selector = selectorForMode(searchBy);
+  const input = document.querySelector(selector);
+  if (!input) return false;
+  return String(input.value || '').trim() === String(query).trim();
+}
+
+/** Helper para tests / debug: dispara Enter sobre un input explícito. */
 export function __pressEnterFor(input) { pressEnter(input); }
