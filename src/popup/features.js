@@ -1,5 +1,6 @@
 import { render as renderColocarTags } from '../features/colocar-tags/popup/view.js';
 import { render as renderLeadTimes }   from '../features/lead-times/popup/view.js';
+import { render as renderCupones }     from '../features/cupones/popup/view.js';
 import { render as renderAjustes }     from '../features/ajustes/popup/view.js';
 
 export const features = [
@@ -18,6 +19,14 @@ export const features = [
     abbr: 'LT',
     keywords: ['lead', 'time', 'magento', 'comuna', 'región', 'region', 'delivery', 'despacho'],
     render: renderLeadTimes,
+  },
+  {
+    id: 'cupones',
+    name: 'Cupones',
+    description: 'Automatización sobre Cart Price Rules en Magento',
+    abbr: 'CUP',
+    keywords: ['cupon', 'cupón', 'coupon', 'cart', 'price', 'rule', 'regla', 'magento', 'promo'],
+    render: renderCupones,
   },
   {
     id: 'ajustes',

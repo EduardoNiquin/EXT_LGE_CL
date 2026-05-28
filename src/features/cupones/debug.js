@@ -1,0 +1,62 @@
+import { cmd, register } from '../../shared/debug/index.js';
+import { SELECTORS } from './constants.js';
+import { detectPage, diagnose } from './content/detector.js';
+import { getActiveFilters, getRowCount, parseListingRows } from './content/parser.js';
+import { clearRun, getRun, setRun } from './state.js';
+import { tickIfActive } from './content/flows/run.js';
+
+register('cupones', {
+  diagnose: cmd(
+    () => diagnose(),
+    'Diagnóstico de detección de página y selectores',
+  ),
+  page: cmd(
+    () => detectPage(),
+    'Detecta si la página actual es listing/edit/other',
+  ),
+  selectors: cmd(
+    () => ({ ...SELECTORS }),
+    'Mapa de selectores que usa la feature',
+  ),
+  check: cmd(
+    () => Object.fromEntries(
+      Object.entries(SELECTORS).map(([k, sel]) => [k, Boolean(document.querySelector(sel))]),
+    ),
+    'true/false por cada selector contra el DOM actual',
+  ),
+  parseRows: cmd(
+    () => parseListingRows(),
+    'Filas del grid actual (id/name/editHref/editId)',
+  ),
+  filters: cmd(
+    () => getActiveFilters(),
+    'Valor actual de los filtros del grid',
+  ),
+  rows: cmd(
+    () => ({ count: getRowCount() }),
+    'Cantidad de filas visibles en el grid',
+  ),
+  state: cmd(
+    () => getRun(),
+    'Estado persistido del run actual',
+  ),
+  stop: cmd(
+    async () => {
+      const r = await getRun();
+      if (!r) return null;
+      r.active = false;
+      r.finishReason = 'cancelled-manual';
+      await setRun(r);
+      return r;
+    },
+    'Marca el run como inactivo (no detiene un tick en vuelo)',
+  ),
+  reset: cmd(
+    async () => { await clearRun(); return 'ok'; },
+    'Borra todo el estado del run de storage',
+  ),
+  tick: cmd(
+    () => tickIfActive(),
+    'Fuerza un tick del state machine en este frame',
+  ),
+});

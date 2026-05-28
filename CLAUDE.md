@@ -167,6 +167,7 @@ El logger soporta habilitar/deshabilitar logs por scope (módulo). Cada vez que 
 - `colocar-tags:product` — flow de Tag de Producto (logs MUY detallados: snapshot por fase, estado de cada checkbox, comboboxes, etc.).
 - `colocar-tags:combobox` — driver del combobox L-* (selección de tag/group/category).
 - `lead-times` — flow Magento (state machine, parsers, filtros).
+- `cupones` — feature Cupones (content + popup + state machine, ver "Feature: Cupones").
 - `content` — content script genérico.
 - `debug` — instalación de la API de debug en `window.__extLgeCl`.
 - `popup` — popup root.
@@ -215,6 +216,7 @@ Comandos generales:
 - ✅ Sub-router de secciones dentro del popup (Lectura | Tag Delivery | Tag Producto)
 - ✅ **Feature "Lead Times":** automatización end-to-end del flujo Magento Manage Address Level 2 con state machine multi-página, persistido en `chrome.storage.local`, popup con múltiples regiones + progreso live + stop de emergencia
 - ✅ Feature "Colocar TAGs" — Tag de Producto: flow end-to-end con 1 ó 2 tags por SKU (3 selectores encadenados + type + schedule por tag), streaming por port, cancelación y persistencia
+- ✅ **Feature "Cupones"** — sección "Quitar Regla de Cupón": batch por ID o por Rule sobre Cart Price Rules (Magento legacy admin), state machine multi-página, popup con textarea + radio + progreso live + stop
 - ⏳ Pendiente: tests en `tests/unit/*.test.js`
 
 ## Comunicación popup ↔ content
@@ -435,6 +437,127 @@ src/features/lead-times/
 - Si hay múltiples tabs de Magento abiertas, el run no distingue. Hoy se asume una sola.
 - No hay reintento automático si una comuna falla; queda ERROR y se sigue con la próxima.
 - No se guarda historial de runs (sólo el último + el último config para autocomplete del form).
+
+## Feature: Cupones (Magento)
+
+Pantalla objetivo: **Cart Price Rules** (`/obsadm/sales_rule/promo_quote/index/...`) y la página de edición de cada cupón (`/obsadm/sales_rule/promo_quote/edit/id/<N>/...`). Igual que lead-times, cruza navegaciones full-page entre listing y edit.
+
+Sub-secciones (sub-router en `popup/view.js`):
+- **Quitar Regla de Cupón** — elimina TODAS las condiciones (Conditions) del bloque "Actions" del cupón y guarda. Es el único sub-flujo implementado por ahora; la estructura tabbed está lista para sumar más.
+
+**Estructura:**
+```
+src/features/cupones/
+├── constants.js              SELECTORS, STORAGE_KEYS, ITEM_STATUS, SEARCH_BY, PAGE_TYPE, EDIT_URL_RE, LISTING_URL_RE
+├── state.js                  get/set/clear/update del run + appendLog (chrome.storage.local)
+├── debug.js                  Comandos __extLgeCl.cupones.*
+├── content/
+│   ├── detector.js           detectPage() → { type: 'listing'|'edit'|'other', editId? } + diagnose()
+│   ├── parser.js             parseListingRows() / getActiveFilters() / getRowCount()
+│   ├── index.js              init() — tick inicial + listener de storage.onChanged
+│   ├── magento/
+│   │   ├── filters.js        clearFilters / applyFilter (rule_id o name) + waitForGridReady — pressEnter sintético
+│   │   └── edit-page.js      openActionsCollapsible / removeAllConditions / clickSave / leaveEditPage
+│   └── flows/
+│       └── run.js            tickIfActive() — state machine; onListing / onEdit / finalize
+└── popup/
+    ├── view.js               Sub-router (preparado para más secciones)
+    ├── utils.js              escapeHtml / formatTime / parseQueries (split por líneas/comas/;)
+    └── sections/
+        └── remove-rule.js    Form (radio ID/Rule + textarea cupones) + start/stop + progreso + log
+```
+
+**Modelo de estado (`chrome.storage.local["cupones:run"]`):**
+```ts
+{
+  active: boolean,
+  startedAt, finishedAt, finishReason?,
+  searchBy: 'id' | 'rule',
+  currentItemIndex: number,
+  items: [{
+    query: string,                          // ID o nombre tal como lo escribió el usuario
+    status: ITEM_STATUS,                    // pending|searching|editing|ok|error|not-found
+    matchedRuleId?: number,                 // id real una vez encontrado en el grid
+    matchedName?: string,                   // nombre real
+    editHref?: string,
+    removedConditions?: number,
+    savedAt?: number,
+    error?: string,
+  }],
+  log: [{ ts, level, message }],            // cap 400
+}
+```
+
+**Detección de página** (`content/detector.js`):
+- `EDIT_URL_RE = /\/sales_rule\/promo_quote\/edit\/id\/(\d+)/i` → `type: 'edit'`, `editId: N`.
+- `h1.page-title === 'Cart Price Rules'` o URL listing + grid presente → `type: 'listing'`.
+- Cualquier otra → `type: 'other'` (ignorada).
+
+**State machine** (`flows/run.js`):
+- `tickIfActive()` se invoca en `init` (tras 300 ms para dejar montar el grid legacy) y en cada `chrome.storage.onChanged` del key del run. Sólo top frame; guard de reentrancia con `running` flag.
+- **onListing:**
+  1. Si algún item quedó EDITING (volvimos del edit con save OK) → marcarlo OK + log.
+  2. Si no quedan PENDING → `finalize({ reason: 'done' })`.
+  3. Tomar el siguiente PENDING, marcarlo SEARCHING.
+  4. `waitForGridReady` → `clearFilters` (el usuario lo pidió explícitamente entre cupones) → `applyFilter({ searchBy, value })`.
+  5. `findMatchingRow(searchBy, query)`:
+     - `id` → match exacto por `ruleId` numérico; fallback: si quedó 1 sola fila, esa.
+     - `rule` → match exacto por nombre (case-insensitive, trim); fallback: si quedó 1 sola fila, esa.
+     - Si nada → NOT_FOUND + warn, próximo tick.
+  6. Match → guardar `matchedRuleId`, `matchedName`, `editHref`, marcar EDITING y `window.location.href = editHref`.
+- **onEdit:**
+  1. Buscar el item EDITING cuyo `matchedRuleId === page.editId`. Si no matchea, log warn y salir (no procesar).
+  2. `openActionsCollapsible()` — click en `div[data-index="actions"] .fieldset-wrapper-title` si `data-state-collapsible="closed"`; espera a que el árbol esté montado.
+  3. `removeAllConditions()` — loop: mientras existan `a.rule-param-remove` dentro del bloque Actions, click el primero y espera a que el conteo decrezca. Max 50 iteraciones por seguridad. Devuelve cuántas eliminó.
+  4. `clickSave()` — `blur()` previo del activeElement, luego click `#save`. Magento navega solo al listing.
+  5. **No** marcamos OK acá; lo hace el próximo tick al detectar listing (mismo patrón que lead-times: así sabemos que Magento efectivamente navegó).
+  6. En error: marcar ERROR, log y `leaveEditPage()` (limpia `window.onbeforeunload` + click `#back`).
+
+**Comunicación popup ↔ content:** únicamente vía `chrome.storage.local` + `chrome.storage.onChanged`. Mismo razonamiento que lead-times — los page reloads cerrarían cualquier port.
+
+**Quirk del grid legacy de Magento (Cart Price Rules):**
+- A diferencia del grid moderno (lead-times), los filtros son inputs inline en el `<tr class="data-grid-filters">` y **no hay botón Apply Filters**. Se aplica presionando Enter sobre el input editado.
+- `pressEnter(input)` despacha `keydown` + `keypress` + `keyup` con `key: 'Enter'`, `keyCode: 13`, `which: 13` para cubrir todas las versiones del handler (jQuery / prototype). Como red de seguridad llama `form.requestSubmit()` si el input está dentro de un form.
+- `applyFilter()` / `clearFilters()` esperan el refresh detectando cambio de snapshot del grid (`{count, firstRuleId}`) en lugar de un chip de filtro activo (el grid legacy no tiene esa señal).
+
+**Modos de búsqueda (`SEARCH_BY`):**
+- `id` — usa el input `#promo_quote_grid_filter_rule_id`. Comparación numérica exacta.
+- `rule` — usa el input `#promo_quote_grid_filter_name`. El filtro de Magento es contains, por eso el código exige match exacto (case-insensitive) o fallback a "única fila restante".
+- **No se pueden mezclar** en un mismo batch — el popup tiene radio buttons y valida que sea uno u otro. Si el usuario eligió `id` y alguna entrada no es numérica, se aborta con alert.
+
+**Eliminación de condiciones (Actions):**
+- El árbol vive en `div[data-index="actions"] .rule-tree`. Cada condición es un `<li>` con un `<a class="rule-param-remove">` ("X" rojo).
+- La condición fija que abre el árbol (`If ALL of these conditions are TRUE:`) y la opción "+" para agregar nueva NO tienen `.rule-param-remove`, así que el selector las ignora naturalmente.
+- El loop clickea siempre el primer remove visible y espera a que el conteo decrezca antes del próximo click — esto previene races con la lib `Magento_Rule/rules` (prototype/VarienRulesForm) que reescribe nodos al eliminar.
+- Anidación (combinaciones dentro de combinaciones): el selector `a.rule-param-remove` matchea cualquier profundidad. Cada click elimina su `<li>` con sus hijos.
+
+**Selectores Magento clave** (`constants.SELECTORS`):
+- `h1.page-title` → detección de listing.
+- `#promo_quote_grid_table` → tabla del grid legacy.
+- `#promo_quote_grid_filter_rule_id` / `#promo_quote_grid_filter_name` → inputs de filtro.
+- `#promo_quote_grid_table tbody tr[data-role="row"]` → filas.
+- `td[data-column="rule_id"]` / `td[data-column="name"]` → celdas con ID y Rule name.
+- `td[data-column="action"] a` → link "Edit" hacia el edit page.
+- `div[data-index="actions"]` → bloque colapsable Actions de la página de edición.
+- `div[data-index="actions"] .rule-tree a.rule-param-remove` → botones X de cada condición.
+- `#save` / `#back` → botones del page-main-actions.
+
+**MUY IMPORTANTE:** el botón `#delete` (al lado de `#save`) NUNCA se toca. El driver sólo conoce `#save`, `#back` y los `rule-param-remove`. Tampoco se toca el botón `#save_and_continue`.
+
+**Comandos debug** (todos bajo `__extLgeCl.cupones.`):
+- `diagnose()`, `page()`, `selectors()`, `check()`, `parseRows()`, `filters()`, `rows()`.
+- `state()` — devuelve el run persistido.
+- `stop()` — marca el run como inactivo (no detiene un tick en vuelo).
+- `reset()` — borra todo el storage del run.
+- `tick()` — fuerza un tick del state machine en este frame.
+
+**UI del popup:** radio `ID | Rule (nombre)` + textarea con los cupones (uno por línea o separados por coma/punto y coma), botones `Iniciar` / `Detener` / `Limpiar`, barra de progreso, lista de items con estado por cupón + el nombre real cuando se encuentra, y un `<details>` con los últimos 50 logs. Refresco live por `storage.onChanged`. Persiste `{ searchBy, rawQueries }` como último config.
+
+**Pendientes / no resueltos:**
+- Si hay múltiples tabs de Magento abiertas, el run no distingue (igual que lead-times).
+- No hay reintento automático si un cupón falla al eliminar condiciones; queda ERROR y se sigue.
+- No se guarda historial de runs (sólo el último + el último config).
+- Si el grid legacy tarda más de 15 s en refrescar tras Enter, el filtro vence con timeout.
 
 ## Distribución a otras PC corporativas
 

@@ -1009,4 +1009,22 @@ mark {
 }
 .lt-log-item--error .lt-log-msg { color: #b1251a; }
 .lt-log-item--warn  .lt-log-msg { color: #d97706; }
+
+/* Cupones — radio row */
+.cu-radio-row {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  margin: 2px 0 4px;
+}
+.cu-radio {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--gray-700);
+  cursor: pointer;
+}
+.cu-radio input[type="radio"] { margin: 0; cursor: pointer; }
+.cu-radio:has(input:disabled) { opacity: 0.55; cursor: not-allowed; }
 .lt-log-item--info  .lt-log-msg { color: var(--gray-700); }
