@@ -516,10 +516,11 @@ src/features/cupones/
 **Comunicación popup ↔ content:** únicamente vía `chrome.storage.local` + `chrome.storage.onChanged`. Mismo razonamiento que lead-times — los page reloads cerrarían cualquier port.
 
 **Quirk del grid legacy de Magento (Cart Price Rules):**
-- A diferencia del grid moderno (lead-times), los filtros son inputs inline en el `<tr class="data-grid-filters">` y **no hay botón Apply Filters**. Se aplica presionando Enter sobre el input editado.
-- **`keyCode` en KeyboardEvent moderno:** los handlers de Magento legacy (prototype.js / jQuery) verifican `event.keyCode == 13`. El constructor `new KeyboardEvent('keypress', { keyCode: 13 })` IGNORA el init dict para `keyCode`/`which` y los deja en 0 — el handler nunca dispara. Solución: `Object.defineProperty(ev, 'keyCode', { get: () => 13 })` (también `which` y `charCode`) antes de despachar. Sin este truco la grid no recarga y los items quedan como NOT_FOUND con muestra de IDs visibles del grid sin filtrar.
-- **Fallback de inyección:** si el Enter sintético no logra refresh tras 1.5 s, `triggerGridDoFilter()` inyecta un `<script>` en el page-world que llama directamente `window.promo_quote_gridJsObject.doFilter()` (o `promo_quote_grid.doFilter()`). Es necesario porque el content script vive en isolated world y no puede acceder a esos objetos directamente.
-- **Modo AJAX vs nav full-page:** Magento puede operar el grid legacy en modo AJAX (refresh en sitio) o no-AJAX (`setLocation` con filtro base64 en la URL). En modo nav el page reload corta el tick a mitad de camino y deja el item en SEARCHING. `onListing` retoma items en estado SEARCHING-sin-match al próximo tick; si el filtro ya está aplicado en los inputs (caso post-nav), `isFilterAppliedFor(searchBy, query)` retorna true y saltamos `clearFilters` + `applyFilter`, yendo directo a `findMatchingRow`.
+- El grid tiene botones reales **Search** y **Reset Filter** (sí — descubrimos que existían tras un primer intento fallido con Enter sintético). Selectores: `button[data-action="grid-filter-apply"]` y `button[data-action="grid-filter-reset"]`. Sus `onclick` (declarados inline en la página) llaman directamente a `promo_quote_gridJsObject.doFilter()` y `.resetFilter()`. Usar estos botones es lo robusto.
+- **Por qué NO usar Enter sintético:** los handlers legacy de Magento (prototype.js) verifican `event.keyCode == 13`, pero `new KeyboardEvent('keypress', { keyCode: 13 })` deja `keyCode` en 0 incluso con el init dict. Aún sobreescribiendo el getter vía `Object.defineProperty`, el handler está bound al form (no al input), y no siempre dispara. Resultado real observado: el value queda escrito en el input pero la grid no recarga, y los items terminan como NOT_FOUND con muestra de IDs del grid sin filtrar.
+- **Por qué NO inyectar `<script>`:** la CSP de Magento bloquea inline scripts (`"Executing inline script violates the following Content Security Policy directive"`). El click nativo en el botón existente sortea ese bloqueo porque el `onclick` ya está declarado en la página.
+- **Cómo clickeamos:** `el.click()` nativo, NO `dispatchEvent(MouseEvent('click'))`. Para botones legacy con `onclick = function(){ ... }` (declarados por un inline `<script>` de Magento que itera con `forEach(element => element.onclick = ...)`) el `.click()` activa el handler de manera idéntica al click real. `dispatchEvent` puede fallar silenciosamente en ese setup.
+- **Modo AJAX vs nav full-page:** Magento puede operar el grid en modo AJAX (refresh in-place) o no-AJAX (`setLocation` con el filtro en base64 en la URL). En modo nav el page reload corta el tick a mitad y deja el item en SEARCHING. `onListing` retoma items en estado `SEARCHING && !matchedRuleId` al próximo tick; si `isFilterAppliedFor(searchBy, query)` retorna true (los inputs ya muestran el query desde la URL), saltamos `clearFilters` + `applyFilter` y vamos directo a `findMatchingRow`.
 - `applyFilter()` / `clearFilters()` esperan el refresh detectando cambio de snapshot del grid (`{count, firstRuleId}`) en lugar de un chip de filtro activo (el grid legacy no tiene esa señal).
 
 **Modos de búsqueda (`SEARCH_BY`):**
@@ -530,13 +531,16 @@ src/features/cupones/
 **Eliminación de condiciones (Actions):**
 - El árbol vive en `div[data-index="actions"] .rule-tree`. Cada condición es un `<li>` con un `<a class="rule-param-remove">` ("X" rojo).
 - La condición fija que abre el árbol (`If ALL of these conditions are TRUE:`) y la opción "+" para agregar nueva NO tienen `.rule-param-remove`, así que el selector las ignora naturalmente.
-- El loop clickea siempre el primer remove visible y espera a que el conteo decrezca antes del próximo click — esto previene races con la lib `Magento_Rule/rules` (prototype/VarienRulesForm) que reescribe nodos al eliminar.
+- **Activación del handler:** `target.click()` nativo (no `dispatchEvent`). Síntoma observado con dispatchEvent: visualmente la condición se elimina **a veces** pero el listener no corre de forma consistente, y nuestro código quedaba esperando indefinidamente. `.click()` lo activa de manera idéntica al click del usuario.
+- **Detección de eliminación:** retenemos la referencia al `<li>` target antes del click y esperamos a que salga del DOM (`!document.body.contains(targetLi)`) — más confiable que contar botones porque el rule editor a veces re-renderiza el árbol completo. Caso B (fallback): si el conteo total baja respecto al snapshot pre-click, también lo damos por bueno.
 - Anidación (combinaciones dentro de combinaciones): el selector `a.rule-param-remove` matchea cualquier profundidad. Cada click elimina su `<li>` con sus hijos.
 
 **Selectores Magento clave** (`constants.SELECTORS`):
 - `h1.page-title` → detección de listing.
 - `#promo_quote_grid_table` → tabla del grid legacy.
 - `#promo_quote_grid_filter_rule_id` / `#promo_quote_grid_filter_name` → inputs de filtro.
+- `button[data-action="grid-filter-apply"]` → botón **Search** (dispara `doFilter()`).
+- `button[data-action="grid-filter-reset"]` → botón **Reset Filter** (dispara `resetFilter()`).
 - `#promo_quote_grid_table tbody tr[data-role="row"]` → filas.
 - `td[data-column="rule_id"]` / `td[data-column="name"]` → celdas con ID y Rule name.
 - `td[data-column="action"] a` → link "Edit" hacia el edit page.

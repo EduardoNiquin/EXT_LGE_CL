@@ -33,47 +33,59 @@ export async function openActionsCollapsible({ signal, timeout = 10000 } = {}) {
 }
 
 /**
- * Cuenta cuántos botones de remove visibles (no en displays inactivos) hay en
- * el árbol de condiciones de Actions. Sólo los `<a>` directamente clicables.
+ * Cuenta cuántos botones de remove hay en el árbol de condiciones de Actions.
  */
 function countRemoveButtons() {
   return document.querySelectorAll(SELECTORS.ruleRemoveButton).length;
 }
 
 /**
- * Elimina todas las condiciones del bloque Actions clickeando cada botón "X".
- * Devuelve la cantidad efectivamente eliminada.
+ * Elimina todas las condiciones del bloque Actions. Devuelve la cantidad
+ * efectivamente eliminada.
  *
- * Diseño: en cada iteración tomamos el primer remove visible, contamos antes
- * de clickear y esperamos a que el conteo baje. Esto evita race conditions con
- * el código del rule editor de Magento, que reescribe nodos del DOM tras cada
- * eliminación. Hard cap por seguridad.
+ * Diseño robusto contra el rule editor de Magento (VarienRulesForm / prototype.js):
+ *
+ *   1. Para activar el handler del `<a class="rule-param-remove">` usamos
+ *      `target.click()` nativo, NO `dispatchEvent(MouseEvent('click'))`. El
+ *      handler está bound al elemento por prototype.js — el dispatch sintético
+ *      no siempre lo dispara (síntoma observado: la condición se ve eliminada
+ *      en una primera prueba pero el listener no corre, y la siguiente vez no
+ *      se elimina nada). `.click()` activa el comportamiento completo del
+ *      navegador, incluyendo `onclick=` inline y listeners observados.
+ *
+ *   2. Para detectar que la eliminación efectivamente ocurrió, retenemos una
+ *      referencia al `<li>` target ANTES de clickear y esperamos a que salga
+ *      del DOM. Es más confiable que contar botones: el rule editor a veces
+ *      re-renderiza el árbol completo y un conteo basado en `querySelectorAll`
+ *      puede transitar por valores intermedios confusos.
  */
 export async function removeAllConditions({ signal, maxIterations = 50 } = {}) {
   let removed = 0;
   let safety = maxIterations;
 
   while (safety-- > 0) {
-    const remaining = countRemoveButtons();
-    if (remaining === 0) return removed;
-
     const target = document.querySelector(SELECTORS.ruleRemoveButton);
     if (!target) return removed;
+    const targetLi = target.closest('li');
+    const totalBefore = countRemoveButtons();
 
-    clickEl(target);
+    try { target.click(); }
+    catch { /* fallback al synthetic dispatch */ clickEl(target); }
 
-    // Esperar a que el conteo decrezca. Si pasa el timeout, asumimos que el
-    // remove no surtió efecto y abortamos para no quedar en loop.
     try {
       await waitFor(() => {
-        const now = countRemoveButtons();
-        return now < remaining ? now : null;
-      }, { signal, timeout: 4000, interval: 100, description: 'condición eliminada del árbol' });
+        // Caso A: el <li> específico salió del DOM (eliminación in-place).
+        if (targetLi && !document.body.contains(targetLi)) return true;
+        // Caso B (defensivo): el árbol se re-renderizó completo y el conteo
+        // total bajó respecto del snapshot pre-click.
+        if (countRemoveButtons() < totalBefore) return true;
+        return null;
+      }, { signal, timeout: 6000, interval: 120, description: 'condición eliminada del árbol' });
     } catch (err) {
       throw new Error(`Falló al eliminar condición #${removed + 1}: ${err.message}`, { cause: err });
     }
     removed += 1;
-    await sleep(80, signal);
+    await sleep(120, signal);
   }
 
   if (countRemoveButtons() > 0) {
@@ -93,7 +105,11 @@ export async function clickSave({ signal } = {}) {
   // blur del activo: cualquier input con focus podría tener un commit perezoso
   // pendiente que dispara un dirty-check espurio si no lo cerramos antes.
   try { document.activeElement?.blur?.(); } catch { /* no-op */ }
-  clickEl(btn);
+  // .click() nativo activa el onclick handler que la página atribuye al
+  // botón Save (vía Knockout/jQuery). Más confiable que dispatchEvent para
+  // botones legacy. clickEl como fallback ante navegadores raros.
+  try { btn.click(); }
+  catch { clickEl(btn); }
   await sleep(200, signal);
 }
 

@@ -41,16 +41,18 @@ export const LISTING_URL_RE = /\/sales_rule\/promo_quote\/(index|grid)?/i;
 
 export const SELECTORS = {
   // Listing
-  pageTitle:        'h1.page-title',
-  gridTable:        '#promo_quote_grid_table',
-  filterRuleId:     '#promo_quote_grid_filter_rule_id',
-  filterName:       '#promo_quote_grid_filter_name',
-  filterCouponCode: '#promo_quote_grid_filter_coupon_code',
-  gridRow:          '#promo_quote_grid_table tbody tr[data-role="row"]',
-  rowEditLink:      'td[data-column="action"] a',
-  rowRuleIdCell:    'td[data-column="rule_id"]',
-  rowNameCell:      'td[data-column="name"]',
-  loadingMask:      '#loading-mask, .loading-mask, .admin__data-grid-loading-mask',
+  pageTitle:           'h1.page-title',
+  gridTable:           '#promo_quote_grid_table',
+  filterRuleId:        '#promo_quote_grid_filter_rule_id',
+  filterName:          '#promo_quote_grid_filter_name',
+  filterCouponCode:    '#promo_quote_grid_filter_coupon_code',
+  filterSearchButton:  'button[data-action="grid-filter-apply"]',
+  filterResetButton:   'button[data-action="grid-filter-reset"]',
+  gridRow:             '#promo_quote_grid_table tbody tr[data-role="row"]',
+  rowEditLink:         'td[data-column="action"] a',
+  rowRuleIdCell:       'td[data-column="rule_id"]',
+  rowNameCell:         'td[data-column="name"]',
+  loadingMask:         '#loading-mask, .loading-mask, .admin__data-grid-loading-mask',
 
   // Edit
   actionsBlock:        'div[data-index="actions"]',
