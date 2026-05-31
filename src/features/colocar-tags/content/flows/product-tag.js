@@ -147,14 +147,24 @@ export async function applyProductTags(args) {
     const tagIndex = i + 1;
     const typeSel = await waitForElement(PT.typeSel(tagIndex), { signal });
     const before = typeSel.value;
-    setSelectValue(typeSel, tags[i].type);
-    log.info(`FASE 2 — Tag ${tagIndex} Type re-aplicado`, {
-      before,
-      target: tags[i].type,
-      after: typeSel.value,
-      options: Array.from(typeSel.options).map((o) => o.value),
-      pointerEvents: typeSel.style.pointerEvents || '<default>',
-    });
+    const targetType = tags[i].type;
+    const typeOptions = Array.from(typeSel.options).map((o) => o.value);
+    
+    // Si la opción no existe (o el select está vacío), continuamos sin fallar
+    if (typeOptions.includes(targetType)) {
+      setSelectValue(typeSel, targetType);
+      log.info(`FASE 2 — Tag ${tagIndex} Type re-aplicado`, {
+        before,
+        target: targetType,
+        after: typeSel.value,
+        options: typeOptions,
+        pointerEvents: typeSel.style.pointerEvents || '<default>',
+      });
+    } else {
+      log.warn(`FASE 2 — Tag ${tagIndex} Type omitido, la opción '${targetType}' no está disponible`, {
+        availableOptions: typeOptions
+      });
+    }
   }
 
   // FASE 3: marcar los checkboxes de fila al final, en orden, con respiro
@@ -291,14 +301,22 @@ async function fillTagRow({ tagIndex, tag, userType, onStep, signal }) {
   onStep(STEPS.PROD_TYPE, { tagIndex, type });
   const typeSel = await waitForElement(PT.typeSel(tagIndex), { signal });
   const typeBefore = typeSel.value;
-  setSelectValue(typeSel, type);
-  log.debug(`fila ${tagIndex} → type`, {
-    before: typeBefore,
-    target: type,
-    after: typeSel.value,
-    options: Array.from(typeSel.options).map((o) => o.value + (o.hidden ? '(hidden)' : '')),
-    pointerEvents: typeSel.style.pointerEvents || '<default>',
-  });
+  const typeOptions = Array.from(typeSel.options).map((o) => o.value + (o.hidden ? '(hidden)' : ''));
+  
+  if (Array.from(typeSel.options).some(o => o.value === type)) {
+    setSelectValue(typeSel, type);
+    log.debug(`fila ${tagIndex} → type`, {
+      before: typeBefore,
+      target: type,
+      after: typeSel.value,
+      options: typeOptions,
+      pointerEvents: typeSel.style.pointerEvents || '<default>',
+    });
+  } else {
+    log.warn(`fila ${tagIndex} → type omitido, la opción '${type}' no está disponible`, {
+      availableOptions: typeOptions
+    });
+  }
 
   // 5. User Type — siempre "ALL" salvo override (el visible es `select#useTypeN`)
   onStep(STEPS.PROD_USER_TYPE, { tagIndex, userType });
