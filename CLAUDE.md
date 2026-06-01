@@ -110,6 +110,7 @@ src/features/<feature-id>/
 │   └── flows/                Orquestación de pasos del dominio
 │       ├── search-product.js sku → Search → fila exacta → Edit → modal abierto
 │       ├── delivery-tag.js   Aplica Tag de Delivery dentro del modal + STG + PROD
+│       ├── remove-delivery-tag.js  Quita (desactiva) el Tag de Delivery + STG + PROD
 │       ├── product-tag.js    Aplica 1-2 Product Tags dentro del modal + STG + PROD
 │       └── offer-tag.js      Aplica 1-4 Tags de Oferta dentro del modal + STG + PROD
 └── popup/
@@ -118,6 +119,7 @@ src/features/<feature-id>/
     └── sections/             Una sub-vista por archivo
         ├── reader.js         Lectura de pantalla (filtros + grid)
         ├── delivery-tag.js   Form + port + progreso + persistencia
+        ├── remove-delivery-tag.js  Form (sólo SKUs + skipProd) + port + progreso
         ├── product-tag.js    Form (1-2 tags) + port + progreso + persistencia
         └── offer-tag.js      Form (4 ofertas) + port + progreso + persistencia
 ```
@@ -169,6 +171,7 @@ El logger soporta habilitar/deshabilitar logs por scope (módulo). Cada vez que 
 - `colocar-tags` — handler central del feature (content script).
 - `colocar-tags:product` — flow de Tag de Producto (logs MUY detallados: snapshot por fase, estado de cada checkbox, comboboxes, etc.).
 - `colocar-tags:offer` — flow de Tag de Oferta (snapshot de las 4 filas pre-fill/pre-save, estado de row chk / use / fechas por oferta).
+- `colocar-tags:delivery-remove` — flow Quitar Tag de Delivery (desmarca Use + marca row chk + save).
 - `colocar-tags:combobox` — driver del combobox L-* (selección de tag/group/category).
 - `lead-times` — flow Magento (state machine, parsers, filtros).
 - `cupones` — feature Cupones (content + popup + state machine, ver "Feature: Cupones").
@@ -217,7 +220,7 @@ Comandos generales:
 - ✅ Feature "Colocar TAGs" — etapa 2 (Tag de Delivery): flow end-to-end con streaming por port, persistencia de config, progreso por SKU, cancelación
 - ✅ Capa `shared/dom` con primitivas reutilizables (`waitFor`, `setInputValue`, `clickEl`, `setChecked`, etc.)
 - ✅ Driver del UI L-* de GP1 (`modal`, `messagebox`, `combobox`) aislado del flow
-- ✅ Sub-router de secciones dentro del popup (Lectura | Tag Delivery | Tag Producto | Tag Oferta)
+- ✅ Sub-router de secciones dentro del popup (Lectura | Tag Delivery | Quitar Delivery | Tag Producto | Tag Oferta)
 - ✅ **Feature "Lead Times":** automatización end-to-end del flujo Magento Manage Address Level 2 con state machine multi-página, persistido en `chrome.storage.local`, popup con múltiples regiones + progreso live + stop de emergencia
 - ✅ Feature "Colocar TAGs" — Tag de Producto: flow end-to-end con 1 ó 2 tags por SKU (3 selectores encadenados + type + schedule por tag), streaming por port, cancelación y persistencia
 - ✅ Feature "Colocar TAGs" — Tag de Oferta: flow end-to-end con 1 a 4 ofertas por SKU (Gift/Discount/Coupon/Truck → row chk + use + descripción + rango de fechas), streaming por port, cancelación y persistencia
@@ -267,6 +270,16 @@ Pantalla objetivo: **Marketing Info Mapping** dentro de GP1 (SPA).
 - Confirm STG/PROD: "all selected rows of information"
 - Success STG: "successfully saved to STG"
 - Success PROD: "successfully saved to PROD"
+
+**Quitar Tag de Delivery — flujo:**
+
+Operación inversa al Tag de Delivery: en vez de aplicarlo, lo **desactiva**. Flujo (`flows/remove-delivery-tag.js → removeDeliveryTag`):
+1. Popup recolecta sólo `skus[]` + `skipProd`. Port `colocar-tags:delivery-remove-run`. Persiste `{ skipProd }`.
+2. Por SKU: `searchProductBySku(sku)` (igual que los demás flujos) y luego:
+   - Marca `#deliveryTagChk` (row chk → dirty trigger / inclusión en el save).
+   - **Desmarca** `#deliveryTagUseFlag` (deja el tag inactivo).
+   - `SAVE TO STG` → confirm YES → ack OK. Si `!skipProd`: SAVE PROD + confirm + ack.
+3. No se toca el combobox del tag ni las fechas: sólo se desactiva lo que el producto ya tuviera. Mismo protocolo de progreso por SKU. Reusa el loop `runSkuBatch` (runner `DELIVERY_REMOVE_RUN`).
 
 **Tag de Producto — flujo (etapa 3):**
 
@@ -325,7 +338,7 @@ Pantalla objetivo: **Marketing Info Mapping** dentro de GP1 (SPA).
 - Si un producto ya tiene 2 tags y se manda 1 nuevo, el 2° se sobrescribe (queda sólo el 1° nuevo). Comportamiento del sistema, no del flow.
 - Si se mandan 2 tags, se aplican en orden (1 → 2). El flow ya cumple esto.
 
-**Reorganización del handler `content/index.js`:** los tres puertos (`DELIVERY_RUN`, `PRODUCT_RUN` y `OFFER_RUN`) comparten el mismo loop `runSkuBatch`, parametrizado vía `PORT_RUNNERS[port.name].runPerSku`. Esto evita duplicar manejo de SkuNotFoundError, WaitAbortedError y reporting de progress.
+**Reorganización del handler `content/index.js`:** los cuatro puertos (`DELIVERY_RUN`, `DELIVERY_REMOVE_RUN`, `PRODUCT_RUN` y `OFFER_RUN`) comparten el mismo loop `runSkuBatch`, parametrizado vía `PORT_RUNNERS[port.name].runPerSku`. Esto evita duplicar manejo de SkuNotFoundError, WaitAbortedError y reporting de progress.
 
 **Tag de Oferta — flujo (etapa 4):**
 

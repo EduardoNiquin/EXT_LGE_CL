@@ -6,9 +6,10 @@ export const MESSAGES = {
 
 // Puertos long-lived para flujos con streaming de progreso.
 export const PORTS = {
-  DELIVERY_RUN: 'colocar-tags:delivery-run',
-  PRODUCT_RUN:  'colocar-tags:product-run',
-  OFFER_RUN:    'colocar-tags:offer-run',
+  DELIVERY_RUN:        'colocar-tags:delivery-run',
+  DELIVERY_REMOVE_RUN: 'colocar-tags:delivery-remove-run',
+  PRODUCT_RUN:         'colocar-tags:product-run',
+  OFFER_RUN:           'colocar-tags:offer-run',
 };
 
 // Tipos de mensaje que viajan por el puerto DELIVERY_RUN.
@@ -39,6 +40,16 @@ export const STEPS = {
   DELIV_SAVE_PROD:    'save-prod',
   DELIV_CONFIRM_PROD: 'confirm-prod',
   DELIV_ACK_PROD:     'ack-prod',
+
+  // Quitar Tag de Delivery — desmarca Use + marca row chk + save.
+  DELREM_CHECK_ROW:    'delrem-check-row',
+  DELREM_UNCHECK_USE:  'delrem-uncheck-use',
+  DELREM_SAVE_STG:     'delrem-save-stg',
+  DELREM_CONFIRM_STG:  'delrem-confirm-stg',
+  DELREM_ACK_STG:      'delrem-ack-stg',
+  DELREM_SAVE_PROD:    'delrem-save-prod',
+  DELREM_CONFIRM_PROD: 'delrem-confirm-prod',
+  DELREM_ACK_PROD:     'delrem-ack-prod',
 
   // Product Tag — pasos por cada uno de los hasta 2 tags por SKU. `detail.tagIndex`
   // (1 o 2) acompaña a cada uno de los progress, para que el popup pueda mostrar

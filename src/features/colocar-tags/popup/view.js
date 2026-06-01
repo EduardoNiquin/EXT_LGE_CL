@@ -2,16 +2,18 @@
 // separado en src/features/colocar-tags/popup/sections/.
 // Para sumar una sección nueva: crear su archivo en sections/, agregarla
 // al array SECTIONS, listo.
-import * as reader      from './sections/reader.js';
-import * as deliveryTag from './sections/delivery-tag.js';
-import * as productTag  from './sections/product-tag.js';
-import * as offerTag    from './sections/offer-tag.js';
+import * as reader         from './sections/reader.js';
+import * as deliveryTag    from './sections/delivery-tag.js';
+import * as removeDelivery from './sections/remove-delivery-tag.js';
+import * as productTag     from './sections/product-tag.js';
+import * as offerTag       from './sections/offer-tag.js';
 
 const SECTIONS = [
-  { id: 'reader',       label: 'Lectura',         render: reader.render },
-  { id: 'delivery-tag', label: 'Tag de Delivery', render: deliveryTag.render },
-  { id: 'product-tag',  label: 'Tag de Producto', render: productTag.render },
-  { id: 'offer-tag',    label: 'Tag de Oferta',   render: offerTag.render },
+  { id: 'reader',         label: 'Lectura',         render: reader.render },
+  { id: 'delivery-tag',   label: 'Tag de Delivery', render: deliveryTag.render },
+  { id: 'delivery-remove', label: 'Quitar Delivery', render: removeDelivery.render },
+  { id: 'product-tag',    label: 'Tag de Producto', render: productTag.render },
+  { id: 'offer-tag',      label: 'Tag de Oferta',   render: offerTag.render },
 ];
 
 const DEFAULT_SECTION = 'delivery-tag';

@@ -3,6 +3,7 @@ import { diagnose } from './detector.js';
 import { parsePage } from './parser.js';
 import { searchProductBySku, SkuNotFoundError } from './flows/search-product.js';
 import { applyDeliveryTag } from './flows/delivery-tag.js';
+import { removeDeliveryTag } from './flows/remove-delivery-tag.js';
 import { applyProductTags } from './flows/product-tag.js';
 import { applyOfferTags } from './flows/offer-tag.js';
 import { ComboboxOptionNotFoundError } from './gp1/combobox.js';
@@ -66,6 +67,14 @@ const PORT_RUNNERS = {
       await applyDeliveryTag({
         tagLabel, beginDay, beginTime, endDay, endTime, skipProd, userType, signal, onStep,
       });
+    },
+  },
+  [PORTS.DELIVERY_REMOVE_RUN]: {
+    label: 'delivery-remove',
+    runPerSku: async ({ config, sku, signal, onStep }) => {
+      const { skipProd = true } = config;
+      await searchProductBySku({ sku, signal, onStep });
+      await removeDeliveryTag({ skipProd, signal, onStep });
     },
   },
   [PORTS.PRODUCT_RUN]: {
