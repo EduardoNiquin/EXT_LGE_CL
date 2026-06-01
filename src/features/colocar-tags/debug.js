@@ -1,9 +1,10 @@
 import { register, cmd } from '../../shared/debug/index.js';
-import { SELECTORS, DELIVERY_DEFAULTS, PRODUCT_TAG_SELECTORS } from './constants.js';
+import { SELECTORS, DELIVERY_DEFAULTS, PRODUCT_TAG_SELECTORS, OFFER_SELECTORS, OFFER_MAX } from './constants.js';
 import { diagnose } from './content/detector.js';
 import { parsePage } from './content/parser.js';
 import { searchProductBySku, findRowBySalesModel } from './content/flows/search-product.js';
 import { applyDeliveryTag } from './content/flows/delivery-tag.js';
+import { applyOfferTags } from './content/flows/offer-tag.js';
 import { isMarketingModalOpen, getMarketingModal } from './content/gp1/modal.js';
 import { getTopMessagebox, getMessageboxBodyText } from './content/gp1/messagebox.js';
 
@@ -140,5 +141,47 @@ register('colocarTags', {
       return applyDeliveryTag({ tagLabel, beginDay, beginTime, endDay, endTime, skipProd, onStep });
     },
     'runDelivery({sku, beginDay, beginTime, endDay, endTime, tagLabel?, skipProd?}) — 1 SKU end-to-end',
+  ),
+
+  // --- inspección / runner del flow Offer ---
+  checkOfferRow: cmd(
+    (i = 1) => Object.fromEntries(
+      Object.entries(OFFER_SELECTORS)
+        .map(([k, fn]) => [k, { selector: fn(i), present: Boolean(document.querySelector(fn(i))) }]),
+    ),
+    'checkOfferRow(1..4) — estado de los selectores de la fila i de Tag de Oferta',
+  ),
+  snapshotOfferTags: cmd(
+    () => {
+      const rows = [];
+      for (let i = 1; i <= OFFER_MAX; i++) {
+        const get = (sel) => document.querySelector(sel);
+        const chk   = get(OFFER_SELECTORS.rowChk(i));
+        const flag  = get(OFFER_SELECTORS.useFlag(i));
+        const msg   = get(OFFER_SELECTORS.msg(i));
+        const start = get(OFFER_SELECTORS.startDate(i));
+        const end   = get(OFFER_SELECTORS.endDate(i));
+        rows.push({
+          offerIndex:  i,
+          rowChk:      chk   ? chk.checked  : '<missing>',
+          use:         flag  ? flag.checked : '<missing>',
+          description: msg   ? msg.value    : '<missing>',
+          startDate:   start ? start.value  : '<missing>',
+          endDate:     end   ? end.value    : '<missing>',
+        });
+      }
+      console.table(rows);
+      return rows;
+    },
+    'snapshotOfferTags() — snapshot de las 4 filas de Tag de Oferta (DOM actual)',
+  ),
+  runOffer: cmd(
+    async (opts = {}) => {
+      const { sku, offers, skipProd = true } = opts;
+      const onStep = (s, d) => console.log('[step]', s, d || '');
+      await searchProductBySku({ sku, onStep });
+      return applyOfferTags({ offers, skipProd, onStep });
+    },
+    'runOffer({sku, offers:[{index,use,description,startDate,endDate}], skipProd?}) — 1 SKU end-to-end',
   ),
 });

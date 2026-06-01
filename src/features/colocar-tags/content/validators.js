@@ -33,3 +33,21 @@ export function validateDateTimeRange({ prefix, beginDay, beginTime, endDay, end
     throw new Error(`${where}el inicio (${beginDay} ${beginTime}) es posterior al fin (${endDay} ${endTime})`);
   }
 }
+
+/**
+ * Igual que `validateDateTimeRange` pero para rangos de SOLO fecha (sin hora),
+ * como los de Tag de Oferta. Valida formato YYYY-MM-DD y que start ≤ end.
+ *
+ * @param {object} args
+ * @param {string} args.prefix
+ * @param {string} args.startDate  YYYY-MM-DD
+ * @param {string} args.endDate    YYYY-MM-DD
+ */
+export function validateDateRange({ prefix, startDate, endDate }) {
+  const where = prefix ? `${prefix}: ` : '';
+  if (!isValidDate(startDate)) throw new Error(`${where}startDate debe ser YYYY-MM-DD (recibido: "${startDate}")`);
+  if (!isValidDate(endDate))   throw new Error(`${where}endDate debe ser YYYY-MM-DD (recibido: "${endDate}")`);
+  if (startDate > endDate) {
+    throw new Error(`${where}startDate (${startDate}) es posterior a endDate (${endDate})`);
+  }
+}

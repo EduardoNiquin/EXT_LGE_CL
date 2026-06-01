@@ -794,6 +794,37 @@ mark {
   font-size: 11px;
 }
 
+/* === Offer Tag cards === */
+.dt-hint {
+  margin: 0;
+  font-size: 11px;
+  color: var(--gray-600);
+}
+
+.of-card-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  user-select: none;
+  width: 100%;
+}
+.of-card-toggle input { margin: 0; }
+.of-card-toggle .pt-card-title { color: var(--ink, var(--accent)); }
+
+/* Una oferta no activada colapsa su cuerpo y se atenúa. */
+.of-card--off .of-card-body {
+  display: none;
+}
+.of-card--off .pt-card-title {
+  color: var(--gray-500);
+}
+.of-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
 /* ────────────────────────────────────────────────
    Feature: Lead Times
    ──────────────────────────────────────────────── */

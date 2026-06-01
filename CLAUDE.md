@@ -109,14 +109,17 @@ src/features/<feature-id>/
 │   │   └── combobox.js       selectComboboxOption(input, button, listbox, label)
 │   └── flows/                Orquestación de pasos del dominio
 │       ├── search-product.js sku → Search → fila exacta → Edit → modal abierto
-│       └── delivery-tag.js   Aplica Tag de Delivery dentro del modal + STG + PROD
+│       ├── delivery-tag.js   Aplica Tag de Delivery dentro del modal + STG + PROD
+│       ├── product-tag.js    Aplica 1-2 Product Tags dentro del modal + STG + PROD
+│       └── offer-tag.js      Aplica 1-4 Tags de Oferta dentro del modal + STG + PROD
 └── popup/
     ├── view.js               Sub-router del feature (tabs entre secciones)
     ├── utils.js              Helpers comunes (escapeHtml, etc.)
     └── sections/             Una sub-vista por archivo
         ├── reader.js         Lectura de pantalla (filtros + grid)
         ├── delivery-tag.js   Form + port + progreso + persistencia
-        └── product-tag.js    Placeholder
+        ├── product-tag.js    Form (1-2 tags) + port + progreso + persistencia
+        └── offer-tag.js      Form (4 ofertas) + port + progreso + persistencia
 ```
 
 **Capa shared/dom** — primitivas DOM genéricas reutilizables por cualquier feature:
@@ -165,6 +168,7 @@ El logger soporta habilitar/deshabilitar logs por scope (módulo). Cada vez que 
 **Scopes actuales:**
 - `colocar-tags` — handler central del feature (content script).
 - `colocar-tags:product` — flow de Tag de Producto (logs MUY detallados: snapshot por fase, estado de cada checkbox, comboboxes, etc.).
+- `colocar-tags:offer` — flow de Tag de Oferta (snapshot de las 4 filas pre-fill/pre-save, estado de row chk / use / fechas por oferta).
 - `colocar-tags:combobox` — driver del combobox L-* (selección de tag/group/category).
 - `lead-times` — flow Magento (state machine, parsers, filtros).
 - `cupones` — feature Cupones (content + popup + state machine, ver "Feature: Cupones").
@@ -213,9 +217,10 @@ Comandos generales:
 - ✅ Feature "Colocar TAGs" — etapa 2 (Tag de Delivery): flow end-to-end con streaming por port, persistencia de config, progreso por SKU, cancelación
 - ✅ Capa `shared/dom` con primitivas reutilizables (`waitFor`, `setInputValue`, `clickEl`, `setChecked`, etc.)
 - ✅ Driver del UI L-* de GP1 (`modal`, `messagebox`, `combobox`) aislado del flow
-- ✅ Sub-router de secciones dentro del popup (Lectura | Tag Delivery | Tag Producto)
+- ✅ Sub-router de secciones dentro del popup (Lectura | Tag Delivery | Tag Producto | Tag Oferta)
 - ✅ **Feature "Lead Times":** automatización end-to-end del flujo Magento Manage Address Level 2 con state machine multi-página, persistido en `chrome.storage.local`, popup con múltiples regiones + progreso live + stop de emergencia
 - ✅ Feature "Colocar TAGs" — Tag de Producto: flow end-to-end con 1 ó 2 tags por SKU (3 selectores encadenados + type + schedule por tag), streaming por port, cancelación y persistencia
+- ✅ Feature "Colocar TAGs" — Tag de Oferta: flow end-to-end con 1 a 4 ofertas por SKU (Gift/Discount/Coupon/Truck → row chk + use + descripción + rango de fechas), streaming por port, cancelación y persistencia
 - ✅ **Feature "Cupones"** — sección "Quitar Regla de Cupón": batch por ID o por Rule sobre Cart Price Rules (Magento legacy admin), state machine multi-página, popup con textarea + radio + progreso live + stop
 - ⏳ Pendiente: tests en `tests/unit/*.test.js`
 
@@ -320,7 +325,32 @@ Pantalla objetivo: **Marketing Info Mapping** dentro de GP1 (SPA).
 - Si un producto ya tiene 2 tags y se manda 1 nuevo, el 2° se sobrescribe (queda sólo el 1° nuevo). Comportamiento del sistema, no del flow.
 - Si se mandan 2 tags, se aplican en orden (1 → 2). El flow ya cumple esto.
 
-**Reorganización del handler `content/index.js`:** ambos puertos (`DELIVERY_RUN` y `PRODUCT_RUN`) comparten el mismo loop `runSkuBatch`, parametrizado vía `PORT_RUNNERS[port.name].runPerSku`. Esto evita duplicar manejo de SkuNotFoundError, WaitAbortedError y reporting de progress.
+**Reorganización del handler `content/index.js`:** los tres puertos (`DELIVERY_RUN`, `PRODUCT_RUN` y `OFFER_RUN`) comparten el mismo loop `runSkuBatch`, parametrizado vía `PORT_RUNNERS[port.name].runPerSku`. Esto evita duplicar manejo de SkuNotFoundError, WaitAbortedError y reporting de progress.
+
+**Tag de Oferta — flujo (etapa 4):**
+
+Pantalla objetivo: la tabla **"Additional Disclaimer Text"** dentro del mismo modal MIM (`#dialog2`). Son **4 filas fijas** por tipo de oferta, en orden por índice (1=Gift, 2=Discount, 3=Coupon, 4=Truck). La columna "Icon" sólo muestra ícono + nombre (read-only); el **índice de fila** determina el tipo, no se parsea texto. El usuario puede aplicar de 1 a 4 ofertas.
+
+Estructura del DOM de cada fila N (prefijo `obsAdditionalDisclaimerText`, ver `OFFER_SELECTORS` en `constants.js`):
+- `${prefix}${N}Chk` — checkbox de **selección de fila** ("row chk"). Marcarlo es lo que GP1 usa para detectar que la fila cambió e incluirla en el save (el dirty trigger del flujo de oferta — confirmado en Pedida.md).
+- `${prefix}${N}Flag` — checkbox **"Use"** (activa/desactiva la oferta).
+- `${prefix}${N}Msg` — input de texto **"Description"**.
+- `${prefix}${N}StartDate` / `${prefix}${N}EndDate` — inputs de fecha **YYYY-MM-DD, SIN hora** (datepickers `datePick`).
+
+1. Popup recolecta: `skus[]` + las ofertas activadas, cada una `{ index, label, use, description, startDate, endDate }`, más `skipProd` global. Persiste el estado completo de las 4 ofertas en `chrome.storage.local` (key `colocar-tags:offer:last-config`) para repoblar el form.
+2. Popup abre port `colocar-tags:offer-run` con `START + config`.
+3. Content (frame que detecta MIM) itera SKUs:
+   - `searchProductBySku(sku)` — idéntico a Delivery/Product.
+   - `applyOfferTags({ offers, skipProd })` por cada oferta, en orden de índice:
+     1. Marca el row chk (`...Chk`) — **siempre**, es el dirty trigger.
+     2. Setea el checkbox "Use" (`...Flag`) según el toggle del usuario.
+     3. Setea la Description (`...Msg`) si vino.
+     4. Setea Start/End Date (`...StartDate`/`...EndDate`) si vinieron, vía `setDateOnlyRange` (variante sólo-fecha de `gp1/daterange.js`, mismo sentinel `2099-12-31` para no rebotar contra la constraint "From ≤ To").
+   - Click `SAVE TO STG` → confirm YES → ack OK (con el mismo retry ante "No changes were made." que Product Tag, como defensa en profundidad).
+   - Si `!skipProd`: SAVE PROD + confirm + ack. GP1 cierra el modal solo tras el último OK.
+4. Mismo protocolo de progreso por SKU; los pasos llevan `detail.offerIndex` / `detail.offerLabel` para que el popup pinte "Gift — Setteando fechas", etc.
+
+**Validación de oferta (popup + `validateOffers` en el flow):** si la oferta queda activa (`use` marcado), se exigen Description + Start + End Date. Si `use` está desmarcado (desactivar una oferta existente), las fechas/descripción son opcionales. Las fechas usan `validateDateRange` (sólo fecha, start ≤ end) en `content/validators.js`.
 
 **Comandos debug expuestos** (todos bajo `__extLgeCl.colocarTags.`):
 - `diagnose()` — diagnóstico completo del frame.
@@ -332,8 +362,9 @@ Pantalla objetivo: **Marketing Info Mapping** dentro de GP1 (SPA).
 - `selectors()` — copia del mapa de selectores.
 - `checkProductTagRow(i)` — estado de los selectores de la fila i (1 o 2).
 - `snapshotProductTags()` — **muy útil para debug del "No changes were made.":** imprime `console.table` con el estado completo de ambas filas (rowChk, category, group, tag, type, useFlag, userType, fechas). Llamarlo a mano en la consola DESPUÉS de que el flow termine para inspeccionar qué quedó vs qué se esperaba.
-
-Pendiente etapa 2: documentar el flujo de cómo se aplican los tags (el usuario lo va a explicar).
+- `checkOfferRow(i)` — estado de los selectores de la fila i (1..4) de Tag de Oferta.
+- `snapshotOfferTags()` — `console.table` con el estado de las 4 filas de oferta (rowChk, use, description, startDate, endDate).
+- `runOffer({sku, offers, skipProd?})` — corre 1 SKU end-to-end loguendo por consola.
 
 ## Feature: Lead Times (Magento)
 

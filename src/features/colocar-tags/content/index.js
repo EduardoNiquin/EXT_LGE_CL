@@ -4,6 +4,7 @@ import { parsePage } from './parser.js';
 import { searchProductBySku, SkuNotFoundError } from './flows/search-product.js';
 import { applyDeliveryTag } from './flows/delivery-tag.js';
 import { applyProductTags } from './flows/product-tag.js';
+import { applyOfferTags } from './flows/offer-tag.js';
 import { ComboboxOptionNotFoundError } from './gp1/combobox.js';
 import { isMarketingModalOpen, waitForModalClosed } from './gp1/modal.js';
 import { waitForNoMessagebox, clickMessageboxButton, getTopMessagebox } from './gp1/messagebox.js';
@@ -73,6 +74,14 @@ const PORT_RUNNERS = {
       const { tags, skipProd = true, userType = 'ALL' } = config;
       await searchProductBySku({ sku, signal, onStep });
       await applyProductTags({ tags, skipProd, userType, signal, onStep });
+    },
+  },
+  [PORTS.OFFER_RUN]: {
+    label: 'offer',
+    runPerSku: async ({ config, sku, signal, onStep }) => {
+      const { offers, skipProd = true } = config;
+      await searchProductBySku({ sku, signal, onStep });
+      await applyOfferTags({ offers, skipProd, signal, onStep });
     },
   },
 };

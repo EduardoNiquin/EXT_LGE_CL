@@ -8,6 +8,7 @@ export const MESSAGES = {
 export const PORTS = {
   DELIVERY_RUN: 'colocar-tags:delivery-run',
   PRODUCT_RUN:  'colocar-tags:product-run',
+  OFFER_RUN:    'colocar-tags:offer-run',
 };
 
 // Tipos de mensaje que viajan por el puerto DELIVERY_RUN.
@@ -57,6 +58,21 @@ export const STEPS = {
   PROD_SAVE_PROD:     'pt-save-prod',
   PROD_CONFIRM_PROD:  'pt-confirm-prod',
   PROD_ACK_PROD:      'pt-ack-prod',
+
+  // Offer Tag — pasos por cada una de las hasta 4 ofertas por SKU.
+  // `detail.offerIndex` (1..4) y `detail.offerLabel` acompañan a cada progress
+  // para que el popup pueda mostrar en qué oferta está trabajando.
+  OFF_CHECK_ROW:      'off-check-row',
+  OFF_USE:            'off-use',
+  OFF_DESC:           'off-desc',
+  OFF_DATES:          'off-dates',
+  OFF_ROW_DONE:       'off-row-done',
+  OFF_SAVE_STG:       'off-save-stg',
+  OFF_CONFIRM_STG:    'off-confirm-stg',
+  OFF_ACK_STG:        'off-ack-stg',
+  OFF_SAVE_PROD:      'off-save-prod',
+  OFF_CONFIRM_PROD:   'off-confirm-prod',
+  OFF_ACK_PROD:       'off-ack-prod',
 
   DONE:               'done',
 };
@@ -172,5 +188,46 @@ export const MSGBOX_TEXTS = {
 export const DELIVERY_DEFAULTS = {
   tagLabel: 'Despacho Gratis RM',
   userType: 'ALL',
+  skipProd: true,
+};
+
+/**
+ * Tabla "Additional Disclaimer Text" (Tag de Oferta) dentro del modal MIM.
+ * Son 4 filas fijas, una por tipo de oferta, en orden por índice (1..4):
+ *   1 = Gift, 2 = Discount, 3 = Coupon, 4 = Truck.
+ * La columna "Icon" sólo muestra el ícono + nombre (read-only) — el índice
+ * determina el tipo, no hay que parsear el texto.
+ *
+ * Cada fila N tiene:
+ *   - `${prefix}${N}Chk`        checkbox de selección de fila (el "row chk").
+ *                               Marcarlo es lo que GP1 usa para detectar que
+ *                               la fila cambió e incluirla en el save.
+ *   - `${prefix}${N}Flag`       checkbox "Use" (activa/desactiva la oferta).
+ *   - `${prefix}${N}Msg`        input de texto "Description".
+ *   - `${prefix}${N}StartDate`  input fecha (YYYY-MM-DD, SIN hora).
+ *   - `${prefix}${N}EndDate`    input fecha (YYYY-MM-DD, SIN hora).
+ */
+const OFFER_PREFIX = 'obsAdditionalDisclaimerText';
+
+export const OFFER_SELECTORS = {
+  rowChk:    (i) => `#${OFFER_PREFIX}${i}Chk`,
+  useFlag:   (i) => `#${OFFER_PREFIX}${i}Flag`,
+  msg:       (i) => `#${OFFER_PREFIX}${i}Msg`,
+  startDate: (i) => `#${OFFER_PREFIX}${i}StartDate`,
+  endDate:   (i) => `#${OFFER_PREFIX}${i}EndDate`,
+};
+
+/** Los 4 tipos de oferta, fijos por índice de fila. */
+export const OFFER_TYPES = [
+  { index: 1, key: 'gift',     label: 'Gift',     icon: '🎁' },
+  { index: 2, key: 'discount', label: 'Discount', icon: '％' },
+  { index: 3, key: 'coupon',   label: 'Coupon',   icon: '🎟️' },
+  { index: 4, key: 'truck',    label: 'Truck',    icon: '🚚' },
+];
+
+/** Máximo de ofertas por SKU (la tabla tiene 4 filas fijas). */
+export const OFFER_MAX = 4;
+
+export const OFFER_DEFAULTS = {
   skipProd: true,
 };

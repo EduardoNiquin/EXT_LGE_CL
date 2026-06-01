@@ -65,3 +65,27 @@ export function setDateRange({
   setInputValue(endDayEl,  endDay);
   setInputValue(endTimeEl, endTime);
 }
+
+/**
+ * Variante de SOLO fecha (sin hora) para los datepickers `datePick` de la tabla
+ * de ofertas (StartDate / EndDate). Misma estrategia de sentinel para no
+ * rebotar contra la constraint "From ≤ To" si el producto ya tenía fechas
+ * viejas.
+ *
+ * @param {object} args
+ * @param {HTMLElement} args.startEl
+ * @param {HTMLElement} args.endEl
+ * @param {string} args.startDate  YYYY-MM-DD
+ * @param {string} args.endDate    YYYY-MM-DD
+ */
+export function setDateOnlyRange({ startEl, endEl, startDate, endDate }) {
+  if (!startEl || !endEl) {
+    throw new Error('setDateOnlyRange: alguno de los inputs es null');
+  }
+  // 1) Sentinel en end para destrabar cualquier constraint previa.
+  setInputValue(endEl, SENTINEL_DAY);
+  // 2) Start real.
+  setInputValue(startEl, startDate);
+  // 3) End real (start ≤ end ya validado por el popup).
+  setInputValue(endEl, endDate);
+}
