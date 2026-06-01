@@ -352,7 +352,12 @@ Estructura del DOM de cada fila N (prefijo `obsAdditionalDisclaimerText`, ver `O
 
 **Validación de oferta (popup + `validateOffers` en el flow):** si la oferta queda activa (`use` marcado), se exigen Description + Start + End Date. Si `use` está desmarcado (desactivar una oferta existente), las fechas/descripción son opcionales. Las fechas usan `validateDateRange` (sólo fecha, start ≤ end) en `content/validators.js`.
 
-**Quirk crítico — dirty trigger del Tag de Oferta (mismo bug que Product Tag):** marcar el row chk (`...Chk`) una sola vez durante el llenado NO le alcanza al `formSubmit()` de GP1 para reconocer cambios — sale "No changes were made." de forma persistente (el retry simple tampoco basta). GP1 sólo registra el cambio cuando ve una transición **fresca `unchecked → checked` inmediatamente antes del submit**. Solución (`flows/offer-tag.js → dirtyTriggerOffers`): justo antes de **cada** intento de save (`performSave` con `dirtyNudge`, `maxRetries=2`), se re-togglea OFF→ON el row chk de **cada oferta aplicada**, dejándolo marcado. Sólo se tocan filas que el usuario aplica (nunca filas vacías → no se crean ofertas fantasma). Esto cubre tanto el save STG como el PROD (donde además re-marca los chks que GP1 limpia tras el STG).
+**Quirk crítico — dirty trigger del Tag de Oferta (idéntico al de `#productTag2Chk`):** marcar el row chk de la fila que tiene la data NO le alcanza al `formSubmit()` de GP1 para reconocer cambios — sale "No changes were made." persistente (el retry simple y re-marcar la *misma* fila tampoco bastan, igual que `#productTag1Chk` no alcanzaba en Producto). Lo que SÍ destraba el dirty flag es marcar el row chk de **OTRA fila distinta de las de data** y dejarlo marcado (en Producto era `#productTag2Chk`). Solución (`flows/offer-tag.js → dirtyTriggerOffers`, llamada vía `performSave`/`dirtyNudge` antes de **cada** intento, `maxRetries=2`):
+1. **(inclusión)** re-marca (OFF→ON) el row chk de cada oferta aplicada para que GP1 las incluya en el save.
+2. **(trigger)** marca el row chk de una fila **"spare"** — NO aplicada y **vacía/inactiva** (Use desmarcado, sin descripción ni fechas, detectado por `findSafeSpareRow`) — y lo deja marcado. Esa transición es la que setea el dirty flag. GP1 ignora silenciosamente filas con Chk marcado pero sin data (confirmado en Product Tag), así que es benigno.
+3. Si no hay spare segura (caso raro: se aplicaron las únicas filas vacías), fallback OFF→ON sobre las filas aplicadas.
+
+Cubre STG y PROD (re-marca lo que GP1 limpia tras el STG).
 
 **Comandos debug expuestos** (todos bajo `__extLgeCl.colocarTags.`):
 - `diagnose()` — diagnóstico completo del frame.

@@ -192,17 +192,30 @@ async function fillOfferRow({ offer, onStep, signal }) {
  * Product Tag: ver CLAUDE.md → "Quirk crítico — dirty trigger via
  * #productTag2Chk").
  *
- * Marcar el row chk una sola vez durante el llenado NO le alcanza a
- * `formSubmit()` para reconocer cambios — sigue saliendo "No changes were
- * made.". GP1 sólo registra el cambio cuando ve una transición fresca
- * `unchecked → checked` inmediatamente antes del submit. Por eso, justo antes
- * de cada intento de save, re-toggleamos (OFF→ON) el row chk de cada oferta
- * aplicada, dejándolo marcado.
+ * Hallazgo clave de Product Tag: marcar el row chk de la fila que tiene la data
+ * NO alcanza para que `formSubmit()` reconozca cambios (sale "No changes were
+ * made." persistente). Lo que SÍ destraba a GP1 es tocar el row chk de OTRA
+ * fila (en Product Tag era `#productTag2Chk`) y dejarlo marcado: GP1 sólo setea
+ * su flag de "form sucio" cuando ve esa transición `unchecked → checked` en
+ * una fila distinta de las de data, inmediatamente antes del submit.
  *
- * Sólo tocamos filas que el usuario está aplicando — nunca marcamos filas
- * vacías, así que es seguro (no se crean ofertas fantasma).
+ * Por eso acá hacemos DOS cosas antes de cada save:
+ *   (a) Asegurar que cada fila aplicada tenga su row chk marcado (para que GP1
+ *       la incluya en el save — inclusión de data, no es el trigger del flag).
+ *   (b) Marcar el row chk de una fila "spare" — NO aplicada y vacía/inactiva —
+ *       y dejarlo marcado. Ese es el trigger del dirty flag.
+ *
+ * Seguridad: la fila spare debe estar vacía (Use desmarcado, sin descripción
+ * ni fechas) para no modificar una oferta preexistente al marcar su Chk. GP1
+ * ignora silenciosamente filas con Chk marcado pero sin data (confirmado en
+ * Product Tag), así que dejarla marcada es benigno. Si no hay spare segura
+ * (caso raro: el usuario aplicó las únicas filas vacías), caemos a un fallback
+ * OFF→ON sobre las filas aplicadas.
  */
 async function dirtyTriggerOffers({ offers, signal }) {
+  const appliedIdx = offers.map((o) => o.index);
+
+  // (a) Inclusión: cada fila aplicada con su row chk marcado (fresco OFF→ON).
   for (const offer of offers) {
     if (signal?.aborted) return;
     const chk = document.querySelector(OS.rowChk(offer.index));
@@ -210,21 +223,54 @@ async function dirtyTriggerOffers({ offers, signal }) {
       log.warn(`dirty trigger: row chk de oferta ${offer.index} no encontrado`);
       continue;
     }
-    // OFF→ON para garantizar que el último change event sea unchecked→checked.
-    if (chk.checked) {
-      setChecked(chk, false);
-      await sleep(120, signal);
-    }
+    if (chk.checked) { setChecked(chk, false); await sleep(80, signal); }
     setChecked(chk, true);
-    await sleep(120, signal);
-    log.debug(`dirty trigger oferta ${offer.index} (${offer.label})`, { checked: chk.checked });
-    if (!chk.checked) {
-      log.error(`dirty trigger: row chk de oferta ${offer.index} NO quedó marcado`, {
-        disabled: chk.disabled,
-        offsetParent: chk.offsetParent === null ? 'null (oculto)' : 'visible',
-      });
+    await sleep(80, signal);
+  }
+
+  // (b) Trigger del dirty flag: una fila spare segura, marcada y dejada ON.
+  const spareIndex = findSafeSpareRow(appliedIdx);
+  if (spareIndex != null) {
+    const chk = document.querySelector(OS.rowChk(spareIndex));
+    if (chk) {
+      if (chk.checked) { setChecked(chk, false); await sleep(120, signal); }
+      setChecked(chk, true);
+      await sleep(120, signal);
+      log.info(`dirty trigger en fila spare ${spareIndex} (vacía) → checked=${chk.checked}`);
+    }
+  } else {
+    // Fallback sin spare segura: OFF→ON sobre cada fila aplicada (mejor esfuerzo).
+    log.warn('dirty trigger: sin fila spare segura — fallback OFF→ON sobre filas aplicadas');
+    for (const offer of offers) {
+      if (signal?.aborted) return;
+      const chk = document.querySelector(OS.rowChk(offer.index));
+      if (!chk) continue;
+      setChecked(chk, false); await sleep(100, signal);
+      setChecked(chk, true);  await sleep(100, signal);
     }
   }
+}
+
+/**
+ * Devuelve el índice (1..4) de una fila de oferta NO aplicada que esté vacía e
+ * inactiva (Use desmarcado, sin descripción y sin fechas), o `null` si no hay.
+ * Es seguro marcar su row chk como dirty trigger sin alterar datos reales.
+ */
+function findSafeSpareRow(appliedIdx) {
+  for (let i = 1; i <= OFFER_MAX; i++) {
+    if (appliedIdx.includes(i)) continue;
+    const use   = document.querySelector(OS.useFlag(i));
+    const msg   = document.querySelector(OS.msg(i));
+    const start = document.querySelector(OS.startDate(i));
+    const end   = document.querySelector(OS.endDate(i));
+    const isEmpty =
+      (!use || !use.checked) &&
+      (!msg || !msg.value.trim()) &&
+      (!start || !start.value.trim()) &&
+      (!end || !end.value.trim());
+    if (isEmpty) return i;
+  }
+  return null;
 }
 
 /**
