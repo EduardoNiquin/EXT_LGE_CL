@@ -97,6 +97,10 @@ export async function applyOfferTags(args) {
   // Respiro para que los datepickers comiteen sus valores.
   await sleep(200, signal);
 
+  // Dirty trigger reutilizable: re-marca (OFF→ON) los row chks de las ofertas
+  // aplicadas justo antes de cada intento de save. Ver `dirtyTriggerOffers`.
+  const dirtyNudge = () => dirtyTriggerOffers({ offers, signal });
+
   // === STG ===
   await performSave({
     saveBtnSelector: SELECTORS.saveStg,
@@ -104,6 +108,7 @@ export async function applyOfferTags(args) {
     stepSave: STEPS.OFF_SAVE_STG,
     stepConfirm: STEPS.OFF_CONFIRM_STG,
     stepAck: STEPS.OFF_ACK_STG,
+    dirtyNudge,
     onStep,
     signal,
   });
@@ -122,6 +127,7 @@ export async function applyOfferTags(args) {
     stepSave: STEPS.OFF_SAVE_PROD,
     stepConfirm: STEPS.OFF_CONFIRM_PROD,
     stepAck: STEPS.OFF_ACK_PROD,
+    dirtyNudge,
     onStep,
     signal,
   });
@@ -182,6 +188,46 @@ async function fillOfferRow({ offer, onStep, signal }) {
 }
 
 /**
+ * "Dirty trigger" para destrabar el dirty-tracking de GP1 (mismo bug que en
+ * Product Tag: ver CLAUDE.md → "Quirk crítico — dirty trigger via
+ * #productTag2Chk").
+ *
+ * Marcar el row chk una sola vez durante el llenado NO le alcanza a
+ * `formSubmit()` para reconocer cambios — sigue saliendo "No changes were
+ * made.". GP1 sólo registra el cambio cuando ve una transición fresca
+ * `unchecked → checked` inmediatamente antes del submit. Por eso, justo antes
+ * de cada intento de save, re-toggleamos (OFF→ON) el row chk de cada oferta
+ * aplicada, dejándolo marcado.
+ *
+ * Sólo tocamos filas que el usuario está aplicando — nunca marcamos filas
+ * vacías, así que es seguro (no se crean ofertas fantasma).
+ */
+async function dirtyTriggerOffers({ offers, signal }) {
+  for (const offer of offers) {
+    if (signal?.aborted) return;
+    const chk = document.querySelector(OS.rowChk(offer.index));
+    if (!chk) {
+      log.warn(`dirty trigger: row chk de oferta ${offer.index} no encontrado`);
+      continue;
+    }
+    // OFF→ON para garantizar que el último change event sea unchecked→checked.
+    if (chk.checked) {
+      setChecked(chk, false);
+      await sleep(120, signal);
+    }
+    setChecked(chk, true);
+    await sleep(120, signal);
+    log.debug(`dirty trigger oferta ${offer.index} (${offer.label})`, { checked: chk.checked });
+    if (!chk.checked) {
+      log.error(`dirty trigger: row chk de oferta ${offer.index} NO quedó marcado`, {
+        disabled: chk.disabled,
+        offsetParent: chk.offsetParent === null ? 'null (oculto)' : 'visible',
+      });
+    }
+  }
+}
+
+/**
  * Espera a que aparezca uno de los 2 messageboxes posibles tras SAVE:
  * el de CONFIRM ("all selected rows of information" → YES/NO) o el de
  * "No changes were made." (sólo OK).
@@ -212,12 +258,20 @@ async function performSave({
   stepSave,
   stepConfirm,
   stepAck,
+  dirtyNudge,
   onStep,
   signal,
-  maxRetries = 1,
+  maxRetries = 2,
 }) {
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     log.info(`performSave attempt ${attempt + 1}/${maxRetries + 1}`, { saveBtnSelector });
+
+    // Dirty trigger inmediatamente antes de cada click de save: re-marca los
+    // row chks (OFF→ON) para que GP1 vea la transición fresca y reconozca
+    // los cambios. Es lo que destraba el "No changes were made.".
+    if (dirtyNudge) {
+      try { await dirtyNudge(); } catch (err) { log.warn('dirtyNudge falló', err); }
+    }
 
     // Blur del elemento activo para forzar el commit perezoso de datepickers.
     if (document.activeElement && typeof document.activeElement.blur === 'function') {

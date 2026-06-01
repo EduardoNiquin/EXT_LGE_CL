@@ -352,6 +352,8 @@ Estructura del DOM de cada fila N (prefijo `obsAdditionalDisclaimerText`, ver `O
 
 **Validación de oferta (popup + `validateOffers` en el flow):** si la oferta queda activa (`use` marcado), se exigen Description + Start + End Date. Si `use` está desmarcado (desactivar una oferta existente), las fechas/descripción son opcionales. Las fechas usan `validateDateRange` (sólo fecha, start ≤ end) en `content/validators.js`.
 
+**Quirk crítico — dirty trigger del Tag de Oferta (mismo bug que Product Tag):** marcar el row chk (`...Chk`) una sola vez durante el llenado NO le alcanza al `formSubmit()` de GP1 para reconocer cambios — sale "No changes were made." de forma persistente (el retry simple tampoco basta). GP1 sólo registra el cambio cuando ve una transición **fresca `unchecked → checked` inmediatamente antes del submit**. Solución (`flows/offer-tag.js → dirtyTriggerOffers`): justo antes de **cada** intento de save (`performSave` con `dirtyNudge`, `maxRetries=2`), se re-togglea OFF→ON el row chk de **cada oferta aplicada**, dejándolo marcado. Sólo se tocan filas que el usuario aplica (nunca filas vacías → no se crean ofertas fantasma). Esto cubre tanto el save STG como el PROD (donde además re-marca los chks que GP1 limpia tras el STG).
+
 **Comandos debug expuestos** (todos bajo `__extLgeCl.colocarTags.`):
 - `diagnose()` — diagnóstico completo del frame.
 - `check()` — `{selector: bool}` por cada selector contra el DOM actual.
