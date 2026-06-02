@@ -1,18 +1,26 @@
 {
   "manifest_version": 3,
   "name": "EXT LGE CL",
-  "version": "0.3.1",
+  "version": "0.4",
   "description": "",
-  "permissions": ["storage"],
-  "host_permissions": ["<all_urls>"],
+  "permissions": [
+    "storage"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
   "background": {
     "service_worker": "src/background/service-worker.js",
     "type": "module"
   },
   "content_scripts": [
     {
-      "matches": ["<all_urls>"],
-      "js": ["src/content/index.js"],
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "src/content/index.js"
+      ],
       "run_at": "document_idle",
       "all_frames": true
     }

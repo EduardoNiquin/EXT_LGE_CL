@@ -1,6 +1,6 @@
 {
   "name": "ext-lge-cl",
-  "version": "0.1.0",
+  "version": "0.4",
   "description": "Browser extension for Chrome and Edge",
   "private": true,
   "type": "module",
@@ -15,7 +15,8 @@
     "build:ext": "vite build --mode edge",
     "pack:ext": "node scripts/pack-extension.mjs --browser=edge",
     "policy:gen": "node scripts/generate-policy.mjs",
-    "release:ext": "npm run build:ext && npm run pack:ext && npm run policy:gen",
+    "version:bump": "node scripts/bump-version.mjs",
+    "release:ext": "npm run version:bump && npm run build:ext && npm run pack:ext && npm run policy:gen",
     "installer:build": "npm run release:ext && node scripts/build-installer.mjs",
     "install:ext": "powershell -ExecutionPolicy Bypass -File scripts/install.ps1",
     "uninstall:ext": "powershell -ExecutionPolicy Bypass -File scripts/install.ps1 -Uninstall",
