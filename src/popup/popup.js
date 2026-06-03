@@ -2,6 +2,10 @@ import { features } from './features.js';
 import { install, register, cmd } from '../shared/debug/index.js';
 import { sendMessageToActiveTab } from '../shared/messaging/messaging.js';
 import { MESSAGES as COLOCAR_TAGS_MSG } from '../features/colocar-tags/constants.js';
+import { initTheme, getThemePref, cycleTheme, subscribeTheme } from '../shared/theme/index.js';
+
+// Aplicar el tema lo antes posible para minimizar el "flash".
+initTheme();
 
 const version = chrome?.runtime?.getManifest?.()?.version;
 install({ version, context: 'popup' });
@@ -19,6 +23,7 @@ const app         = document.getElementById('app');
 const backBtn     = document.getElementById('back-btn');
 const headerTitle = document.getElementById('header-title');
 const panelToggle = document.getElementById('panel-toggle');
+const themeToggle = document.getElementById('theme-toggle');
 
 const HOME_TITLE = 'LGE CL Tools';
 
@@ -46,6 +51,37 @@ async function maximizeToSidePanel() {
 function minimizePanel() {
   // Cierra el side panel; el usuario reabre el popup con el ícono de la barra.
   window.close();
+}
+
+// Iconos del toggle de tema según la preferencia activa.
+const THEME_ICONS = {
+  // Sol (claro)
+  light: '<circle cx="8" cy="8" r="3.2" stroke="currentColor" stroke-width="1.4"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3 3l1.4 1.4M11.6 11.6L13 13M13 3l-1.4 1.4M4.4 11.6L3 13" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>',
+  // Luna (oscuro)
+  dark: '<path d="M13.5 9.5A5.5 5.5 0 1 1 6.5 2.5a4.3 4.3 0 0 0 7 7z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/>',
+  // Auto (sistema): medio sol / medio luna
+  system: '<circle cx="8" cy="8" r="5.2" stroke="currentColor" stroke-width="1.4"/><path d="M8 2.8a5.2 5.2 0 0 0 0 10.4z" fill="currentColor"/>',
+};
+const THEME_LABELS = { light: 'Tema: claro', dark: 'Tema: oscuro', system: 'Tema: sistema' };
+
+function updateThemeIcon() {
+  if (!themeToggle) return;
+  const pref = getThemePref();
+  const svg = themeToggle.querySelector('svg');
+  if (svg) svg.innerHTML = THEME_ICONS[pref] || THEME_ICONS.system;
+  themeToggle.title = THEME_LABELS[pref] || THEME_LABELS.system;
+  themeToggle.setAttribute('aria-label', THEME_LABELS[pref] || THEME_LABELS.system);
+}
+
+function setupThemeToggle() {
+  if (!themeToggle) return;
+  updateThemeIcon();
+  themeToggle.addEventListener('click', () => {
+    cycleTheme();
+    updateThemeIcon();
+  });
+  // Mantener el icono en sync si el tema cambia desde otra vista (Ajustes).
+  subscribeTheme(updateThemeIcon);
 }
 
 function setupPanelToggle() {
@@ -190,5 +226,6 @@ function openFeature(feature) {
 
 backBtn.addEventListener('click', renderHome);
 
+setupThemeToggle();
 setupPanelToggle();
 renderHome();

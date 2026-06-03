@@ -4,7 +4,35 @@ export const MESSAGES = {
   GET_PAGE_DATA: 'colocar-tags:get-page-data',
 };
 
-// Puertos long-lived para flujos con streaming de progreso.
+// Tipos de run (kind). El popup escribe un run con uno de estos kinds en
+// chrome.storage.local; el content script lo recoge y ejecuta el flujo
+// correspondiente. Reemplaza a los antiguos PORTS (la comunicación ahora es
+// storage-driven para que el proceso NO se detenga al cerrar el popup).
+export const RUN_KIND = {
+  DELIVERY:        'delivery',
+  DELIVERY_REMOVE: 'delivery-remove',
+  PRODUCT:         'product',
+  OFFER:           'offer',
+};
+
+// Claves de chrome.storage.local.
+export const STORAGE_KEYS = {
+  RUN:         `${FEATURE_ID}:run`,            // estado de ejecución (cross-context)
+  // Borradores de formulario por sección (autosave as-you-type).
+  DRAFT: {
+    [RUN_KIND.DELIVERY]:        `${FEATURE_ID}:delivery:last-config`,
+    [RUN_KIND.DELIVERY_REMOVE]: `${FEATURE_ID}:delivery-remove:last-config`,
+    [RUN_KIND.PRODUCT]:         `${FEATURE_ID}:product:last-config`,
+    [RUN_KIND.OFFER]:           `${FEATURE_ID}:offer:last-config`,
+  },
+};
+
+// Tope de líneas de log retenidas en el run (igual que lead-times/cupones).
+export const LOG_CAP = 400;
+
+// Compat: puertos long-lived (ya no se usan para los flujos, conservados por
+// si algún consumidor externo los referencia). La comunicación de flujos es
+// storage-driven (ver RUN_KIND / STORAGE_KEYS).
 export const PORTS = {
   DELIVERY_RUN:        'colocar-tags:delivery-run',
   DELIVERY_REMOVE_RUN: 'colocar-tags:delivery-remove-run',

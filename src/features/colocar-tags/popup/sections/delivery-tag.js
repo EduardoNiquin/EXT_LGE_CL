@@ -1,10 +1,15 @@
-import { FEATURE_ID, PORTS, PORT_MSG, STATUS, STEPS, DELIVERY_DEFAULTS } from '../../constants.js';
-import { getStorage, setStorage } from '../../../../shared/storage/storage.js';
-import { logger } from '../../../../shared/utils/logger.js';
-import { attachPortWatchdog, escapeHtml } from '../utils.js';
+// UI del sub-flujo "Tag de Delivery" (storage-driven).
+//
+// Aplica un Delivery Tag a uno o más SKUs. El proceso corre en el content
+// script y sobrevive al cierre del popup. Acá sólo armamos el form, validamos y
+// delegamos el ciclo (progreso/logs/cancelar) en run-ui.js.
 
-const log = logger('colocar-tags/delivery');
-const STORAGE_KEY = `${FEATURE_ID}:delivery:last-config`;
+import { RUN_KIND, STEPS, DELIVERY_DEFAULTS, STORAGE_KEYS } from '../../constants.js';
+import { getStorage } from '../../../../shared/storage/storage.js';
+import { escapeHtml } from '../utils.js';
+import { mountRunSection, progressMarkup } from '../run-ui.js';
+
+const DRAFT_KEY = STORAGE_KEYS.DRAFT[RUN_KIND.DELIVERY];
 
 const STEP_LABELS = {
   [STEPS.SEARCH_TYPE]:        'Tipeando SKU',
@@ -30,13 +35,10 @@ const STEP_LABELS = {
   'empty':                    'SKU vacío',
 };
 
-let activePort = null;
-let activeWatchdog = null;
-let skuStates  = new Map();
-
 export async function render(container) {
-  const cfg = (await getStorage(STORAGE_KEY)) || {};
+  const cfg = (await getStorage(DRAFT_KEY)) || {};
   const defaults = {
+    skus:      cfg.skus      ?? '',
     tagLabel:  cfg.tagLabel  ?? DELIVERY_DEFAULTS.tagLabel,
     beginDay:  cfg.beginDay  ?? '',
     beginTime: cfg.beginTime ?? '00:00',
@@ -49,7 +51,7 @@ export async function render(container) {
     <form id="dt-form" class="dt-form" autocomplete="off">
       <label class="dt-field">
         <span class="dt-label">SKUs (uno por línea, "Sales Model" exacto)</span>
-        <textarea id="dt-skus" rows="4" class="dt-input dt-textarea" placeholder="OLED65B5PSA.AWH&#10;OLED55C5PSA.AWH"></textarea>
+        <textarea id="dt-skus" rows="4" class="dt-input dt-textarea" placeholder="OLED65B5PSA.AWH&#10;OLED55C5PSA.AWH">${escapeHtml(defaults.skus)}</textarea>
       </label>
 
       <label class="dt-field">
@@ -80,33 +82,26 @@ export async function render(container) {
       </label>
 
       <div class="dt-actions">
-        <button id="dt-run"    type="submit" class="ct-btn ct-btn--primary">Aplicar</button>
+        <button id="dt-run"    type="button" class="ct-btn ct-btn--primary">Aplicar</button>
         <button id="dt-cancel" type="button" class="ct-btn ct-btn--ghost" disabled>Cancelar</button>
       </div>
     </form>
 
-    <div id="dt-progress" class="dt-progress hidden">
-      <div class="dt-progress-head">
-        <strong id="dt-progress-title">Procesando…</strong>
-        <span id="dt-progress-counter" class="dt-progress-counter"></span>
-      </div>
-      <ul id="dt-progress-list" class="dt-progress-list"></ul>
-    </div>
+    ${progressMarkup('dt')}
   `;
 
-  container.querySelector('#dt-form').addEventListener('submit', (e) => {
-    e.preventDefault();
-    onRun(container);
+  mountRunSection(container, {
+    prefix: 'dt',
+    kind: RUN_KIND.DELIVERY,
+    stepLabels: STEP_LABELS,
+    formSelectors: ['#dt-skus', '#dt-tag', '#dt-begin-day', '#dt-begin-time', '#dt-end-day', '#dt-end-time', '#dt-skip-prod'],
+    collect: () => collect(container),
+    draft: { key: DRAFT_KEY, collect: () => collectDraft(container) },
   });
-  container.querySelector('#dt-cancel').addEventListener('click', onCancel);
-
-  // Por si quedó un run colgado de una apertura previa del popup.
-  resetProgress(container);
 }
 
-async function onRun(container) {
-  const skusRaw = container.querySelector('#dt-skus').value;
-  const skus = parseSkus(skusRaw);
+function collect(container) {
+  const skus = parseSkus(container.querySelector('#dt-skus').value);
   const tagLabel  = container.querySelector('#dt-tag').value.trim();
   const beginDay  = container.querySelector('#dt-begin-day').value;
   const beginTime = container.querySelector('#dt-begin-time').value;
@@ -114,24 +109,33 @@ async function onRun(container) {
   const endTime   = container.querySelector('#dt-end-time').value;
   const skipProd  = container.querySelector('#dt-skip-prod').checked;
 
-  if (skus.length === 0) return alert('Ingresá al menos un SKU.');
-  if (!tagLabel) return alert('Especificá el Delivery Tag.');
-  if (!beginDay || !endDay) return alert('Completá fecha de inicio y fin.');
-  if (!beginTime || !endTime) return alert('Completá hora de inicio y fin.');
-
-  await setStorage(STORAGE_KEY, { tagLabel, beginDay, beginTime, endDay, endTime, skipProd });
+  if (skus.length === 0) { alert('Ingresá al menos un SKU.'); return null; }
+  if (!tagLabel) { alert('Especificá el Delivery Tag.'); return null; }
+  if (!beginDay || !endDay) { alert('Completá fecha de inicio y fin.'); return null; }
+  if (!beginTime || !endTime) { alert('Completá hora de inicio y fin.'); return null; }
 
   const config = {
-    skus,
     tagLabel,
     beginDay,
     beginTime: normalizeTime(beginTime),
     endDay,
     endTime:   normalizeTime(endTime),
     skipProd,
+    userType:  'ALL',
   };
+  return { config, skus, message: `Tag de Delivery — ${skus.length} SKU(s)` };
+}
 
-  await startRun(container, config);
+function collectDraft(container) {
+  return {
+    skus:      container.querySelector('#dt-skus').value,
+    tagLabel:  container.querySelector('#dt-tag').value,
+    beginDay:  container.querySelector('#dt-begin-day').value,
+    beginTime: container.querySelector('#dt-begin-time').value,
+    endDay:    container.querySelector('#dt-end-day').value,
+    endTime:   container.querySelector('#dt-end-time').value,
+    skipProd:  container.querySelector('#dt-skip-prod').checked,
+  };
 }
 
 function parseSkus(raw) {
@@ -141,160 +145,4 @@ function parseSkus(raw) {
 function normalizeTime(t) {
   // input type=time puede devolver "HH:MM" o "HH:MM:SS". Forzamos HH:MM.
   return t.slice(0, 5);
-}
-
-async function startRun(container, config) {
-  toggleRunning(container, true);
-  prepareProgress(container, config.skus);
-
-  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-  if (!tab?.id) {
-    alert('No hay pestaña activa.');
-    toggleRunning(container, false);
-    return;
-  }
-
-  const port = chrome.tabs.connect(tab.id, { name: PORTS.DELIVERY_RUN });
-  activePort = port;
-
-  // Si ningún frame de la pestaña detecta MIM, el handler del content script
-  // ignora silenciosamente y no llega ningún PROGRESS. El watchdog atrapa ese
-  // caso para no dejar al usuario esperando.
-  activeWatchdog = attachPortWatchdog(port, {
-    timeoutMs: 12000,
-    onTimeout: () => {
-      setProgressTitle(container, 'Sin respuesta de la pestaña');
-      toggleRunning(container, false);
-      alert(
-        'La pestaña activa no respondió en 12s.\n\n' +
-        'Posibles causas:\n' +
-        '• No estás en la pantalla "Marketing Info Mapping" de GP1.\n' +
-        '• La pestaña activa no es la de GP1.\n' +
-        '• El content script no cargó (reintentá recargando la pestaña).',
-      );
-    },
-  });
-
-  port.onMessage.addListener((msg) => onPortMessage(container, msg));
-  port.onDisconnect.addListener(() => {
-    log.info('port desconectado');
-    activePort = null;
-    activeWatchdog?.dispose();
-    activeWatchdog = null;
-    toggleRunning(container, false);
-  });
-
-  port.postMessage({ type: PORT_MSG.START, config });
-}
-
-function onCancel() {
-  if (!activePort) return;
-  log.info('cancel solicitado');
-  try { activePort.postMessage({ type: PORT_MSG.CANCEL }); } catch { /* ya cerrado */ }
-  try { activePort.disconnect(); } catch { /* ya cerrado */ }
-  activePort = null;
-}
-
-function onPortMessage(container, msg) {
-  log.debug('progress', msg);
-  // Cualquier mensaje del content cancela el watchdog: la pestaña respondió.
-  activeWatchdog?.clear();
-  switch (msg?.type) {
-    case PORT_MSG.PROGRESS:
-      updateSkuState(container, msg);
-      break;
-    case PORT_MSG.DONE:
-      setProgressTitle(container, 'Finalizado');
-      toggleRunning(container, false);
-      break;
-    case PORT_MSG.CANCELLED:
-      setProgressTitle(container, 'Cancelado');
-      toggleRunning(container, false);
-      break;
-    case PORT_MSG.ERROR:
-      setProgressTitle(container, `Error: ${msg.reason}`);
-      toggleRunning(container, false);
-      break;
-    default:
-      break;
-  }
-}
-
-function toggleRunning(container, running) {
-  container.querySelector('#dt-run').disabled = running;
-  container.querySelector('#dt-cancel').disabled = !running;
-}
-
-function prepareProgress(container, skus) {
-  skuStates = new Map(skus.map((sku, i) => [`${i}::${sku}`, { sku, status: STATUS.PENDING, step: null }]));
-  const list = container.querySelector('#dt-progress-list');
-  list.innerHTML = '';
-  for (const [key, st] of skuStates) {
-    const li = document.createElement('li');
-    li.className = 'dt-progress-item dt-progress-item--pending';
-    li.dataset.key = key;
-    li.innerHTML = renderItemBody(st);
-    list.appendChild(li);
-  }
-  container.querySelector('#dt-progress').classList.remove('hidden');
-  container.querySelector('#dt-progress-counter').textContent = `0 / ${skus.length}`;
-  setProgressTitle(container, 'Procesando…');
-}
-
-function resetProgress(container) {
-  container.querySelector('#dt-progress')?.classList.add('hidden');
-  container.querySelector('#dt-progress-list').innerHTML = '';
-  toggleRunning(container, false);
-}
-
-function setProgressTitle(container, text) {
-  const el = container.querySelector('#dt-progress-title');
-  if (el) el.textContent = text;
-}
-
-function updateSkuState(container, msg) {
-  const key = `${msg.index}::${msg.sku}`;
-  const prev = skuStates.get(key) || { sku: msg.sku };
-  const next = { ...prev, status: msg.status, step: msg.step, detail: msg.detail, reason: msg.reason };
-  skuStates.set(key, next);
-
-  const li = container.querySelector(`[data-key="${cssEscape(key)}"]`);
-  if (li) {
-    li.className = `dt-progress-item dt-progress-item--${next.status}`;
-    li.innerHTML = renderItemBody(next);
-  }
-
-  // Counter: contar ok+skipped+error vs total
-  const total = skuStates.size;
-  let done = 0;
-  for (const st of skuStates.values()) {
-    if ([STATUS.OK, STATUS.ERROR, STATUS.SKIPPED].includes(st.status)) done++;
-  }
-  container.querySelector('#dt-progress-counter').textContent = `${done} / ${total}`;
-}
-
-function renderItemBody(st) {
-  const stepLabel = STEP_LABELS[st.step] || st.step || '';
-  const icon = iconFor(st.status);
-  const reason = st.reason ? `<span class="dt-item-reason">${escapeHtml(st.reason)}</span>` : '';
-  return `
-    <span class="dt-item-icon">${icon}</span>
-    <span class="dt-item-sku">${escapeHtml(st.sku)}</span>
-    <span class="dt-item-step">${escapeHtml(stepLabel)}</span>
-    ${reason}
-  `;
-}
-
-function iconFor(status) {
-  switch (status) {
-    case STATUS.OK:      return '✓';
-    case STATUS.ERROR:   return '✗';
-    case STATUS.RUNNING: return '◐';
-    case STATUS.SKIPPED: return '⊝';
-    default:             return '·';
-  }
-}
-
-function cssEscape(s) {
-  return s.replace(/"/g, '\\"');
 }

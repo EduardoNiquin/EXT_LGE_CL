@@ -23,6 +23,7 @@ import {
   updateRun,
 } from '../../state.js';
 import { logger } from '../../../../shared/utils/logger.js';
+import { debounce } from '../../../../shared/ui/persist.js';
 import { escapeHtml, formatTime } from '../utils.js';
 
 const log = logger('lead-times/popup');
@@ -79,6 +80,17 @@ export async function render(container) {
   container.querySelector('#lt-start').addEventListener('click', () => onStart(container, queue));
   container.querySelector('#lt-stop').addEventListener('click', onStop);
   container.querySelector('#lt-clear').addEventListener('click', () => onClear(container));
+
+  // Autosave as-you-type: no perder las regiones cargadas si el popup se cierra.
+  const autosave = debounce(() => {
+    const rows = Array.from(container.querySelectorAll('.lt-queue-row')).map((r) => ({
+      regionName: r.querySelector('[data-field="regionName"]')?.value || '',
+      minDays:    r.querySelector('[data-field="minDays"]')?.value ?? '',
+      maxDays:    r.querySelector('[data-field="maxDays"]')?.value ?? '',
+    }));
+    setLastConfig({ rows });
+  }, 400);
+  container.addEventListener('input', autosave);
 
   // Si ya hay un run (activo o terminado) mostrar progreso inmediatamente.
   if (run) renderProgress(container, run);

@@ -9,6 +9,13 @@ import {
   subscribe,
 } from '../../../shared/log-config/index.js';
 import { escapeHtml } from '../../colocar-tags/popup/utils.js';
+import { getThemePref, setThemePref } from '../../../shared/theme/index.js';
+
+const THEME_OPTIONS = [
+  { value: 'light',  label: 'Claro' },
+  { value: 'dark',   label: 'Oscuro' },
+  { value: 'system', label: 'Sistema' },
+];
 
 const KNOWN_SCOPES_FALLBACK = [
   'colocar-tags',
@@ -24,6 +31,20 @@ const KNOWN_SCOPES_FALLBACK = [
 export function render(container) {
   container.innerHTML = `
     <div class="aj-root">
+      <section class="aj-card">
+        <header class="aj-card-head">
+          <h3 class="aj-card-title">Apariencia</h3>
+          <p class="aj-card-desc">Elegí el tema de la interfaz. "Sistema" sigue la preferencia del sistema operativo.</p>
+        </header>
+        <div class="aj-theme-seg" id="aj-theme-seg" role="radiogroup" aria-label="Tema">
+          ${THEME_OPTIONS.map((o) => `
+            <button type="button" class="aj-theme-opt" data-theme-value="${o.value}" role="radio" aria-checked="false">
+              ${o.label}
+            </button>
+          `).join('')}
+        </div>
+      </section>
+
       <section class="aj-card">
         <header class="aj-card-head">
           <h3 class="aj-card-title">Logs por módulo</h3>
@@ -43,6 +64,8 @@ export function render(container) {
   `;
 
   injectStyles();
+
+  setupThemeSegment(container);
 
   const listEl = container.querySelector('#aj-scope-list');
   const btnEnableAll  = container.querySelector('#aj-enable-all');
@@ -113,6 +136,26 @@ export function render(container) {
   renderList();
 }
 
+function setupThemeSegment(container) {
+  const seg = container.querySelector('#aj-theme-seg');
+  if (!seg) return;
+  const sync = () => {
+    const pref = getThemePref();
+    seg.querySelectorAll('.aj-theme-opt').forEach((btn) => {
+      const on = btn.dataset.themeValue === pref;
+      btn.classList.toggle('is-active', on);
+      btn.setAttribute('aria-checked', on ? 'true' : 'false');
+    });
+  };
+  seg.addEventListener('click', (e) => {
+    const btn = e.target.closest('.aj-theme-opt');
+    if (!btn) return;
+    setThemePref(btn.dataset.themeValue);
+    sync();
+  });
+  sync();
+}
+
 let stylesInjected = false;
 function injectStyles() {
   if (stylesInjected) return;
@@ -135,6 +178,32 @@ function injectStyles() {
       padding: 1px 4px;
       border-radius: 3px;
       font-size: 10.5px;
+    }
+    .aj-theme-seg {
+      display: flex;
+      gap: 4px;
+      padding: 4px;
+      background: var(--surface-3, #f3f4f6);
+      border-radius: 8px;
+    }
+    .aj-theme-opt {
+      flex: 1;
+      border: none;
+      background: transparent;
+      padding: 6px 8px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted, #555);
+      border-radius: 6px;
+      cursor: pointer;
+      font-family: inherit;
+      transition: background 120ms, color 120ms;
+    }
+    .aj-theme-opt:hover { color: var(--text, #111); }
+    .aj-theme-opt.is-active {
+      background: var(--surface, #fff);
+      color: var(--accent, #ea1917);
+      box-shadow: 0 1px 2px rgba(0,0,0,.12);
     }
     .aj-toolbar { display: flex; gap: 6px; margin-bottom: 10px; }
     .aj-btn {

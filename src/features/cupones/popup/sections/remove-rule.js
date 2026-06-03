@@ -27,6 +27,7 @@ import {
   updateRun,
 } from '../../state.js';
 import { logger } from '../../../../shared/utils/logger.js';
+import { debounce } from '../../../../shared/ui/persist.js';
 import { escapeHtml, formatTime, parseQueries } from '../utils.js';
 
 const log = logger('cupones/popup');
@@ -91,6 +92,15 @@ export async function render(container) {
   container.querySelector('#cu-start').addEventListener('click', () => onStart(container));
   container.querySelector('#cu-stop').addEventListener('click', onStop);
   container.querySelector('#cu-clear').addEventListener('click', () => onClear(container));
+
+  // Autosave as-you-type: no perder lo cargado si el popup se cierra.
+  const autosave = debounce(() => {
+    const searchBy = container.querySelector('input[name="cu-search-by"]:checked')?.value || DEFAULTS.searchBy;
+    const rawQueries = container.querySelector('#cu-queries')?.value ?? '';
+    setLastConfig({ searchBy, rawQueries });
+  }, 400);
+  container.addEventListener('input', autosave);
+  container.addEventListener('change', autosave);
 
   if (run) renderProgress(container, run);
   toggleButtons(container, run);

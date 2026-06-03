@@ -9,13 +9,12 @@
 // duplicar mucho CSS reuso clases `.dt-*` y agrego `.pt-*` sólo donde
 // difieren los layouts (las dos cards de tag, repeaters, etc.).
 
-import { FEATURE_ID, PORTS, PORT_MSG, STATUS, STEPS } from '../../constants.js';
-import { getStorage, setStorage } from '../../../../shared/storage/storage.js';
-import { logger } from '../../../../shared/utils/logger.js';
-import { attachPortWatchdog, escapeHtml } from '../utils.js';
+import { RUN_KIND, STEPS, STORAGE_KEYS } from '../../constants.js';
+import { getStorage } from '../../../../shared/storage/storage.js';
+import { escapeHtml } from '../utils.js';
+import { mountRunSection, progressMarkup } from '../run-ui.js';
 
-const log = logger('colocar-tags/product');
-const STORAGE_KEY = `${FEATURE_ID}:product:last-config`;
+const DRAFT_KEY = STORAGE_KEYS.DRAFT[RUN_KIND.PRODUCT];
 
 const CATEGORIES = ['Product', 'Promotion'];
 const TYPES = [
@@ -52,20 +51,18 @@ const STEP_LABELS = {
   'empty':                    'SKU vacío',
 };
 
-let activePort = null;
-let activeWatchdog = null;
-let skuStates  = new Map();
-
 export async function render(container) {
-  const cfg = (await getStorage(STORAGE_KEY)) || {};
-  const tags = Array.isArray(cfg.tags) && cfg.tags.length > 0 ? cfg.tags : [blankTag()];
+  const cfg = (await getStorage(DRAFT_KEY)) || {};
+  const tags = Array.isArray(cfg.tags) && cfg.tags.length > 0
+    ? cfg.tags.map((t) => ({ ...blankTag(), ...t }))
+    : [blankTag()];
   const skipProd = cfg.skipProd ?? true;
 
   container.innerHTML = `
     <form id="pt-form" class="dt-form" autocomplete="off">
       <label class="dt-field">
         <span class="dt-label">SKUs (uno por línea, "Sales Model" exacto)</span>
-        <textarea id="pt-skus" rows="3" class="dt-input dt-textarea" placeholder="OLED65B5PSA.AWH&#10;OLED55C5PSA.AWH"></textarea>
+        <textarea id="pt-skus" rows="3" class="dt-input dt-textarea" placeholder="OLED65B5PSA.AWH&#10;OLED55C5PSA.AWH">${escapeHtml(cfg.skus ?? '')}</textarea>
       </label>
 
       <div id="pt-tags" class="pt-tags"></div>
@@ -80,18 +77,12 @@ export async function render(container) {
       </label>
 
       <div class="dt-actions">
-        <button id="pt-run"    type="submit" class="ct-btn ct-btn--primary">Aplicar</button>
+        <button id="pt-run"    type="button" class="ct-btn ct-btn--primary">Aplicar</button>
         <button id="pt-cancel" type="button" class="ct-btn ct-btn--ghost" disabled>Cancelar</button>
       </div>
     </form>
 
-    <div id="pt-progress" class="dt-progress hidden">
-      <div class="dt-progress-head">
-        <strong id="pt-progress-title">Procesando…</strong>
-        <span id="pt-progress-counter" class="dt-progress-counter"></span>
-      </div>
-      <ul id="pt-progress-list" class="dt-progress-list"></ul>
-    </div>
+    ${progressMarkup('pt')}
   `;
 
   const tagsHost = container.querySelector('#pt-tags');
@@ -104,14 +95,23 @@ export async function render(container) {
     updateAddTagBtn(container, tags);
   });
 
-  container.querySelector('#pt-form').addEventListener('submit', (e) => {
-    e.preventDefault();
-    onRun(container, tags);
-  });
-  container.querySelector('#pt-cancel').addEventListener('click', onCancel);
-
   updateAddTagBtn(container, tags);
-  resetProgress(container);
+
+  mountRunSection(container, {
+    prefix: 'pt',
+    kind: RUN_KIND.PRODUCT,
+    stepLabels: STEP_LABELS,
+    formSelectors: ['#pt-skus', '#pt-skip-prod', '#pt-add-tag', '#pt-tags input', '#pt-tags select', '#pt-tags button'],
+    collect: () => collect(container, tags),
+    draft: {
+      key: DRAFT_KEY,
+      collect: () => ({
+        skus: container.querySelector('#pt-skus').value,
+        tags,
+        skipProd: container.querySelector('#pt-skip-prod').checked,
+      }),
+    },
+  });
 }
 
 // -----------------------------------------------------------------------------
@@ -213,17 +213,15 @@ function updateAddTagBtn(container, tags) {
 }
 
 // -----------------------------------------------------------------------------
-// run / cancel
+// recolección / validación
 // -----------------------------------------------------------------------------
 
-async function onRun(container, tags) {
-  const skusRaw  = container.querySelector('#pt-skus').value;
-  const skus     = parseSkus(skusRaw);
+function collect(container, tags) {
+  const skus     = parseSkus(container.querySelector('#pt-skus').value);
   const skipProd = container.querySelector('#pt-skip-prod').checked;
 
-  if (skus.length === 0) return alert('Ingresá al menos un SKU.');
+  if (skus.length === 0) { alert('Ingresá al menos un SKU.'); return null; }
 
-  // Normalizar y validar tags
   const cleanedTags = tags.map((t) => ({
     category:  String(t.category || '').trim(),
     group:     String(t.group    || '').trim(),
@@ -237,18 +235,16 @@ async function onRun(container, tags) {
   for (let i = 0; i < cleanedTags.length; i++) {
     const t = cleanedTags[i];
     const n = i + 1;
-    if (!t.category) return alert(`Tag ${n}: elegí una categoría.`);
-    if (!t.group)    return alert(`Tag ${n}: completá el grupo.`);
-    if (!t.tag)      return alert(`Tag ${n}: completá el tag.`);
-    if (!t.type)     return alert(`Tag ${n}: elegí un type.`);
-    if (!t.beginDay || !t.endDay)   return alert(`Tag ${n}: completá las fechas.`);
-    if (!t.beginTime || !t.endTime) return alert(`Tag ${n}: completá las horas.`);
+    if (!t.category) { alert(`Tag ${n}: elegí una categoría.`); return null; }
+    if (!t.group)    { alert(`Tag ${n}: completá el grupo.`); return null; }
+    if (!t.tag)      { alert(`Tag ${n}: completá el tag.`); return null; }
+    if (!t.type)     { alert(`Tag ${n}: elegí un type.`); return null; }
+    if (!t.beginDay || !t.endDay)   { alert(`Tag ${n}: completá las fechas.`); return null; }
+    if (!t.beginTime || !t.endTime) { alert(`Tag ${n}: completá las horas.`); return null; }
   }
 
-  await setStorage(STORAGE_KEY, { tags: cleanedTags, skipProd });
-
-  const config = { skus, tags: cleanedTags, skipProd, userType: 'ALL' };
-  await startRun(container, config);
+  const config = { tags: cleanedTags, skipProd, userType: 'ALL' };
+  return { config, skus, message: `Tag de Producto — ${skus.length} SKU(s)` };
 }
 
 function parseSkus(raw) {
@@ -257,172 +253,4 @@ function parseSkus(raw) {
 
 function normalizeTime(t) {
   return String(t || '').slice(0, 5);
-}
-
-async function startRun(container, config) {
-  toggleRunning(container, true);
-  prepareProgress(container, config.skus);
-
-  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-  if (!tab?.id) {
-    alert('No hay pestaña activa.');
-    toggleRunning(container, false);
-    return;
-  }
-
-  const port = chrome.tabs.connect(tab.id, { name: PORTS.PRODUCT_RUN });
-  activePort = port;
-
-  activeWatchdog = attachPortWatchdog(port, {
-    timeoutMs: 12000,
-    onTimeout: () => {
-      setProgressTitle(container, 'Sin respuesta de la pestaña');
-      toggleRunning(container, false);
-      alert(
-        'La pestaña activa no respondió en 12s.\n\n' +
-        'Posibles causas:\n' +
-        '• No estás en la pantalla "Marketing Info Mapping" de GP1.\n' +
-        '• La pestaña activa no es la de GP1.\n' +
-        '• El content script no cargó (reintentá recargando la pestaña).',
-      );
-    },
-  });
-
-  port.onMessage.addListener((msg) => onPortMessage(container, msg));
-  port.onDisconnect.addListener(() => {
-    log.info('port desconectado');
-    activePort = null;
-    activeWatchdog?.dispose();
-    activeWatchdog = null;
-    toggleRunning(container, false);
-  });
-
-  port.postMessage({ type: PORT_MSG.START, config });
-}
-
-function onCancel() {
-  if (!activePort) return;
-  log.info('cancel solicitado');
-  try { activePort.postMessage({ type: PORT_MSG.CANCEL }); } catch { /* ya cerrado */ }
-  try { activePort.disconnect(); } catch { /* ya cerrado */ }
-  activePort = null;
-}
-
-function onPortMessage(container, msg) {
-  log.debug('progress', msg);
-  activeWatchdog?.clear();
-  switch (msg?.type) {
-    case PORT_MSG.PROGRESS:
-      updateSkuState(container, msg);
-      break;
-    case PORT_MSG.DONE:
-      setProgressTitle(container, 'Finalizado');
-      toggleRunning(container, false);
-      break;
-    case PORT_MSG.CANCELLED:
-      setProgressTitle(container, 'Cancelado');
-      toggleRunning(container, false);
-      break;
-    case PORT_MSG.ERROR:
-      setProgressTitle(container, `Error: ${msg.reason}`);
-      toggleRunning(container, false);
-      break;
-    default:
-      break;
-  }
-}
-
-// -----------------------------------------------------------------------------
-// progress
-// -----------------------------------------------------------------------------
-
-function toggleRunning(container, running) {
-  container.querySelector('#pt-run').disabled = running;
-  container.querySelector('#pt-cancel').disabled = !running;
-  const addBtn = container.querySelector('#pt-add-tag');
-  if (addBtn) addBtn.disabled = running || isMaxTagsReached(container);
-  container.querySelectorAll('#pt-tags input, #pt-tags select, #pt-tags button').forEach((el) => {
-    el.disabled = running;
-  });
-  container.querySelector('#pt-skus').disabled = running;
-  container.querySelector('#pt-skip-prod').disabled = running;
-}
-
-function isMaxTagsReached(container) {
-  return container.querySelectorAll('.pt-card').length >= 2;
-}
-
-function prepareProgress(container, skus) {
-  skuStates = new Map(skus.map((sku, i) => [`${i}::${sku}`, { sku, status: STATUS.PENDING, step: null }]));
-  const list = container.querySelector('#pt-progress-list');
-  list.innerHTML = '';
-  for (const [key, st] of skuStates) {
-    const li = document.createElement('li');
-    li.className = 'dt-progress-item dt-progress-item--pending';
-    li.dataset.key = key;
-    li.innerHTML = renderItemBody(st);
-    list.appendChild(li);
-  }
-  container.querySelector('#pt-progress').classList.remove('hidden');
-  container.querySelector('#pt-progress-counter').textContent = `0 / ${skus.length}`;
-  setProgressTitle(container, 'Procesando…');
-}
-
-function resetProgress(container) {
-  container.querySelector('#pt-progress')?.classList.add('hidden');
-  container.querySelector('#pt-progress-list').innerHTML = '';
-  toggleRunning(container, false);
-}
-
-function setProgressTitle(container, text) {
-  const el = container.querySelector('#pt-progress-title');
-  if (el) el.textContent = text;
-}
-
-function updateSkuState(container, msg) {
-  const key = `${msg.index}::${msg.sku}`;
-  const prev = skuStates.get(key) || { sku: msg.sku };
-  const next = { ...prev, status: msg.status, step: msg.step, detail: msg.detail, reason: msg.reason };
-  skuStates.set(key, next);
-
-  const li = container.querySelector(`[data-key="${cssEscape(key)}"]`);
-  if (li) {
-    li.className = `dt-progress-item dt-progress-item--${next.status}`;
-    li.innerHTML = renderItemBody(next);
-  }
-
-  const total = skuStates.size;
-  let done = 0;
-  for (const st of skuStates.values()) {
-    if ([STATUS.OK, STATUS.ERROR, STATUS.SKIPPED].includes(st.status)) done++;
-  }
-  container.querySelector('#pt-progress-counter').textContent = `${done} / ${total}`;
-}
-
-function renderItemBody(st) {
-  let stepLabel = STEP_LABELS[st.step] || st.step || '';
-  // Si el step viene con tagIndex (PROD_*), anotarlo en el label.
-  if (st.detail?.tagIndex) stepLabel = `Tag ${st.detail.tagIndex} — ${stepLabel}`;
-  const icon = iconFor(st.status);
-  const reason = st.reason ? `<span class="dt-item-reason">${escapeHtml(st.reason)}</span>` : '';
-  return `
-    <span class="dt-item-icon">${icon}</span>
-    <span class="dt-item-sku">${escapeHtml(st.sku)}</span>
-    <span class="dt-item-step">${escapeHtml(stepLabel)}</span>
-    ${reason}
-  `;
-}
-
-function iconFor(status) {
-  switch (status) {
-    case STATUS.OK:      return '✓';
-    case STATUS.ERROR:   return '✗';
-    case STATUS.RUNNING: return '◐';
-    case STATUS.SKIPPED: return '⊝';
-    default:             return '·';
-  }
-}
-
-function cssEscape(s) {
-  return s.replace(/"/g, '\\"');
 }

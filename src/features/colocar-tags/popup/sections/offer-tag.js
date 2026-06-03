@@ -7,13 +7,12 @@
 // Comunicación con el content script: port `colocar-tags:offer-run`.
 // Reutiliza las clases CSS `.dt-*` / `.pt-*` de las otras secciones de tags.
 
-import { FEATURE_ID, PORTS, PORT_MSG, STATUS, STEPS, OFFER_TYPES } from '../../constants.js';
-import { getStorage, setStorage } from '../../../../shared/storage/storage.js';
-import { logger } from '../../../../shared/utils/logger.js';
-import { attachPortWatchdog, escapeHtml } from '../utils.js';
+import { RUN_KIND, STEPS, OFFER_TYPES, STORAGE_KEYS } from '../../constants.js';
+import { getStorage } from '../../../../shared/storage/storage.js';
+import { escapeHtml } from '../utils.js';
+import { mountRunSection, progressMarkup } from '../run-ui.js';
 
-const log = logger('colocar-tags/offer');
-const STORAGE_KEY = `${FEATURE_ID}:offer:last-config`;
+const DRAFT_KEY = STORAGE_KEYS.DRAFT[RUN_KIND.OFFER];
 
 const STEP_LABELS = {
   [STEPS.SEARCH_TYPE]:       'Tipeando SKU',
@@ -39,12 +38,8 @@ const STEP_LABELS = {
   'empty':                   'SKU vacío',
 };
 
-let activePort = null;
-let activeWatchdog = null;
-let skuStates = new Map();
-
 export async function render(container) {
-  const cfg = (await getStorage(STORAGE_KEY)) || {};
+  const cfg = (await getStorage(DRAFT_KEY)) || {};
   const offers = mergeOffers(cfg.offers);
   const skipProd = cfg.skipProd ?? true;
 
@@ -52,7 +47,7 @@ export async function render(container) {
     <form id="of-form" class="dt-form" autocomplete="off">
       <label class="dt-field">
         <span class="dt-label">SKUs (uno por línea, "Sales Model" exacto)</span>
-        <textarea id="of-skus" rows="3" class="dt-input dt-textarea" placeholder="OLED65B5PSA.AWH&#10;OLED55C5PSA.AWH"></textarea>
+        <textarea id="of-skus" rows="3" class="dt-input dt-textarea" placeholder="OLED65B5PSA.AWH&#10;OLED55C5PSA.AWH">${escapeHtml(cfg.skus ?? '')}</textarea>
       </label>
 
       <p class="dt-hint">Activá las ofertas que querés aplicar (1 a 4).</p>
@@ -64,29 +59,31 @@ export async function render(container) {
       </label>
 
       <div class="dt-actions">
-        <button id="of-run"    type="submit" class="ct-btn ct-btn--primary">Aplicar</button>
+        <button id="of-run"    type="button" class="ct-btn ct-btn--primary">Aplicar</button>
         <button id="of-cancel" type="button" class="ct-btn ct-btn--ghost" disabled>Cancelar</button>
       </div>
     </form>
 
-    <div id="of-progress" class="dt-progress hidden">
-      <div class="dt-progress-head">
-        <strong id="of-progress-title">Procesando…</strong>
-        <span id="of-progress-counter" class="dt-progress-counter"></span>
-      </div>
-      <ul id="of-progress-list" class="dt-progress-list"></ul>
-    </div>
+    ${progressMarkup('of')}
   `;
 
   renderOfferCards(container.querySelector('#of-cards'), offers);
 
-  container.querySelector('#of-form').addEventListener('submit', (e) => {
-    e.preventDefault();
-    onRun(container, offers);
+  mountRunSection(container, {
+    prefix: 'of',
+    kind: RUN_KIND.OFFER,
+    stepLabels: STEP_LABELS,
+    formSelectors: ['#of-skus', '#of-skip-prod', '#of-cards input', '#of-cards textarea'],
+    collect: () => collect(container, offers),
+    draft: {
+      key: DRAFT_KEY,
+      collect: () => ({
+        skus: container.querySelector('#of-skus').value,
+        offers,
+        skipProd: container.querySelector('#of-skip-prod').checked,
+      }),
+    },
   });
-  container.querySelector('#of-cancel').addEventListener('click', onCancel);
-
-  resetProgress(container);
 }
 
 // -----------------------------------------------------------------------------
@@ -170,19 +167,18 @@ function renderOfferCards(host, offers) {
 }
 
 // -----------------------------------------------------------------------------
-// run / cancel
+// recolección / validación
 // -----------------------------------------------------------------------------
 
-async function onRun(container, offers) {
+function collect(container, offers) {
   const skus = parseSkus(container.querySelector('#of-skus').value);
   const skipProd = container.querySelector('#of-skip-prod').checked;
 
-  if (skus.length === 0) return alert('Ingresá al menos un SKU.');
+  if (skus.length === 0) { alert('Ingresá al menos un SKU.'); return null; }
 
   const enabled = offers.filter((o) => o.enabled);
-  if (enabled.length === 0) return alert('Activá al menos una oferta.');
+  if (enabled.length === 0) { alert('Activá al menos una oferta.'); return null; }
 
-  // Normalizar + validar cada oferta activada.
   const cleaned = enabled.map((o) => ({
     index:       o.index,
     label:       o.label,
@@ -192,186 +188,21 @@ async function onRun(container, offers) {
     endDate:     String(o.endDate || ''),
   }));
   for (const o of cleaned) {
-    // Si la oferta queda activa (Use), exigimos descripción + fechas completas.
     if (o.use) {
-      if (!o.description) return alert(`Oferta ${o.label}: completá la descripción.`);
-      if (!o.startDate || !o.endDate) return alert(`Oferta ${o.label}: completá Start y End Date.`);
+      if (!o.description) { alert(`Oferta ${o.label}: completá la descripción.`); return null; }
+      if (!o.startDate || !o.endDate) { alert(`Oferta ${o.label}: completá Start y End Date.`); return null; }
     } else if ((o.startDate && !o.endDate) || (!o.startDate && o.endDate)) {
-      return alert(`Oferta ${o.label}: completá ambas fechas o ninguna.`);
+      alert(`Oferta ${o.label}: completá ambas fechas o ninguna.`); return null;
     }
     if (o.startDate && o.endDate && o.startDate > o.endDate) {
-      return alert(`Oferta ${o.label}: Start Date es posterior a End Date.`);
+      alert(`Oferta ${o.label}: Start Date es posterior a End Date.`); return null;
     }
   }
 
-  // Persistir el estado completo de las 4 (para repoblar el form).
-  await setStorage(STORAGE_KEY, { offers, skipProd });
-
-  const config = { skus, offers: cleaned, skipProd };
-  await startRun(container, config);
+  const config = { offers: cleaned, skipProd };
+  return { config, skus, message: `Tag de Oferta — ${skus.length} SKU(s)` };
 }
 
 function parseSkus(raw) {
   return raw.split('\n').map((s) => s.trim()).filter(Boolean);
-}
-
-async function startRun(container, config) {
-  toggleRunning(container, true);
-  prepareProgress(container, config.skus);
-
-  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-  if (!tab?.id) {
-    alert('No hay pestaña activa.');
-    toggleRunning(container, false);
-    return;
-  }
-
-  const port = chrome.tabs.connect(tab.id, { name: PORTS.OFFER_RUN });
-  activePort = port;
-
-  activeWatchdog = attachPortWatchdog(port, {
-    timeoutMs: 12000,
-    onTimeout: () => {
-      setProgressTitle(container, 'Sin respuesta de la pestaña');
-      toggleRunning(container, false);
-      alert(
-        'La pestaña activa no respondió en 12s.\n\n' +
-        'Posibles causas:\n' +
-        '• No estás en la pantalla "Marketing Info Mapping" de GP1.\n' +
-        '• La pestaña activa no es la de GP1.\n' +
-        '• El content script no cargó (reintentá recargando la pestaña).',
-      );
-    },
-  });
-
-  port.onMessage.addListener((msg) => onPortMessage(container, msg));
-  port.onDisconnect.addListener(() => {
-    log.info('port desconectado');
-    activePort = null;
-    activeWatchdog?.dispose();
-    activeWatchdog = null;
-    toggleRunning(container, false);
-  });
-
-  port.postMessage({ type: PORT_MSG.START, config });
-}
-
-function onCancel() {
-  if (!activePort) return;
-  log.info('cancel solicitado');
-  try { activePort.postMessage({ type: PORT_MSG.CANCEL }); } catch { /* ya cerrado */ }
-  try { activePort.disconnect(); } catch { /* ya cerrado */ }
-  activePort = null;
-}
-
-function onPortMessage(container, msg) {
-  log.debug('progress', msg);
-  activeWatchdog?.clear();
-  switch (msg?.type) {
-    case PORT_MSG.PROGRESS:
-      updateSkuState(container, msg);
-      break;
-    case PORT_MSG.DONE:
-      setProgressTitle(container, 'Finalizado');
-      toggleRunning(container, false);
-      break;
-    case PORT_MSG.CANCELLED:
-      setProgressTitle(container, 'Cancelado');
-      toggleRunning(container, false);
-      break;
-    case PORT_MSG.ERROR:
-      setProgressTitle(container, `Error: ${msg.reason}`);
-      toggleRunning(container, false);
-      break;
-    default:
-      break;
-  }
-}
-
-// -----------------------------------------------------------------------------
-// progress
-// -----------------------------------------------------------------------------
-
-function toggleRunning(container, running) {
-  container.querySelector('#of-run').disabled = running;
-  container.querySelector('#of-cancel').disabled = !running;
-  container.querySelectorAll('#of-cards input, #of-cards textarea').forEach((el) => {
-    el.disabled = running;
-  });
-  container.querySelector('#of-skus').disabled = running;
-  container.querySelector('#of-skip-prod').disabled = running;
-}
-
-function prepareProgress(container, skus) {
-  skuStates = new Map(skus.map((sku, i) => [`${i}::${sku}`, { sku, status: STATUS.PENDING, step: null }]));
-  const list = container.querySelector('#of-progress-list');
-  list.innerHTML = '';
-  for (const [key, st] of skuStates) {
-    const li = document.createElement('li');
-    li.className = 'dt-progress-item dt-progress-item--pending';
-    li.dataset.key = key;
-    li.innerHTML = renderItemBody(st);
-    list.appendChild(li);
-  }
-  container.querySelector('#of-progress').classList.remove('hidden');
-  container.querySelector('#of-progress-counter').textContent = `0 / ${skus.length}`;
-  setProgressTitle(container, 'Procesando…');
-}
-
-function resetProgress(container) {
-  container.querySelector('#of-progress')?.classList.add('hidden');
-  container.querySelector('#of-progress-list').innerHTML = '';
-  toggleRunning(container, false);
-}
-
-function setProgressTitle(container, text) {
-  const el = container.querySelector('#of-progress-title');
-  if (el) el.textContent = text;
-}
-
-function updateSkuState(container, msg) {
-  const key = `${msg.index}::${msg.sku}`;
-  const prev = skuStates.get(key) || { sku: msg.sku };
-  const next = { ...prev, status: msg.status, step: msg.step, detail: msg.detail, reason: msg.reason };
-  skuStates.set(key, next);
-
-  const li = container.querySelector(`[data-key="${cssEscape(key)}"]`);
-  if (li) {
-    li.className = `dt-progress-item dt-progress-item--${next.status}`;
-    li.innerHTML = renderItemBody(next);
-  }
-
-  const total = skuStates.size;
-  let done = 0;
-  for (const st of skuStates.values()) {
-    if ([STATUS.OK, STATUS.ERROR, STATUS.SKIPPED].includes(st.status)) done++;
-  }
-  container.querySelector('#of-progress-counter').textContent = `${done} / ${total}`;
-}
-
-function renderItemBody(st) {
-  let stepLabel = STEP_LABELS[st.step] || st.step || '';
-  if (st.detail?.offerLabel) stepLabel = `${st.detail.offerLabel} — ${stepLabel}`;
-  const icon = iconFor(st.status);
-  const reason = st.reason ? `<span class="dt-item-reason">${escapeHtml(st.reason)}</span>` : '';
-  return `
-    <span class="dt-item-icon">${icon}</span>
-    <span class="dt-item-sku">${escapeHtml(st.sku)}</span>
-    <span class="dt-item-step">${escapeHtml(stepLabel)}</span>
-    ${reason}
-  `;
-}
-
-function iconFor(status) {
-  switch (status) {
-    case STATUS.OK:      return '✓';
-    case STATUS.ERROR:   return '✗';
-    case STATUS.RUNNING: return '◐';
-    case STATUS.SKIPPED: return '⊝';
-    default:             return '·';
-  }
-}
-
-function cssEscape(s) {
-  return s.replace(/"/g, '\\"');
 }
