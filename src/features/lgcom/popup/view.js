@@ -6,7 +6,7 @@
 // pestaña/ventana. Cuando está apagado, se mantiene la pantalla seleccionada
 // manualmente.
 
-import { MESSAGES, OPERATION_SCREEN, SCREENS, STORAGE_KEYS } from '../constants.js';
+import { MESSAGES, SCREENS, STORAGE_KEYS, screenForCapture } from '../constants.js';
 import { getStorage, setStorage } from '../../../shared/storage/storage.js';
 import { logger } from '../../../shared/utils/logger.js';
 import * as screenView from './sections/screen.js';
@@ -132,7 +132,7 @@ function freshestScreen(captures) {
   let best = null;
   let bestTs = -1;
   for (const c of captures) {
-    const screenId = OPERATION_SCREEN[c.operationName];
+    const screenId = screenForCapture(c);
     if (!screenId) continue;
     if ((c.ts ?? 0) > bestTs) { bestTs = c.ts ?? 0; best = screenId; }
   }

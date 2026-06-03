@@ -16,7 +16,7 @@ export const STORAGE_KEYS = {
 export const SCREENS = [
   { id: 'pdp', label: 'PDP', operations: ['getPbpProduct', 'products', 'getAddressLevel1', 'getAddressLevel2'] },
   { id: 'plp', label: 'PLP', operations: ['retrieveProductList', 'products'] },
-  { id: 'pbp', label: 'PBP', future: true, operations: [] },
+  { id: 'pbp', label: 'PBP', operations: ['products'] },
 ];
 
 // Para "auto-seguir": operación → pantalla "dueña" (las ambiguas se omiten para
@@ -27,6 +27,22 @@ export const OPERATION_SCREEN = {
   getAddressLevel2: 'pdp',
   retrieveProductList: 'plp',
 };
+
+// Clasifica una captura a una pantalla para el auto-seguimiento.
+// PDP y PLP se detectan por operación (getPbpProduct / retrieveProductList).
+// PBP comparte `getProductsBySku` (capturado como `products`) con la PLP, pero la
+// PBP pide UN solo SKU mientras la PLP pide varios → usamos el largo de skuList.
+// Con varios SKUs la operación es ambigua (PLP vs variantes de PDP) → no fuerza.
+export function screenForCapture(capture) {
+  if (!capture) return null;
+  const direct = OPERATION_SCREEN[capture.operationName];
+  if (direct) return direct;
+  if (capture.operationName === 'products' || capture.operationName === 'getProductsBySku') {
+    const list = capture.variables?.skuList;
+    if (Array.isArray(list) && list.length === 1) return 'pbp';
+  }
+  return null;
+}
 
 // Escala de tamaño de texto de los campos (px). El índice se persiste.
 export const FONT_SIZES = [11, 12.5, 14, 16, 18];

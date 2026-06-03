@@ -227,9 +227,11 @@ src/features/cupones/
 ---
 
 ## Feature: LG.com
-Sitio público **www.lg.com** (a diferencia del resto, que opera sobre GP1/Magento admin). Sub-pantallas: **PDP**, **PLP**, **PBP** (futuro). `popup/view.js` es el router: barra de tabs PDP/PLP/PBP + switch **Auto** (persistido). Cada pantalla (`SCREENS` en constants) agrupa sus operaciones y se renderiza con `popup/sections/screen.js` (genérico, parametrizado por la pantalla).
+Sitio público **www.lg.com** (a diferencia del resto, que opera sobre GP1/Magento admin). Sub-pantallas: **PDP**, **PLP**, **PBP**. `popup/view.js` es el router: barra de tabs PDP/PLP/PBP + switch **Auto** (persistido). Cada pantalla (`SCREENS` en constants) agrupa sus operaciones y se renderiza con `popup/sections/screen.js` (genérico, parametrizado por la pantalla).
 
-**Switch "Auto" (auto-seguir pantalla):** cuando está on, la pantalla mostrada sigue a la pantalla en que está el usuario — detecta la pantalla "dueña" de la captura más reciente (`OPERATION_SCREEN`) y reacciona a cambios de pestaña/ventana (`chrome.tabs.onActivated/onUpdated` + `windows.onFocusChanged`) + un timer cada 1.5s (cubre navegación same-tab). Off: queda en la pantalla elegida manualmente. Persistido en `STORAGE_KEYS.SCREEN` + `AUTO_FOLLOW`.
+**Switch "Auto" (auto-seguir pantalla):** cuando está on, la pantalla mostrada sigue a la pantalla en que está el usuario — detecta la pantalla "dueña" de la captura más reciente vía `screenForCapture(capture)` y reacciona a cambios de pestaña/ventana (`chrome.tabs.onActivated/onUpdated` + `windows.onFocusChanged`) + un timer cada 1.5s (cubre navegación same-tab). Off: queda en la pantalla elegida manualmente. Persistido en `STORAGE_KEYS.SCREEN` + `AUTO_FOLLOW`.
+
+**Distinguir PBP de PLP (`screenForCapture`):** PDP=`getPbpProduct`, PLP=`retrieveProductList` (por operación). PBP y PLP **comparten** `getProductsBySku` (capturado como `products`); la PBP pide **1 SKU** y la PLP **varios** → se desambigua por el largo de `variables.skuList` (==1 ⇒ PBP). Con varios SKUs queda ambiguo (PLP vs variantes de PDP) y no fuerza cambio (manda el `getPbpProduct`/`retrieveProductList` de esa pantalla). Las `variables` de los GET GraphQL las parsea el bridge desde el query string (no hay body).
 
 **Captura de red (reto central):** el JSON viaja por el `fetch`/XHR de **la página** (mundo MAIN); el content aislado no lo ve. Solución MV3 sin violar CSP: un **content script en `world:"MAIN"`** (`src/content/graphql-bridge.js`, `run_at:document_start`, `https://www.lg.com/*`, top frame) que parchea `window.fetch` + `XMLHttpRequest.prototype.open/send`, lee la respuesta y la reenvía por `window.postMessage({ source:'ext-lge-cl/graphql', operationName, variables, response, url, ts })`. Captura **GraphQL** (`/api/graphql`) y **REST proxy LG** (`/ncms/.../proxy/<name>`, p. ej. `retrieveProductList` de la PLP — nombre = último segmento del path). **Autocontenido, sin `chrome.*` ni imports de `shared/`, todo en try/catch** (jamás romper la web). Guard de idempotencia `window.__extLgeClGraphqlBridge`.
 
@@ -240,7 +242,7 @@ Sitio público **www.lg.com** (a diferencia del resto, que opera sobre GP1/Magen
 **Extractores (`content/extractors/`):** `index.js` = dispatcher `EXTRACTORS[operationName]` + `extract()`/`hasExtractor()`. Funciones puras `(response)→grupos|null` reusables en content y popup.
 - `pbp-product.js`: orden por importancia — **primero producto**, **envío al final**: Identificación, Precios, Cuotas, Totales, Componentes del bundle (PtoV2), Garantía, Paquetes, Suscripción, Pre-orden, Marketing, Instalación, luego Despacho (+cobertura) y Reglas de envío (`global_shipping_rules`). **Fallback `readSegments(total_segments)`** para sku/precio/descuento cuando `product` viene casi vacío (package rules, PtoV2). Maneja `product.items[]` (componentes de bundle PtoV2).
 - `address-level1.js` / `address-level2.js`: grupo "Regiones (N)" / "Comunas (N)" name→id.
-- `products.js`: un grupo por variante (tamaño/modelo) con sku, stock, precios, cuotas.
+- `products.js` (`products`/`getProductsBySku`, usado por PLP y PBP): un grupo por item con sku, stock, precios, MSRP, cuotas, cheaper_price, suscripción (fairown), pre-orden y componentes si es BundleProduct.
 - `retrieve-product-list.js`: un grupo por modelo de la PLP (encabezado por lista) priorizando TAGS — productTag1/2 con tipo/categoría/usuarios/vigencia, delivery tag, MSRP, estado, rating, URL.
 Todos formatean CLP/%/sí-no, omiten campos/grupos vacíos, defensivos ante nulls.
 

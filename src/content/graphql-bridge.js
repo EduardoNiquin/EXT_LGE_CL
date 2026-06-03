@@ -76,6 +76,21 @@
     return 'unknown';
   }
 
+  // GraphQL por GET trae query/operationName/variables en el query string
+  // (no hay body). Parseamos `variables` para poder clasificar la captura
+  // (p. ej. PBP = getProductsBySku con un solo SKU).
+  function parseUrlVariables(url) {
+    try {
+      const qs = typeof url === 'string' ? url.split('?')[1] : '';
+      if (!qs) return null;
+      const params = new URLSearchParams(qs);
+      const v = params.get('variables');
+      return v ? JSON.parse(v) : null;
+    } catch {
+      return null;
+    }
+  }
+
   function publish(payload) {
     try {
       window.postMessage({ source: SOURCE, ...payload }, '*');
@@ -104,9 +119,13 @@
         }
       }
 
+      let variables = req.variables ?? (match.kind === 'rest' ? req : null);
+      // GET GraphQL: las variables viven en el query string, no en el body.
+      if (variables == null && match.kind === 'graphql') variables = parseUrlVariables(url);
+
       publish({
         operationName,
-        variables: req.variables ?? (match.kind === 'rest' ? req : null),
+        variables,
         response,
         url,
         ts: Date.now(),
