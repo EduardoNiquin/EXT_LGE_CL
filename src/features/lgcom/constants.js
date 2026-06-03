@@ -27,6 +27,10 @@ export const OPERATIONS = {
     label: 'Regiones',
     description: 'Listado de regiones (Address Level 1) de Chile con su id.',
   },
+  products: {
+    label: 'Variantes',
+    description: 'Listado de variantes del producto (tamaños/modelos) con precio y stock.',
+  },
 };
 
 // Cuántas capturas retenemos por operación (la última suele bastar, pero

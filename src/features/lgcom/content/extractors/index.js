@@ -4,10 +4,12 @@
 
 import { extractPbpProduct } from './pbp-product.js';
 import { extractAddressLevel1 } from './address-level1.js';
+import { extractProducts } from './products.js';
 
 export const EXTRACTORS = {
   getPbpProduct: extractPbpProduct,
   getAddressLevel1: extractAddressLevel1,
+  products: extractProducts,
 };
 
 export function hasExtractor(operationName) {

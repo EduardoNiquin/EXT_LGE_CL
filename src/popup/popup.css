@@ -1324,7 +1324,18 @@ mark {
   justify-content: space-between;
   gap: var(--space-2);
 }
+.lg-head-right { display: inline-flex; align-items: center; gap: var(--space-2); flex-shrink: 0; }
 .lg-ts { font-size: 10px; color: var(--text-subtle); white-space: nowrap; }
+.lg-auto {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-subtle);
+}
+.lg-auto-spin { width: 10px; height: 10px; border-width: 1.5px; }
 
 .lg-op-field { margin-top: var(--space-2); }
 
@@ -1335,8 +1346,14 @@ mark {
   margin: var(--space-3) 0 var(--space-2);
 }
 .lg-search { flex: 1; min-width: 0; margin: 0; }
-.lg-copy-all { display: flex; gap: var(--space-1); flex-shrink: 0; }
-.lg-copy-all .ct-btn { padding: 6px 10px; font-size: 11px; }
+.lg-refresh {
+  flex-shrink: 0;
+  padding: 7px 12px;
+  font-size: 15px;
+  line-height: 1;
+}
+.lg-copy-all { display: flex; gap: var(--space-1); margin-bottom: var(--space-2); }
+.lg-copy-all .ct-btn { padding: 6px 10px; font-size: 11px; flex: 1; }
 
 .lg-body { display: flex; flex-direction: column; gap: var(--space-2); }
 

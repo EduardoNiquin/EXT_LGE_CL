@@ -82,8 +82,16 @@
     try {
       const req = parseRequestBody(requestBody) || {};
       const response = responseText ? JSON.parse(responseText) : null;
+      let operationName = deriveOperationName(req.query, req.operationName);
+      // Fallback: cuando no pudimos leer el request (p. ej. fetch(new Request)),
+      // el operationName se infiere del primer key de `data` en la respuesta,
+      // que coincide con el campo raíz de la operación (getPbpProduct, products…).
+      if (operationName === 'unknown' && response?.data && typeof response.data === 'object') {
+        const keys = Object.keys(response.data);
+        if (keys.length) operationName = keys[0];
+      }
       publish({
-        operationName: deriveOperationName(req.query, req.operationName),
+        operationName,
         variables: req.variables ?? null,
         response,
         url,

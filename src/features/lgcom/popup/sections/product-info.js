@@ -4,6 +4,11 @@
 // elige una operación (por defecto getPbpProduct = PDP) y la muestra en grupos
 // legibles con buscador y botones de copia. Las operaciones desconocidas caen a
 // una vista de JSON crudo.
+//
+// Auto-captura: la página dispara el GraphQL un instante después de cargar, y a
+// veces el popup se abre antes (o hay una captura vieja). En vez de obligar al
+// usuario a tocar "Actualizar" repetidamente, hacemos polling durante unos
+// segundos: re-renderizamos automáticamente cuando llega una captura más nueva.
 
 import { MESSAGES, OPERATIONS } from '../../constants.js';
 import { extract, hasExtractor } from '../../content/extractors/index.js';
@@ -18,47 +23,110 @@ import {
 
 const log = logger('lgcom/popup');
 
-let selectedOperation = null;
+const POLL_INTERVAL = 700;   // ms entre intentos
+const POLL_MAX = 20;         // ~14s de ventana de auto-captura
 
-export async function render(container) {
+let selectedOperation = null;
+let renderToken = 0;         // invalida loops de polling de renders previos
+let pollTimer = null;
+let displayedTs = null;      // ts de la captura mostrada (para detectar novedad)
+let displayedOp = null;
+
+export function render(container) {
+  renderToken += 1;
+  const token = renderToken;
+  if (pollTimer) { clearTimeout(pollTimer); pollTimer = null; }
+  displayedTs = null;
+  displayedOp = null;
+
   container.innerHTML = `<div class="ct-state"><span class="ct-spinner"></span><p>Leyendo la pestaña…</p></div>`;
 
-  const tab = await getActiveTab();
-  if (!tab?.id) {
-    renderWarn(container, 'No hay pestaña activa.');
+  getActiveTab().then((tab) => {
+    if (token !== renderToken) return;
+    if (!tab?.id) { renderWarn(container, 'No hay pestaña activa.'); return; }
+    poll(container, token, tab, 0);
+  });
+}
+
+// -----------------------------------------------------------------------------
+// loop de polling / auto-captura
+// -----------------------------------------------------------------------------
+
+async function poll(container, token, tab, attempt) {
+  if (token !== renderToken) return;
+
+  const res = await safeSend(tab.id, { type: MESSAGES.GET_CAPTURES });
+  if (token !== renderToken) return;
+
+  const captures = res?.ok && Array.isArray(res.captures) ? res.captures : [];
+
+  if (captures.length === 0) {
+    if (attempt < POLL_MAX) {
+      renderWaiting(container, tab, attempt);
+      pollTimer = setTimeout(() => poll(container, token, tab, attempt + 1), POLL_INTERVAL);
+    } else {
+      renderEmpty(container, tab);
+    }
     return;
   }
 
-  let res;
-  try {
-    res = await chrome.tabs.sendMessage(tab.id, { type: MESSAGES.GET_CAPTURES });
-  } catch {
-    res = null;
-  }
-
-  if (!res?.ok || !Array.isArray(res.captures) || res.captures.length === 0) {
-    renderEmpty(container, tab);
-    return;
-  }
-
-  // Elegir operación: la previamente seleccionada si sigue disponible, si no
-  // getPbpProduct, si no la primera.
-  const names = res.captures.map((c) => c.operationName);
+  // Elegir operación: la previa si sigue disponible, si no getPbpProduct, si no
+  // la primera.
+  const names = captures.map((c) => c.operationName);
   if (!names.includes(selectedOperation)) {
     selectedOperation = names.includes('getPbpProduct') ? 'getPbpProduct' : names[0];
   }
 
-  await renderData(container, tab, res.captures);
+  const summary = captures.find((c) => c.operationName === selectedOperation);
+  const latestTs = summary?.ts ?? null;
+
+  // Re-render solo si hay una captura más nueva o cambió la operación.
+  if (latestTs !== displayedTs || selectedOperation !== displayedOp) {
+    await showOperation(container, token, tab, captures);
+  }
+
+  // Seguir en ventana de polling para capturar respuestas que lleguen tarde.
+  if (attempt < POLL_MAX) {
+    setAutoIndicator(container, true);
+    pollTimer = setTimeout(() => poll(container, token, tab, attempt + 1), POLL_INTERVAL);
+  } else {
+    setAutoIndicator(container, false);
+  }
+}
+
+async function showOperation(container, token, tab, captures) {
+  const op = await safeSend(tab.id, {
+    type: MESSAGES.GET_OPERATION,
+    operationName: selectedOperation,
+  });
+  if (token !== renderToken) return;
+  if (!op?.ok) return;
+  renderData(container, tab, captures, op);
+  displayedTs = op.ts ?? null;
+  displayedOp = selectedOperation;
 }
 
 // -----------------------------------------------------------------------------
-// estados vacíos / error
+// estados vacíos / espera / error
 // -----------------------------------------------------------------------------
 
 function renderWarn(container, message) {
   container.innerHTML = `
     <div class="lt-view">
       <div class="ct-state ct-state--warn"><p>${escapeHtml(message)}</p></div>
+    </div>`;
+}
+
+function renderWaiting(container, tab, attempt) {
+  const isLg = /(^|\.)lg\.com/i.test(safeHost(tab?.url));
+  if (!isLg) { renderEmpty(container, tab); return; }
+  container.innerHTML = `
+    <div class="lt-view">
+      <div class="ct-state">
+        <span class="ct-spinner"></span>
+        <p>Esperando datos de la página…</p>
+        <p class="ct-state-hint">Capturando la respuesta GraphQL automáticamente${attempt > 2 ? ` (intento ${attempt + 1})` : ''}.</p>
+      </div>
     </div>`;
 }
 
@@ -70,7 +138,7 @@ function renderEmpty(container, tab) {
         <h3 class="lt-section-title">Info de Producto</h3>
         <p class="lt-hint">
           ${isLg
-            ? 'Todavía no se captó ninguna respuesta GraphQL en esta pestaña. Abrí o recargá una página de producto (PDP) en www.lg.com y volvé a intentar.'
+            ? 'No se captó ninguna respuesta GraphQL en esta pestaña. Recargá o navegá una página de producto (PDP) en www.lg.com.'
             : 'Esta pestaña no es www.lg.com. Abrí una página de producto en www.lg.com para ver su información.'}
         </p>
         <div class="lt-actions">
@@ -82,24 +150,11 @@ function renderEmpty(container, tab) {
 }
 
 // -----------------------------------------------------------------------------
-// render principal
+// render principal de datos
 // -----------------------------------------------------------------------------
 
-async function renderData(container, tab, captures) {
-  let op;
-  try {
-    op = await chrome.tabs.sendMessage(tab.id, {
-      type: MESSAGES.GET_OPERATION,
-      operationName: selectedOperation,
-    });
-  } catch {
-    op = null;
-  }
-
-  if (!op?.ok) {
-    renderWarn(container, op?.reason || 'No se pudo leer la operación seleccionada.');
-    return;
-  }
+function renderData(container, tab, captures, op) {
+  const prevFilter = container.querySelector('#lg-filter')?.value || '';
 
   const meta = OPERATIONS[selectedOperation];
   const groups = hasExtractor(selectedOperation)
@@ -125,7 +180,10 @@ async function renderData(container, tab, captures) {
       <section class="lt-form-card">
         <div class="lg-head">
           <h3 class="lt-section-title">${escapeHtml(meta?.label || selectedOperation)}</h3>
-          <span class="lg-ts">${op.ts ? `captado ${formatTime(op.ts)}` : ''}</span>
+          <span class="lg-head-right">
+            <span id="lg-auto" class="lg-auto hidden"><span class="ct-spinner lg-auto-spin"></span>auto</span>
+            <span class="lg-ts">${op.ts ? `captado ${formatTime(op.ts)}` : ''}</span>
+          </span>
         </div>
         ${meta?.description ? `<p class="lt-hint">${escapeHtml(meta.description)}</p>` : ''}
         ${selectHtml}
@@ -138,17 +196,15 @@ async function renderData(container, tab, captures) {
             </svg>
             <input type="text" id="lg-filter" class="search-input" placeholder="Filtrar campos…" autocomplete="off" spellcheck="false" />
           </div>
-          <div class="lg-copy-all">
-            <button type="button" id="lg-copy-text" class="ct-btn ct-btn--ghost" title="Copiar todo como texto">Copiar todo</button>
-            <button type="button" id="lg-copy-json" class="ct-btn ct-btn--ghost" title="Copiar respuesta JSON cruda">JSON</button>
-          </div>
+          <button type="button" id="lg-refresh" class="ct-btn ct-btn--primary lg-refresh" title="Volver a capturar">↻</button>
+        </div>
+        <div class="lg-copy-all">
+          <button type="button" id="lg-copy-text" class="ct-btn ct-btn--ghost" title="Copiar todo como texto">Copiar todo</button>
+          <button type="button" id="lg-copy-json" class="ct-btn ct-btn--ghost" title="Copiar respuesta JSON cruda">JSON</button>
         </div>
 
         <div id="lg-body" class="lg-body"></div>
       </section>
-      <div class="lt-actions">
-        <button type="button" id="lg-refresh" class="ct-btn ct-btn--primary">Actualizar</button>
-      </div>
     </div>`;
 
   const body = container.querySelector('#lg-body');
@@ -161,7 +217,9 @@ async function renderData(container, tab, captures) {
   // Eventos
   container.querySelector('#lg-op')?.addEventListener('change', (e) => {
     selectedOperation = e.target.value;
-    renderData(container, tab, captures);
+    displayedTs = null;
+    displayedOp = null;
+    showOperation(container, renderToken, tab, captures);
   });
   container.querySelector('#lg-refresh')?.addEventListener('click', () => render(container));
   container.querySelector('#lg-copy-json')?.addEventListener('click', (e) =>
@@ -170,9 +228,18 @@ async function renderData(container, tab, captures) {
     flashCopy(e.currentTarget, groups ? groupsToText(groups) : JSON.stringify(op.response, null, 2)));
 
   const filter = container.querySelector('#lg-filter');
-  filter?.addEventListener('input', () => applyFilter(body, filter.value));
+  if (filter) {
+    filter.value = prevFilter;
+    filter.addEventListener('input', () => applyFilter(body, filter.value));
+    if (prevFilter) applyFilter(body, prevFilter);
+  }
 
   log.info('render', { operation: selectedOperation, groups: groups?.length });
+}
+
+function setAutoIndicator(container, on) {
+  const el = container.querySelector('#lg-auto');
+  if (el) el.classList.toggle('hidden', !on);
 }
 
 // -----------------------------------------------------------------------------
@@ -242,7 +309,7 @@ function applyFilter(body, query) {
   // Ocultar grupos sin coincidencias.
   body.querySelectorAll('.lg-group').forEach((g) => {
     const visible = g.querySelectorAll('.lg-field:not(.hidden)').length;
-    g.classList.toggle('hidden', q && visible === 0);
+    g.classList.toggle('hidden', Boolean(q) && visible === 0);
   });
 }
 
@@ -252,10 +319,9 @@ function applyFilter(body, query) {
 
 async function flashCopy(btn, text) {
   const ok = await copyToClipboard(text);
-  const prev = btn.dataset.label ?? btn.textContent;
   const hasIcon = btn.querySelector('svg');
   if (!hasIcon) {
-    btn.dataset.label = prev;
+    if (btn.dataset.label == null) btn.dataset.label = btn.textContent;
     btn.textContent = ok ? '¡Copiado!' : 'Error';
   }
   btn.classList.add(ok ? 'is-copied' : 'is-error');
@@ -266,6 +332,14 @@ async function flashCopy(btn, text) {
       delete btn.dataset.label;
     }
   }, 1100);
+}
+
+async function safeSend(tabId, message) {
+  try {
+    return await chrome.tabs.sendMessage(tabId, message);
+  } catch {
+    return null;
+  }
 }
 
 async function getActiveTab() {
