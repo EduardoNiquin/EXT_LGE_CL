@@ -18,8 +18,51 @@ register('popup', {
 const app         = document.getElementById('app');
 const backBtn     = document.getElementById('back-btn');
 const headerTitle = document.getElementById('header-title');
+const panelToggle = document.getElementById('panel-toggle');
 
 const HOME_TITLE = 'LGE CL Tools';
+
+// Contexto de render: el mismo bundle sirve al popup (pequeño) y al side panel
+// (grande, acoplado a la derecha). `sidepanel.html` marca el body.
+const isSidePanel = document.body.dataset.context === 'sidepanel';
+
+const ICON_MAXIMIZE = '<path d="M9 2h5v5M14 2L8.5 7.5M7 14H2V9M2 14l5.5-5.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>';
+const ICON_MINIMIZE = '<path d="M14 2L9.5 6.5M9.5 6.5H13.5M9.5 6.5V2.5M2 14l4.5-4.5M6.5 9.5H2.5M6.5 9.5V13.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>';
+
+async function maximizeToSidePanel() {
+  try {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (tab?.windowId != null) {
+      await chrome.sidePanel.open({ windowId: tab.windowId });
+    }
+  } catch (err) {
+    console.warn('[popup] No se pudo abrir el side panel:', err);
+    return;
+  }
+  // Cerramos el popup: el side panel ya quedó abierto con la misma UI.
+  window.close();
+}
+
+function minimizePanel() {
+  // Cierra el side panel; el usuario reabre el popup con el ícono de la barra.
+  window.close();
+}
+
+function setupPanelToggle() {
+  if (!panelToggle) return;
+  const svg = panelToggle.querySelector('svg');
+  if (isSidePanel) {
+    panelToggle.setAttribute('aria-label', 'Minimizar');
+    panelToggle.title = 'Minimizar';
+    if (svg) svg.innerHTML = ICON_MINIMIZE;
+    panelToggle.addEventListener('click', minimizePanel);
+  } else {
+    panelToggle.setAttribute('aria-label', 'Maximizar');
+    panelToggle.title = 'Maximizar (abrir panel lateral)';
+    if (svg) svg.innerHTML = ICON_MAXIMIZE;
+    panelToggle.addEventListener('click', maximizeToSidePanel);
+  }
+}
 
 function highlight(text, query) {
   if (!query) return text;
@@ -147,4 +190,5 @@ function openFeature(feature) {
 
 backBtn.addEventListener('click', renderHome);
 
+setupPanelToggle();
 renderHome();

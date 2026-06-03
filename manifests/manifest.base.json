@@ -1,10 +1,11 @@
 {
   "manifest_version": 3,
   "name": "EXT LGE CL",
-  "version": "0.4",
+  "version": "0.5",
   "description": "",
   "permissions": [
-    "storage"
+    "storage",
+    "sidePanel"
   ],
   "host_permissions": [
     "<all_urls>"
@@ -25,6 +26,9 @@
       "all_frames": true
     }
   ],
+  "side_panel": {
+    "default_path": "src/popup/sidepanel.html"
+  },
   "action": {
     "default_popup": "src/popup/popup.html",
     "default_icon": {

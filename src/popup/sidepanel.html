@@ -7,7 +7,7 @@
   <link rel="stylesheet" href="./popup.css" />
   <title>LGE CL Tools</title>
 </head>
-<body>
+<body data-context="sidepanel">
   <header class="header">
     <button id="back-btn" class="back-btn hidden" aria-label="Volver">
       <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
@@ -18,9 +18,9 @@
       <span class="header-accent-bar"></span>
       <span class="header-title" id="header-title">LGE CL Tools</span>
     </div>
-    <button id="panel-toggle" class="panel-toggle" aria-label="Maximizar">
+    <button id="panel-toggle" class="panel-toggle" aria-label="Minimizar">
       <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
-        <path d="M9 2h5v5M14 2L8.5 7.5M7 14H2V9M2 14l5.5-5.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M14 2L9.5 6.5M9.5 6.5H13.5M9.5 6.5V2.5M2 14l4.5-4.5M6.5 9.5H2.5M6.5 9.5V13.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
     </button>
     <span class="header-version">v0.1</span>

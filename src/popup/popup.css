@@ -41,6 +41,13 @@ body {
   flex-direction: column;
 }
 
+/* Modo maximizado: el side panel ocupa todo su contenedor acoplado a la derecha */
+body[data-context="sidepanel"] {
+  width: 100%;
+  max-height: none;
+  height: 100vh;
+}
+
 /* ── Header ── */
 .header {
   display: flex;
@@ -73,6 +80,30 @@ body {
 .back-btn svg {
   width: 14px;
   height: 14px;
+}
+
+.panel-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: transparent;
+  color: var(--white);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  padding: 0;
+  margin-left: 8px;
+  flex-shrink: 0;
+  transition: background var(--transition);
+}
+
+.panel-toggle:hover { background: var(--gray-800); }
+
+.panel-toggle svg {
+  width: 15px;
+  height: 15px;
 }
 
 .header-brand {

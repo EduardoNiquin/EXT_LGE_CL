@@ -1,7 +1,7 @@
 import { SELECTORS, STEPS, MSGBOX_TEXTS } from '../../constants.js';
 import { setChecked, setSelectValue } from '../../../../shared/dom/events.js';
 import { waitForElement, sleep } from '../../../../shared/dom/wait.js';
-import { selectComboboxOption } from '../gp1/combobox.js';
+import { selectComboboxByInput } from '../gp1/combobox.js';
 import {
   clickMessageboxButton,
   waitForNoMessagebox,
@@ -54,11 +54,12 @@ export async function applyDeliveryTag(args) {
   setChecked(rowChk, true);
 
   onStep(STEPS.DELIV_SELECT_TAG, { tagLabel });
-  await selectComboboxOption({
-    inputSelector:   SELECTORS.deliveryTagInput,
-    buttonSelector:  SELECTORS.deliveryComboBtn,
-    listboxSelector: SELECTORS.deliveryListbox,
-    label:           tagLabel,
+  // Resolvemos botón/listbox relativos al input `#deliveryTag` (único) en lugar
+  // de por el id `#cb2-listbox`, que el widget L-combobox autogenera y comparte
+  // con los comboboxes de Product Tag (colisión → se abría el listbox equivocado).
+  await selectComboboxByInput({
+    inputSelector: SELECTORS.deliveryTagInput,
+    label:         tagLabel,
     signal,
   });
 
