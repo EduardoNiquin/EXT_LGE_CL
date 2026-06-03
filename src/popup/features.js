@@ -1,6 +1,7 @@
 import { render as renderColocarTags } from '../features/colocar-tags/popup/view.js';
 import { render as renderLeadTimes }   from '../features/lead-times/popup/view.js';
 import { render as renderCupones }     from '../features/cupones/popup/view.js';
+import { render as renderLgcom }       from '../features/lgcom/popup/view.js';
 import { render as renderAjustes }     from '../features/ajustes/popup/view.js';
 
 export const features = [
@@ -27,6 +28,14 @@ export const features = [
     abbr: 'CUP',
     keywords: ['cupon', 'cupón', 'coupon', 'cart', 'price', 'rule', 'regla', 'magento', 'promo'],
     render: renderCupones,
+  },
+  {
+    id: 'lgcom',
+    name: 'LG.com',
+    description: 'Información y utilidades sobre www.lg.com',
+    abbr: 'LG',
+    keywords: ['lg', 'lg.com', 'producto', 'pdp', 'graphql', 'precio', 'info', 'web'],
+    render: renderLgcom,
   },
   {
     id: 'ajustes',

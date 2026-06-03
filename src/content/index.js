@@ -3,6 +3,7 @@ import { logger } from '../shared/utils/logger.js';
 import * as colocarTags from '../features/colocar-tags/content/index.js';
 import * as leadTimes   from '../features/lead-times/content/index.js';
 import * as cupones     from '../features/cupones/content/index.js';
+import * as lgcom       from '../features/lgcom/content/index.js';
 
 // Importar el debug.js de cada feature auto-registra sus comandos.
 // Para sumar una nueva feature: crear src/features/<feature>/debug.js
@@ -10,6 +11,7 @@ import * as cupones     from '../features/cupones/content/index.js';
 import '../features/colocar-tags/debug.js';
 import '../features/lead-times/debug.js';
 import '../features/cupones/debug.js';
+import '../features/lgcom/debug.js';
 
 const log = logger('content');
 const version = chrome?.runtime?.getManifest?.()?.version;
@@ -18,6 +20,7 @@ install({ version, context: 'content' });
 colocarTags.init();
 leadTimes.init();
 cupones.init();
+lgcom.init();
 
 log.info('content script cargado', {
   url: location.href,

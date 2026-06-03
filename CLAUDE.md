@@ -82,7 +82,7 @@ popup/         view.js (sub-router) · utils.js · sections/ (una sub-vista por 
 
 ## Logs por scope (`Ajustes`)
 `logger('foo')` registra el scope `foo`, que aparece en la UI de Ajustes (`features/ajustes`) con toggle individual + "Habilitar/Deshabilitar todos". `log-config/index.js` cachea en memoria y persiste en `chrome.storage.local` (`log-config:scopes`, cross-context vía `storage.onChanged`). `logger.js` chequea `isScopeEnabled(scope)` antes de emitir. Default: todos habilitados.
-Scopes: `colocar-tags`, `colocar-tags:product`, `colocar-tags:offer`, `colocar-tags:delivery-remove`, `colocar-tags:combobox`, `lead-times`, `cupones`, `content`, `debug`, `popup`.
+Scopes: `colocar-tags`, `colocar-tags:product`, `colocar-tags:offer`, `colocar-tags:delivery-remove`, `colocar-tags:combobox`, `lead-times`, `cupones`, `lgcom`, `lgcom/popup`, `content`, `debug`, `popup`.
 
 ## Debug API (`window.__extLgeCl`)
 Existe en content y popup. En DevTools cambiar "JavaScript context" al de la extensión (content scripts viven en isolated world).
@@ -94,7 +94,7 @@ Sumar a una feature: crear `features/<feature>/debug.js` → `register('<feature
 
 ## Estado del proyecto
 Scaffolding + CI completos. Pipeline release corporativo (.crx firmado + política + ZIP). Debug API modular + logger persistente. Content multi-frame con resolución de carrera. Capa `shared/dom`. Driver GP1 L-* (modal/messagebox/combobox).
-Features: **Colocar TAGs** (Lectura | Tag Delivery | Quitar Delivery | Tag Producto | Tag Oferta), **Lead Times** (Magento), **Cupones** (Quitar Regla de Cupón).
+Features: **Colocar TAGs** (Lectura | Tag Delivery | Quitar Delivery | Tag Producto | Tag Oferta), **Lead Times** (Magento), **Cupones** (Quitar Regla de Cupón), **LG.com** (Info de Producto).
 ⏳ Pendiente: tests en `tests/unit/*.test.js`.
 
 ---
@@ -226,6 +226,25 @@ src/features/cupones/
 
 ---
 
+## Feature: LG.com
+Sitio público **www.lg.com** (a diferencia del resto, que opera sobre GP1/Magento admin). Estructura tabbed lista para sumar opciones; hoy una sub-sección: **Info de Producto**.
+
+**Captura de GraphQL (reto central):** el JSON que el front recibe por `POST https://www.lg.com/api/graphql` viaja por el `fetch`/XHR de **la página** (mundo MAIN). El content script aislado tiene su propio `fetch` y no lo ve. Solución MV3 sin violar CSP: un **content script en `world:"MAIN"`** (`src/content/graphql-bridge.js`, `run_at:document_start`, solo `https://www.lg.com/*`, top frame) que parchea `window.fetch` + `XMLHttpRequest.prototype.open/send`, lee la respuesta y la reenvía por `window.postMessage({ source:'ext-lge-cl/graphql', operationName, variables, response, url, ts })`. **Autocontenido, sin `chrome.*` ni imports de `shared/`, todo en try/catch** (jamás romper la web). Guard de idempotencia `window.__extLgeClGraphqlBridge`.
+
+**Recepción/almacenamiento:** `lgcom/content/index.js` (isolated, solo top frame + host lg.com) escucha `window 'message'` (valida `event.source===window` + `source` + `GRAPHQL_URL_RE`) y guarda en `capture-store.js` (Map en memoria `operationName → últimas N capturas`, `CAPTURE_CAP=5`, **volátil**, sin storage — datos grandes/efímeros, modelo SPA). One-shot al popup: `MESSAGES.GET_CAPTURES` → `{ ok, captures:[{operationName,ts,url,variables,count}] }`; `MESSAGES.GET_OPERATION {operationName}` → `{ ok, operationName, ts, url, variables, response }`.
+
+**Operaciones (`OPERATIONS` en constants):** detección genérica por `operationName`. El bridge **deriva el nombre** del texto del query cuando el payload no trae `operationName` (queries anónimas, p. ej. `{getAddressLevel1{...}}`). Mapeadas hoy: `getPbpProduct` (PDP) y `getAddressLevel1` (regiones). En la PDP suele llegar `getPbpProduct` más de una vez (versión simple y otra rica con `delivery_coverage`/`coupon_discount_for_guest_checkout`/`main_package_product`/`install`); el extractor es tolerante a ambas. Operaciones sin extractor → vista de **JSON crudo** de respaldo.
+
+**Extractores (`content/extractors/`):** `index.js` es el dispatcher `EXTRACTORS[operationName]` + `extract()`/`hasExtractor()`. Cada extractor es función pura `(response)→grupos|null` reusable en content y popup. `pbp-product.js` → grupos por relevancia: Identificación, Precios (incl. descuento cupón guest), Cuotas, Despacho (+cobertura por comuna), Totales (`total_segments`), Suscripción (fairown), Pre-orden, Garantía extendida, Paquetes, Instalación, Marketing. `address-level1.js` → grupo "Regiones (N)" con name→id. Formatean CLP/%/sí-no; omiten campos/grupos vacíos; defensivos ante nulls y formas variables (BundleProduct, etc.).
+
+**UI (`popup/sections/product-info.js`):** pide capturas a la pestaña activa; estados vacíos (no lg.com / sin captura aún) con botón Actualizar. Selector de operación si hay varias. Grupos en `<details>` con buscador en vivo (filtra filas por label+valor, `data-search`), copiar por campo / por grupo / **Copiar todo (texto)** / **JSON crudo**. Clipboard con fallback `execCommand`. CSS propio `.lg-*` en `popup.css` (reusa tokens del tema).
+
+**Debug `__extLgeCl.lgcom.`:** `diagnose()` (host/bridge/operaciones), `captures()`, `operation(name)`, `raw(name)`, `pbp()` (grupos de la última PDP), `extract(name)` (grupos de cualquier operación con extractor), `clear()`.
+**Sumar una operación:** crear `content/extractors/<op>.js` (función pura → grupos), registrarla en `extractors/index.js` y agregar metadata en `OPERATIONS` (constants). El popup la muestra sola.
+**Pendientes:** sin persistencia entre reloads; no distingue múltiples tabs lg.com.
+
+---
+
 ## Distribución a otras PC corporativas
 `npm run installer:build` → `build/EXT_LGE_CL-installer-<version>.zip` (~22 KB) autocontenido: `extension-<version>.crx` (firmado) + `Install.cmd`/`Uninstall.cmd` + `install.ps1` (auto-eleva, copia a `C:\ProgramData\EXT_LGE_CL`, genera update.xml con paths reales, aplica política, reinicia Edge, abre `edge://extensions` + `edge://policy`) + `README.txt`. El destinatario solo necesita Windows + Edge + admin local.
 **Update:** subir `version` en `manifest.base.json` → `installer:build` → enviar ZIP → correr `Install.cmd` de nuevo.
@@ -239,3 +258,4 @@ src/features/cupones/
 - **`.pem` local, ID estable:** el ID deriva del SHA-256 del SPKI de la pública. Inyectamos `key` en el manifest para ID estable también en "unpacked".
 - **`all_frames: true`:** GP1 carga módulos en iframes.
 - **Logger vía localStorage:** sobrevive reloads.
+- **Content script `world:"MAIN"` para captar GraphQL (LG.com):** única forma de observar el `fetch`/XHR de la página sin inyectar inline scripts (bloqueado por CSP). El bridge solo `postMessage` (sin `chrome.*`). Requiere Chromium 111+ (Edge moderno OK).

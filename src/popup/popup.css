@@ -1314,3 +1314,124 @@ mark {
   background: var(--border-strong);
   border-radius: 4px;
 }
+
+/* ───────────────────────── Feature: LG.com (Info de Producto) ───────────── */
+.lg-view { gap: var(--space-3); }
+
+.lg-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+.lg-ts { font-size: 10px; color: var(--text-subtle); white-space: nowrap; }
+
+.lg-op-field { margin-top: var(--space-2); }
+
+.lg-toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: var(--space-3) 0 var(--space-2);
+}
+.lg-search { flex: 1; min-width: 0; margin: 0; }
+.lg-copy-all { display: flex; gap: var(--space-1); flex-shrink: 0; }
+.lg-copy-all .ct-btn { padding: 6px 10px; font-size: 11px; }
+
+.lg-body { display: flex; flex-direction: column; gap: var(--space-2); }
+
+.lg-group {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  overflow: hidden;
+}
+.lg-group[open] { background: var(--surface); }
+.lg-group-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: 8px 10px;
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  background: var(--surface-3);
+}
+.lg-group-head::-webkit-details-marker { display: none; }
+.lg-group-title { display: flex; align-items: center; gap: 6px; }
+.lg-group-title::before {
+  content: "";
+  width: 0; height: 0;
+  border-left: 5px solid currentColor;
+  border-top: 4px solid transparent;
+  border-bottom: 4px solid transparent;
+  transition: transform var(--transition);
+}
+.lg-group[open] .lg-group-title::before { transform: rotate(90deg); }
+
+.lg-copy-group {
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  color: var(--text-secondary);
+  font-size: 10px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.lg-copy-group:hover { border-color: var(--accent); color: var(--accent); }
+
+.lg-fields { list-style: none; padding: 4px 0; margin: 0; }
+.lg-field {
+  display: grid;
+  grid-template-columns: minmax(90px, 40%) 1fr auto;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 5px 10px;
+  font-size: 11px;
+  border-top: 1px solid var(--border-soft);
+}
+.lg-field:first-child { border-top: none; }
+.lg-field-label { color: var(--text-muted); }
+.lg-field-value {
+  color: var(--text);
+  font-weight: 500;
+  word-break: break-word;
+  font-variant-numeric: tabular-nums;
+}
+.lg-copy-field {
+  border: none;
+  background: transparent;
+  color: var(--text-subtle);
+  cursor: pointer;
+  padding: 3px;
+  border-radius: var(--radius-sm);
+  display: inline-flex;
+  opacity: 0.5;
+  transition: all var(--transition);
+}
+.lg-field:hover .lg-copy-field { opacity: 1; }
+.lg-copy-field:hover { color: var(--accent); background: var(--accent-soft); }
+
+.is-copied { color: var(--success) !important; border-color: var(--success) !important; }
+.is-error  { color: var(--danger) !important; border-color: var(--danger) !important; }
+
+.lg-raw {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 10.5px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  max-height: 360px;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}

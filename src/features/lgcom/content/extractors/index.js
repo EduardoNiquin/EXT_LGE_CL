@@ -1,0 +1,20 @@
+// Registro de extractores por operationName. Cada extractor es una función pura
+// `(response) => grupos | null` reutilizable en content y popup. Las operaciones
+// sin extractor caen a la vista de JSON crudo en el popup.
+
+import { extractPbpProduct } from './pbp-product.js';
+import { extractAddressLevel1 } from './address-level1.js';
+
+export const EXTRACTORS = {
+  getPbpProduct: extractPbpProduct,
+  getAddressLevel1: extractAddressLevel1,
+};
+
+export function hasExtractor(operationName) {
+  return typeof EXTRACTORS[operationName] === 'function';
+}
+
+export function extract(operationName, response) {
+  const fn = EXTRACTORS[operationName];
+  return fn ? fn(response) : null;
+}
