@@ -1,17 +1,18 @@
-// Sección "Info de Producto" del feature LG.com.
+// Render de una "pantalla" (PDP / PLP / …) del feature LG.com.
 //
-// Pide al content script de la pestaña activa las capturas GraphQL acumuladas,
-// elige una operación (por defecto getPbpProduct = PDP) y la muestra en grupos
-// legibles con buscador y botones de copia. Las operaciones desconocidas caen a
-// una vista de JSON crudo.
+// Cada pantalla agrupa un conjunto de operaciones (ver SCREENS en constants).
+// Pide al content script las capturas de la pestaña activa, filtra las que
+// pertenecen a esta pantalla, elige una (selector interno) y la muestra en
+// grupos legibles con buscador y copia. El auto-seguimiento de pantalla y los
+// listeners de cambio de pestaña viven en `popup/view.js`.
 //
-// Auto-captura: la página dispara el GraphQL un instante después de cargar, y a
-// veces el popup se abre antes (o hay una captura vieja). En vez de obligar al
-// usuario a tocar "Actualizar" repetidamente, hacemos polling durante unos
-// segundos: re-renderizamos automáticamente cuando llega una captura más nueva.
+// Auto-captura: la página dispara la respuesta un instante tras cargar; en vez
+// de obligar a tocar "Actualizar", hacemos polling unos segundos y re-render
+// cuando llega una captura más nueva.
 
-import { MESSAGES, OPERATIONS } from '../../constants.js';
+import { FONT_SIZES, MESSAGES, OPERATIONS, STORAGE_KEYS } from '../../constants.js';
 import { extract, hasExtractor } from '../../content/extractors/index.js';
+import { getStorage, setStorage } from '../../../../shared/storage/storage.js';
 import { logger } from '../../../../shared/utils/logger.js';
 import {
   copyToClipboard,
@@ -26,26 +27,56 @@ const log = logger('lgcom/popup');
 const POLL_INTERVAL = 700;   // ms entre intentos
 const POLL_MAX = 20;         // ~14s de ventana de auto-captura
 
+let currentScreen = null;
 let selectedOperation = null;
 let renderToken = 0;         // invalida loops de polling de renders previos
 let pollTimer = null;
 let displayedTs = null;      // ts de la captura mostrada (para detectar novedad)
 let displayedOp = null;
 
-export function render(container) {
+let fontScaleIdx = 0;
+let fontLoaded = false;
+
+export function render(container, screen) {
   renderToken += 1;
   const token = renderToken;
   if (pollTimer) { clearTimeout(pollTimer); pollTimer = null; }
+  if (!currentScreen || currentScreen.id !== screen.id) selectedOperation = null;
+  currentScreen = screen;
   displayedTs = null;
   displayedOp = null;
 
+  if (screen.future) { renderFuture(container, screen); return; }
+
   container.innerHTML = `<div class="ct-state"><span class="ct-spinner"></span><p>Leyendo la pestaña…</p></div>`;
 
-  getActiveTab().then((tab) => {
+  loadFontPref().then(getActiveTab).then((tab) => {
     if (token !== renderToken) return;
     if (!tab?.id) { renderWarn(container, 'No hay pestaña activa.'); return; }
     poll(container, token, tab, 0);
   });
+}
+
+// -----------------------------------------------------------------------------
+// preferencia tamaño de texto
+// -----------------------------------------------------------------------------
+
+async function loadFontPref() {
+  if (fontLoaded) return;
+  try {
+    const idx = await getStorage(STORAGE_KEYS.FONT_SCALE);
+    fontScaleIdx = Number.isInteger(idx) ? clampScale(idx) : 0;
+  } catch { /* default */ }
+  fontLoaded = true;
+}
+
+function clampScale(idx) {
+  return Math.max(0, Math.min(FONT_SIZES.length - 1, idx));
+}
+
+function applyFontScale(container) {
+  const view = container.querySelector('.lg-view');
+  if (view) view.style.setProperty('--lg-fs', `${FONT_SIZES[fontScaleIdx]}px`);
 }
 
 // -----------------------------------------------------------------------------
@@ -58,7 +89,9 @@ async function poll(container, token, tab, attempt) {
   const res = await safeSend(tab.id, { type: MESSAGES.GET_CAPTURES });
   if (token !== renderToken) return;
 
-  const captures = res?.ok && Array.isArray(res.captures) ? res.captures : [];
+  const all = res?.ok && Array.isArray(res.captures) ? res.captures : [];
+  // Solo las operaciones que pertenecen a esta pantalla.
+  const captures = all.filter((c) => currentScreen.operations.includes(c.operationName));
 
   if (captures.length === 0) {
     if (attempt < POLL_MAX) {
@@ -70,22 +103,19 @@ async function poll(container, token, tab, attempt) {
     return;
   }
 
-  // Elegir operación: la previa si sigue disponible, si no getPbpProduct, si no
-  // la primera.
+  // Elegir operación: la previa si sigue, si no la primera de la pantalla presente.
   const names = captures.map((c) => c.operationName);
   if (!names.includes(selectedOperation)) {
-    selectedOperation = names.includes('getPbpProduct') ? 'getPbpProduct' : names[0];
+    selectedOperation = currentScreen.operations.find((op) => names.includes(op)) || names[0];
   }
 
   const summary = captures.find((c) => c.operationName === selectedOperation);
   const latestTs = summary?.ts ?? null;
 
-  // Re-render solo si hay una captura más nueva o cambió la operación.
   if (latestTs !== displayedTs || selectedOperation !== displayedOp) {
     await showOperation(container, token, tab, captures);
   }
 
-  // Seguir en ventana de polling para capturar respuestas que lleguen tarde.
   if (attempt < POLL_MAX) {
     setAutoIndicator(container, true);
     pollTimer = setTimeout(() => poll(container, token, tab, attempt + 1), POLL_INTERVAL);
@@ -107,8 +137,17 @@ async function showOperation(container, token, tab, captures) {
 }
 
 // -----------------------------------------------------------------------------
-// estados vacíos / espera / error
+// estados vacíos / espera / futuro
 // -----------------------------------------------------------------------------
+
+function renderFuture(container, screen) {
+  container.innerHTML = `
+    <div class="lt-view">
+      <div class="ct-state">
+        <p>La vista <strong>${escapeHtml(screen.label)}</strong> estará disponible próximamente.</p>
+      </div>
+    </div>`;
+}
 
 function renderWarn(container, message) {
   container.innerHTML = `
@@ -124,8 +163,8 @@ function renderWaiting(container, tab, attempt) {
     <div class="lt-view">
       <div class="ct-state">
         <span class="ct-spinner"></span>
-        <p>Esperando datos de la página…</p>
-        <p class="ct-state-hint">Capturando la respuesta GraphQL automáticamente${attempt > 2 ? ` (intento ${attempt + 1})` : ''}.</p>
+        <p>Esperando datos de ${escapeHtml(currentScreen.label)}…</p>
+        <p class="ct-state-hint">Capturando la respuesta automáticamente${attempt > 2 ? ` (intento ${attempt + 1})` : ''}.</p>
       </div>
     </div>`;
 }
@@ -135,18 +174,18 @@ function renderEmpty(container, tab) {
   container.innerHTML = `
     <div class="lt-view">
       <section class="lt-form-card">
-        <h3 class="lt-section-title">Info de Producto</h3>
+        <h3 class="lt-section-title">${escapeHtml(currentScreen.label)}</h3>
         <p class="lt-hint">
           ${isLg
-            ? 'No se captó ninguna respuesta GraphQL en esta pestaña. Recargá o navegá una página de producto (PDP) en www.lg.com.'
-            : 'Esta pestaña no es www.lg.com. Abrí una página de producto en www.lg.com para ver su información.'}
+            ? `No se captó información de ${escapeHtml(currentScreen.label)} en esta pestaña. Navegá/recargá la pantalla correspondiente en www.lg.com.`
+            : 'Esta pestaña no es www.lg.com. Abrí www.lg.com para ver su información.'}
         </p>
         <div class="lt-actions">
           <button type="button" id="lg-refresh" class="ct-btn ct-btn--primary">Actualizar</button>
         </div>
       </section>
     </div>`;
-  container.querySelector('#lg-refresh')?.addEventListener('click', () => render(container));
+  container.querySelector('#lg-refresh')?.addEventListener('click', () => render(container, currentScreen));
 }
 
 // -----------------------------------------------------------------------------
@@ -164,7 +203,7 @@ function renderData(container, tab, captures, op) {
   const selectHtml = captures.length > 1
     ? `
       <div class="dt-field lg-op-field">
-        <label class="dt-label" for="lg-op">Operación GraphQL</label>
+        <label class="dt-label" for="lg-op">Operación</label>
         <select id="lg-op" class="dt-input">
           ${captures.map((c) => {
             const m = OPERATIONS[c.operationName];
@@ -196,6 +235,10 @@ function renderData(container, tab, captures, op) {
             </svg>
             <input type="text" id="lg-filter" class="search-input" placeholder="Filtrar campos…" autocomplete="off" spellcheck="false" />
           </div>
+          <div class="lg-fontctl" role="group" aria-label="Tamaño de texto">
+            <button type="button" id="lg-font-dec" class="lg-ctl-btn" title="Texto más chico" aria-label="Texto más chico">A−</button>
+            <button type="button" id="lg-font-inc" class="lg-ctl-btn lg-ctl-btn--big" title="Texto más grande" aria-label="Texto más grande">A+</button>
+          </div>
           <button type="button" id="lg-refresh" class="ct-btn ct-btn--primary lg-refresh" title="Volver a capturar">↻</button>
         </div>
         <div class="lg-copy-all">
@@ -221,7 +264,7 @@ function renderData(container, tab, captures, op) {
     displayedOp = null;
     showOperation(container, renderToken, tab, captures);
   });
-  container.querySelector('#lg-refresh')?.addEventListener('click', () => render(container));
+  container.querySelector('#lg-refresh')?.addEventListener('click', () => render(container, currentScreen));
   container.querySelector('#lg-copy-json')?.addEventListener('click', (e) =>
     flashCopy(e.currentTarget, JSON.stringify(op.response, null, 2)));
   container.querySelector('#lg-copy-text')?.addEventListener('click', (e) =>
@@ -234,7 +277,18 @@ function renderData(container, tab, captures, op) {
     if (prevFilter) applyFilter(body, prevFilter);
   }
 
-  log.info('render', { operation: selectedOperation, groups: groups?.length });
+  container.querySelector('#lg-font-dec')?.addEventListener('click', () => changeFontScale(container, -1));
+  container.querySelector('#lg-font-inc')?.addEventListener('click', () => changeFontScale(container, +1));
+
+  applyFontScale(container);
+
+  log.info('render', { screen: currentScreen.id, operation: selectedOperation, groups: groups?.length });
+}
+
+function changeFontScale(container, delta) {
+  fontScaleIdx = clampScale(fontScaleIdx + delta);
+  setStorage(STORAGE_KEYS.FONT_SCALE, fontScaleIdx);
+  applyFontScale(container);
 }
 
 function setAutoIndicator(container, on) {
@@ -263,7 +317,7 @@ function renderGroups(body, groups) {
             <span class="lg-field-label">${escapeHtml(f.label)}</span>
             <span class="lg-field-value">${escapeHtml(f.value)}</span>
             <button type="button" class="lg-copy-field" data-raw="${escapeHtml(f.raw)}" title="Copiar valor" aria-label="Copiar ${escapeHtml(f.label)}">
-              <svg viewBox="0 0 16 16" fill="none" aria-hidden="true" width="13" height="13">
+              <svg viewBox="0 0 16 16" fill="none" aria-hidden="true" width="16" height="16">
                 <rect x="5" y="5" width="8" height="9" rx="1.5" stroke="currentColor" stroke-width="1.3"/>
                 <path d="M3 11V3.5A1.5 1.5 0 0 1 4.5 2H10" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
               </svg>
@@ -301,12 +355,10 @@ function renderRaw(body, response) {
 
 function applyFilter(body, query) {
   const q = String(query || '').trim().toLowerCase();
-  const fields = body.querySelectorAll('.lg-field');
-  fields.forEach((li) => {
+  body.querySelectorAll('.lg-field').forEach((li) => {
     const hit = !q || (li.dataset.search || '').includes(q);
     li.classList.toggle('hidden', !hit);
   });
-  // Ocultar grupos sin coincidencias.
   body.querySelectorAll('.lg-group').forEach((g) => {
     const visible = g.querySelectorAll('.lg-field:not(.hidden)').length;
     g.classList.toggle('hidden', Boolean(q) && visible === 0);

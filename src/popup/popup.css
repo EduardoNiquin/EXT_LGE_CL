@@ -1316,7 +1316,17 @@ mark {
 }
 
 /* ───────────────────────── Feature: LG.com (Info de Producto) ───────────── */
-.lg-view { gap: var(--space-3); }
+.lg-view { gap: var(--space-3); --lg-fs: 11px; }
+
+/* Barra de sub-pantallas (PDP / PLP / PBP) + switch Auto */
+.lg-screens {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+.lg-screen-tabs { flex: 1; margin: 0; min-width: 0; }
+.lg-screens .lg-live { flex-shrink: 0; }
 
 .lg-head {
   display: flex;
@@ -1352,6 +1362,50 @@ mark {
   font-size: 15px;
   line-height: 1;
 }
+
+/* Controles: tamaño de texto + tiempo real */
+.lg-controls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+}
+.lg-fontctl { display: inline-flex; gap: 4px; }
+.lg-ctl-btn {
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  color: var(--text-secondary);
+  border-radius: var(--radius-sm);
+  padding: 5px 9px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.lg-ctl-btn:hover { border-color: var(--accent); color: var(--accent); }
+.lg-ctl-btn--big { font-size: 14px; }
+.lg-live {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.lg-live-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--text-subtle);
+  transition: background var(--transition), box-shadow var(--transition);
+}
+.lg-live.is-active {
+  border-color: var(--success);
+  color: var(--success);
+  background: var(--success-bg);
+}
+.lg-live.is-active .lg-live-dot {
+  background: var(--success);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--success) 25%, transparent);
+}
+
 .lg-copy-all { display: flex; gap: var(--space-1); margin-bottom: var(--space-2); }
 .lg-copy-all .ct-btn { padding: 6px 10px; font-size: 11px; flex: 1; }
 
@@ -1373,7 +1427,7 @@ mark {
   cursor: pointer;
   list-style: none;
   user-select: none;
-  font-size: 12px;
+  font-size: calc(var(--lg-fs, 11px) + 1px);
   font-weight: 600;
   color: var(--text);
   background: var(--surface-3);
@@ -1410,7 +1464,7 @@ mark {
   align-items: center;
   gap: var(--space-2);
   padding: 5px 10px;
-  font-size: 11px;
+  font-size: var(--lg-fs, 11px);
   border-top: 1px solid var(--border-soft);
 }
 .lg-field:first-child { border-top: none; }
@@ -1422,18 +1476,21 @@ mark {
   font-variant-numeric: tabular-nums;
 }
 .lg-copy-field {
-  border: none;
-  background: transparent;
-  color: var(--text-subtle);
+  border: 1px solid transparent;
+  background: var(--surface-3);
+  color: var(--text-muted);
   cursor: pointer;
-  padding: 3px;
+  padding: 6px;
   border-radius: var(--radius-sm);
   display: inline-flex;
-  opacity: 0.5;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.8;
   transition: all var(--transition);
 }
+.lg-copy-field svg { width: 16px; height: 16px; }
 .lg-field:hover .lg-copy-field { opacity: 1; }
-.lg-copy-field:hover { color: var(--accent); background: var(--accent-soft); }
+.lg-copy-field:hover { color: var(--accent); background: var(--accent-soft); border-color: var(--accent); }
 
 .is-copied { color: var(--success) !important; border-color: var(--success) !important; }
 .is-error  { color: var(--danger) !important; border-color: var(--danger) !important; }

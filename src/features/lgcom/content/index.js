@@ -4,6 +4,7 @@ import {
   GRAPHQL_URL_RE,
   LGCOM_HOST_RE,
   MESSAGES,
+  PROXY_URL_RE,
 } from '../constants.js';
 import * as store from './capture-store.js';
 
@@ -23,7 +24,7 @@ function onWindowMessage(event) {
   if (event.source !== window) return;
   const data = event.data;
   if (!data || data.source !== BRIDGE_SOURCE) return;
-  if (data.url && !GRAPHQL_URL_RE.test(data.url)) return;
+  if (data.url && !GRAPHQL_URL_RE.test(data.url) && !PROXY_URL_RE.test(data.url)) return;
 
   store.put(data.operationName, {
     operationName: data.operationName,

@@ -1,10 +1,10 @@
-// Bridge GraphQL — corre en el mundo MAIN (ver content_scripts en el manifest).
+// Bridge de red — corre en el mundo MAIN (ver content_scripts en el manifest).
 //
 // El content script aislado (src/content/index.js) tiene su PROPIO `fetch` y
 // `XMLHttpRequest`, separados de los de la página, por lo que NO puede observar
 // el tráfico de red que dispara el front de www.lg.com. Para captar el JSON que
-// llega por GraphQL necesitamos parchear el `fetch`/XHR de la página, lo que solo
-// es posible desde el mundo MAIN.
+// llega por GraphQL/REST necesitamos parchear el `fetch`/XHR de la página, lo que
+// solo es posible desde el mundo MAIN.
 //
 // Restricciones de este archivo:
 //   - Corre en el contexto de la página: NO hay acceso a `chrome.*`.
@@ -12,25 +12,31 @@
 //   - Debe ser a prueba de fallos: jamás romper ni alterar el comportamiento del
 //     `fetch`/XHR original de la página (todo envuelto en try/catch).
 //
-// Estrategia: interceptar requests a `…/api/graphql`, parsear el body para sacar
-// { query, operationName, variables }, y al resolver la respuesta clonar/leer el
-// texto, parsear el JSON y reenviarlo por postMessage. El content aislado
-// (mismo `window`) lo recibe y lo guarda.
+// Endpoints captados:
+//   - GraphQL: `…/api/graphql` (PDP/PLP). Nombre desde operationName/query/data.
+//   - REST proxy LG: `…/ncms/.../proxy/<name>` (PLP: retrieveProductList).
+//     El nombre se toma del último segmento del path.
 
 (() => {
   const SOURCE = 'ext-lge-cl/graphql';
   const GRAPHQL_RE = /\/api\/graphql(\?|$)/i;
+  const PROXY_RE = /\/ncms\/[^?]*\/proxy\/([A-Za-z0-9_]+)/i;
 
   // Guard de idempotencia: si por algún motivo el script se evalúa dos veces,
   // no queremos envolver el fetch repetidas veces.
   if (window.__extLgeClGraphqlBridge) return;
   window.__extLgeClGraphqlBridge = true;
 
-  function isGraphqlUrl(url) {
+  // Devuelve la "coincidencia" de captura para una URL, o null si no nos interesa.
+  function matchCapture(url) {
     try {
-      return typeof url === 'string' && GRAPHQL_RE.test(url);
+      if (typeof url !== 'string') return null;
+      if (GRAPHQL_RE.test(url)) return { kind: 'graphql' };
+      const m = url.match(PROXY_RE);
+      if (m) return { kind: 'rest', name: m[1] };
+      return null;
     } catch {
-      return false;
+      return null;
     }
   }
 
@@ -78,21 +84,29 @@
     }
   }
 
-  function handleCapture(url, requestBody, responseText) {
+  function handleCapture(url, requestBody, responseText, match) {
     try {
       const req = parseRequestBody(requestBody) || {};
       const response = responseText ? JSON.parse(responseText) : null;
-      let operationName = deriveOperationName(req.query, req.operationName);
-      // Fallback: cuando no pudimos leer el request (p. ej. fetch(new Request)),
-      // el operationName se infiere del primer key de `data` en la respuesta,
-      // que coincide con el campo raíz de la operación (getPbpProduct, products…).
-      if (operationName === 'unknown' && response?.data && typeof response.data === 'object') {
-        const keys = Object.keys(response.data);
-        if (keys.length) operationName = keys[0];
+
+      let operationName;
+      if (match.kind === 'rest') {
+        // REST proxy: el nombre es el último segmento del path.
+        operationName = match.name || 'unknown';
+      } else {
+        operationName = deriveOperationName(req.query, req.operationName);
+        // Fallback: cuando no pudimos leer el request (p. ej. fetch(new Request)),
+        // el operationName se infiere del primer key de `data` en la respuesta
+        // (= campo raíz de la operación: getPbpProduct, products…).
+        if (operationName === 'unknown' && response?.data && typeof response.data === 'object') {
+          const keys = Object.keys(response.data);
+          if (keys.length) operationName = keys[0];
+        }
       }
+
       publish({
         operationName,
-        variables: req.variables ?? null,
+        variables: req.variables ?? (match.kind === 'rest' ? req : null),
         response,
         url,
         ts: Date.now(),
@@ -108,30 +122,24 @@
     if (typeof originalFetch === 'function') {
       window.fetch = function patchedFetch(input, init) {
         const url = urlFromFetchArgs(input);
-        const isGql = isGraphqlUrl(url);
+        const match = matchCapture(url);
 
         let requestBody = null;
-        if (isGql) {
+        if (match) {
           try {
-            if (init && typeof init.body === 'string') {
-              requestBody = init.body;
-            } else if (input instanceof Request) {
-              // El body de un Request ya consumido no se puede releer acá sin
-              // clonarlo; intentamos solo si vino por init.
-              requestBody = null;
-            }
+            if (init && typeof init.body === 'string') requestBody = init.body;
           } catch {
             requestBody = null;
           }
         }
 
         const result = originalFetch.apply(this, arguments);
-        if (!isGql) return result;
+        if (!match) return result;
 
         return result.then((response) => {
           try {
             const clone = response.clone();
-            clone.text().then((text) => handleCapture(url, requestBody, text)).catch(() => {});
+            clone.text().then((text) => handleCapture(url, requestBody, text, match)).catch(() => {});
           } catch {
             /* clone falló: no afecta a la página */
           }
@@ -153,7 +161,7 @@
       XHR.prototype.open = function patchedOpen(method, url) {
         try {
           this.__extLgeClUrl = url;
-          this.__extLgeClIsGql = isGraphqlUrl(url);
+          this.__extLgeClMatch = matchCapture(url);
         } catch {
           /* no-op */
         }
@@ -162,7 +170,8 @@
 
       XHR.prototype.send = function patchedSend(body) {
         try {
-          if (this.__extLgeClIsGql) {
+          const match = this.__extLgeClMatch;
+          if (match) {
             const url = this.__extLgeClUrl;
             const reqBody = typeof body === 'string' ? body : null;
             this.addEventListener('load', function onLoad() {
@@ -170,7 +179,7 @@
                 const text = this.responseType === '' || this.responseType === 'text'
                   ? this.responseText
                   : null;
-                if (text != null) handleCapture(url, reqBody, text);
+                if (text != null) handleCapture(url, reqBody, text, match);
               } catch {
                 /* no-op */
               }
