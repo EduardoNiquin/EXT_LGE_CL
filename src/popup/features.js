@@ -1,6 +1,7 @@
 import { render as renderColocarTags } from '../features/colocar-tags/popup/view.js';
 import { render as renderLeadTimes }   from '../features/lead-times/popup/view.js';
 import { render as renderCupones }     from '../features/cupones/popup/view.js';
+import { render as renderStarkoms }    from '../features/starkoms/popup/view.js';
 import { render as renderLgcom }       from '../features/lgcom/popup/view.js';
 import { render as renderAjustes }     from '../features/ajustes/popup/view.js';
 
@@ -28,6 +29,14 @@ export const features = [
     abbr: 'CUP',
     keywords: ['cupon', 'cupón', 'coupon', 'cart', 'price', 'rule', 'regla', 'magento', 'promo'],
     render: renderCupones,
+  },
+  {
+    id: 'starkoms',
+    name: 'Starkoms',
+    description: 'Verificar órdenes y stock (On Hold / Fuera de Stock)',
+    abbr: 'STK',
+    keywords: ['starkoms', 'orden', 'ordenes', 'stock', 'despacho', 'logistica', 'logística', 'on hold', 'fuera de stock', 'inventario'],
+    render: renderStarkoms,
   },
   {
     id: 'lgcom',
