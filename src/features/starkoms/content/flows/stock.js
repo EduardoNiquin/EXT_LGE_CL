@@ -5,6 +5,7 @@ import { PAGE_TYPE, ROUTES, SELECTORS, TEXTS } from '../../constants.js';
 import { gotoRoute, onPageType } from './navigate.js';
 import { detectPage } from '../detector.js';
 import { findWarehouseRow, parseProductsSearchRows, parseWarehouseRows } from '../parser.js';
+import { colIndex, headerIndexMap } from '../vuetify/datatable.js';
 import { dismissToast, parseToast, stockForBodega, waitToast } from '../vuetify/toast.js';
 import { findButtonByText } from '../vuetify/buttons.js';
 import { selectByLabel, selectedValue, findSelectByLabel } from '../vuetify/select.js';
@@ -58,6 +59,20 @@ export async function verifyExists(sku, { signal } = {}) {
 function stockEditReady() {
   if (detectPage().type !== PAGE_TYPE.STOCK_EDIT) return null;
   return document.querySelector(SELECTORS.numberInput) ? true : null;
+}
+
+/**
+ * Predicado: el grid PROPIO del inventario está montado (no la vista anterior).
+ * Lo distinguimos por sus columnas únicas ("Stock disponible" + "SKU Externo").
+ */
+function inventoryGridReady() {
+  if (!onPageType(PAGE_TYPE.INVENTORY_LIST)()) return null;
+  const table = Array.from(document.querySelectorAll('table')).find((t) => {
+    const map = headerIndexMap(t);
+    return colIndex(map, 'stock disponible') >= 0 && colIndex(map, 'sku externo') >= 0;
+  });
+  if (!table) return null;
+  return table.querySelectorAll('tbody tr').length > 0 ? table : null;
 }
 
 /** Visible (descarta inputs ocultos). */
@@ -224,13 +239,13 @@ function inventoryDiag(sku) {
  */
 export async function remediateStock(sku, bodega, value, { signal, dryRun = false } = {}) {
   // 1) Listado de inventario + búsqueda del SKU.
-  await gotoRoute(ROUTES.inventoryList(), {
-    ready: () => (onPageType(PAGE_TYPE.INVENTORY_LIST)() && findButtonByText(TEXTS.SEARCH) ? true : null),
-    signal,
+  //    Esperamos a que monte el grid PROPIO del inventario (headers únicos), no
+  //    el hash a secas: la SPA tarda en desmontar la vista anterior (#/productos)
+  //    y, si actuamos antes, tipeamos en el buscador viejo (race condition).
+  await gotoRoute(ROUTES.inventoryList(), { ready: () => inventoryGridReady(), signal });
+  log.info('remediateStock: grid de inventario montado', {
+    url: location.href, filas: document.querySelectorAll('table tbody tr').length,
   });
-  // Esperar a que el grid termine la carga inicial (componente montado) antes de tipear.
-  await waitFor(() => (document.querySelectorAll('table tbody tr').length > 0 ? true : null),
-    { signal, timeout: 8000, interval: 150, description: 'carga inicial del grid de inventario' }).catch(() => {});
   await searchSku(sku, { signal });
 
   // 2) Ojo del producto en resultados → página del producto (carga las bodegas).
