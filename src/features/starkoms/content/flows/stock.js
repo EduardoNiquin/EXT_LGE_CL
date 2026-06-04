@@ -76,7 +76,16 @@ function isVisible(el) {
  * un input de otra sección, como el filtro por categoría o un search global).
  */
 function findSearchInput(buscar) {
-  // 1) Por el label "Buscar" → su `for` → input.
+  // 1) Subir desde el botón hasta el ancestro que contenga un input de texto
+  //    visible. Es lo más confiable: queda acotado al buscador de ESTA pantalla
+  //    (evita un "Buscar" global del navbar que esté antes en el DOM).
+  let cont = buscar?.parentElement;
+  while (cont) {
+    const input = Array.from(cont.querySelectorAll('input[type="text"]')).find(isVisible);
+    if (input) return input;
+    cont = cont.parentElement;
+  }
+  // 2) Respaldo: el <input> asociado al <label>Buscar</label> visible.
   const lbl = Array.from(document.querySelectorAll('label'))
     .find((l) => l.textContent.trim().toLowerCase() === TEXTS.SEARCH.toLowerCase());
   if (lbl) {
@@ -85,13 +94,6 @@ function findSearchInput(buscar) {
     if (byId && byId.matches('input') && isVisible(byId)) return byId;
     const near = lbl.closest('.v-input')?.querySelector('input[type="text"]');
     if (isVisible(near)) return near;
-  }
-  // 2) Subir desde el botón hasta el ancestro que contenga un input de texto.
-  let cont = buscar?.parentElement;
-  while (cont) {
-    const input = Array.from(cont.querySelectorAll('input[type="text"]')).find(isVisible);
-    if (input) return input;
-    cont = cont.parentElement;
   }
   return null;
 }
@@ -108,13 +110,36 @@ async function searchSku(sku, { signal } = {}) {
   await sleep(1200, signal).catch(() => {});
 }
 
-/** Link del ojo (Acciones) del producto en el listado de inventario: `.../<SKU>` (sin bodegaId). */
+function escapeRe(s) {
+  return String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/**
+ * Link del ojo (Acciones) del producto en el listado de inventario. Tolera el
+ * link directo a la página del producto (`.../<SKU>`) o al stock de una bodega
+ * (`.../<SKU>/<id>`); si el href no matchea, cae a la fila que contiene el SKU.
+ */
 function findProductEyeLink(sku) {
-  const want = ROUTES.inventoryProduct(String(sku)).toLowerCase();
-  return Array.from(document.querySelectorAll(SELECTORS.inventoryEyeLink)).find((a) => {
-    const href = decodeURIComponent(a.getAttribute('href') || '').toLowerCase().replace(/\/+$/, '');
-    return href === want;
-  }) || null;
+  const skuLc = String(sku).toLowerCase();
+  const anchors = Array.from(document.querySelectorAll(SELECTORS.inventoryEyeLink));
+  const re = new RegExp(`#/inventario/stock/productos/${escapeRe(skuLc)}(?:/\\d+)?/?$`, 'i');
+  const byHref = anchors.find((a) => re.test(decodeURIComponent(a.getAttribute('href') || '').toLowerCase()));
+  if (byHref) return byHref;
+
+  // Fallback: la fila de la tabla que menciona el SKU → su link de Acciones.
+  const row = Array.from(document.querySelectorAll('table tbody tr'))
+    .find((tr) => (tr.textContent || '').toLowerCase().includes(skuLc));
+  return row?.querySelector(SELECTORS.inventoryEyeLink) || null;
+}
+
+/** Resumen del estado del listado de inventario, para diagnóstico al fallar. */
+function inventoryDiag(sku) {
+  const rows = document.querySelectorAll('table tbody tr').length;
+  const hrefs = Array.from(document.querySelectorAll(SELECTORS.inventoryEyeLink))
+    .map((a) => a.getAttribute('href')).slice(0, 4);
+  const skuRows = Array.from(document.querySelectorAll('table tbody tr'))
+    .filter((tr) => (tr.textContent || '').toLowerCase().includes(String(sku).toLowerCase())).length;
+  return `filas:${rows}, filas con SKU:${skuRows}, links:[${hrefs.join(' | ') || '—'}]`;
 }
 
 /**
@@ -139,7 +164,7 @@ export async function remediateStock(sku, bodega, value, { signal, dryRun = fals
     signal, timeout: 8000, interval: 150, description: 'producto en el inventario',
   }).catch(() => null);
   if (!prodLink) {
-    return { ok: false, reason: `Producto ${sku} no aparece en el inventario (¿no creado?)` };
+    return { ok: false, reason: `Producto ${sku} no aparece en el inventario (${inventoryDiag(sku)})` };
   }
   clickEl(prodLink);
 
