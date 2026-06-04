@@ -79,13 +79,21 @@ export async function selectOption({ selRoot, optionText, signal, timeout = 4000
   clickEl(slot);
 
   const ownsId = slot.getAttribute('aria-owns');
+  // Esperar a que el menú tenga una opción REAL (las opciones de algunos selects
+  // —p.ej. "Bodega TO"— se cargan async; al abrir muestra "No hay datos
+  // disponibles" como placeholder hasta que llega el fetch).
+  const isPlaceholder = (t) => !t || t.includes('no hay datos') || t.includes('no data');
   const listbox = await waitFor(() => {
     let lb = ownsId ? document.getElementById(ownsId) : null;
     if (!lb) lb = document.querySelector(SELECTORS.menuContent);
-    return lb && lb.querySelector(SELECTORS.listItem) ? lb : null;
-  }, { signal, timeout, interval: 80, description: 'menú del v-select' });
+    if (!lb) return null;
+    const real = Array.from(lb.querySelectorAll(SELECTORS.listItem))
+      .some((it) => !isPlaceholder(itemText(it).toLowerCase()));
+    return real ? lb : null;
+  }, { signal, timeout, interval: 100, description: 'opciones del v-select' });
 
-  const items = Array.from(listbox.querySelectorAll(SELECTORS.listItem));
+  const items = Array.from(listbox.querySelectorAll(SELECTORS.listItem))
+    .filter((it) => !isPlaceholder(itemText(it).toLowerCase()));
   const want = optionText.trim();
   const wantLc = want.toLowerCase();
   const match =

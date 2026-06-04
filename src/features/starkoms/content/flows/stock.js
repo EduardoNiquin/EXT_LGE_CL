@@ -8,8 +8,8 @@ import { findWarehouseRow, parseProductsSearchRows, parseWarehouseRows } from '.
 import { colIndex, headerIndexMap } from '../vuetify/datatable.js';
 import { dismissToast, parseToast, stockForBodega, waitToast } from '../vuetify/toast.js';
 import { findButtonByText } from '../vuetify/buttons.js';
-import { selectByLabel, selectedValue, findSelectByLabel } from '../vuetify/select.js';
-import { clickEl, setInputValue } from '../../../../shared/dom/events.js';
+import { selectByLabel } from '../vuetify/select.js';
+import { clickEl } from '../../../../shared/dom/events.js';
 import { sleep, waitFor, waitForElement } from '../../../../shared/dom/wait.js';
 import { logger } from '../../../../shared/utils/logger.js';
 
@@ -282,20 +282,20 @@ export async function remediateStock(sku, bodega, value, { signal, dryRun = fals
   await sleep(300, signal).catch(() => {});
   log.info('remediateStock: form Actualizar Stock', { url: location.href });
 
-  // 3) Cantidad + Bodega TO.
+  // 3) Cantidad: tipear carácter por carácter (el set directo no actualiza el
+  //    modelo de Vue, igual que el buscador).
   const input = await waitForElement(SELECTORS.numberInput, { signal, timeout: 5000, description: 'input Cantidad' });
-  setInputValue(input, String(value));
+  await typeText(input, String(value), { signal });
   log.info('remediateStock: cantidad seteada', { value: input.value });
 
-  // La bodega TO suele venir preseleccionada (navegamos por su id). Si no
-  // coincide, la elegimos.
+  // Bodega TO: el form NO la preselecciona y las opciones se cargan async.
+  //  selectOption espera a que aparezca una opción real (no "No hay datos…").
+  await sleep(500, signal).catch(() => {});
   try {
-    const sel = findSelectByLabel(TEXTS.BODEGA_TO_LABEL);
-    if (sel && selectedValue(sel).trim().toLowerCase() !== String(bodega).trim().toLowerCase()) {
-      await selectByLabel({ labelText: TEXTS.BODEGA_TO_LABEL, optionText: bodega, signal });
-    }
+    const chosen = await selectByLabel({ labelText: TEXTS.BODEGA_TO_LABEL, optionText: bodega, signal, timeout: 9000 });
+    log.info('remediateStock: bodega seleccionada', { chosen });
   } catch (err) {
-    log.warn(`no se pudo confirmar Bodega TO: ${err?.message || err}`);
+    return { ok: false, reason: `No se pudo seleccionar la bodega "${bodega}": ${err?.message || err}` };
   }
 
   if (dryRun) {

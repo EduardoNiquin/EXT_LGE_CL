@@ -6,6 +6,7 @@ import { gotoRoute, onPageType } from './navigate.js';
 import { findButtonByText, findFabSave } from '../vuetify/buttons.js';
 import { dialogButton, getDialog, waitDialog, waitDialogClosed } from '../vuetify/dialog.js';
 import { selectByLabel } from '../vuetify/select.js';
+import { parseOrderProducts } from '../parser.js';
 import { clickEl } from '../../../../shared/dom/events.js';
 import { sleep, waitFor } from '../../../../shared/dom/wait.js';
 import { logger } from '../../../../shared/utils/logger.js';
@@ -21,17 +22,24 @@ const log = logger('starkoms');
  * Devuelve { ok, reason? }.
  */
 export async function setOrderState(orderNumber, { signal, dryRun = false, targetState = TEXTS.TARGET_STATE } = {}) {
+  // Esperar a que la orden cargue del todo: si clickeamos "Cambiar estado" antes
+  // de que lleguen los datos (order_id), el diálogo crashea (substates undefined).
+  // La tabla de productos presente es señal de que la orden ya cargó.
   await gotoRoute(ROUTES.orderDetail(orderNumber), {
-    ready: () => (onPageType(PAGE_TYPE.ORDER_DETAIL)() && findButtonByText(TEXTS.CHANGE_STATE_BTN) ? true : null),
+    ready: () => (onPageType(PAGE_TYPE.ORDER_DETAIL)()
+      && findButtonByText(TEXTS.CHANGE_STATE_BTN)
+      && parseOrderProducts().length > 0 ? true : null),
     signal,
   });
+  await sleep(600, signal).catch(() => {});
 
   const changeBtn = findButtonByText(TEXTS.CHANGE_STATE_BTN);
   if (!changeBtn) return { ok: false, reason: 'No se encontró el botón "Cambiar estado"' };
+  log.info('setOrderState: click "Cambiar estado"', { url: location.href });
   clickEl(changeBtn);
 
   const dialog = await waitDialog({ signal });
-  await sleep(250, signal).catch(() => {});
+  await sleep(300, signal).catch(() => {});
 
   await selectByLabel({ labelText: TEXTS.ESTADO_PEDIDO_LABEL, optionText: targetState, root: dialog, signal });
   await sleep(250, signal).catch(() => {});
