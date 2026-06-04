@@ -70,29 +70,67 @@ function stockEditReady() {
   return document.querySelector(SELECTORS.numberInput) ? true : null;
 }
 
+/** Busca un SKU en el buscador de la pantalla actual (input texto + botón "Buscar"). */
+async function searchSku(sku, { signal } = {}) {
+  const buscar = findButtonByText(TEXTS.SEARCH);
+  if (!buscar) throw new Error('No se encontró el buscador');
+  const card = buscar.closest('.v-card, .container, .card, .card-body, .d-flex') || document;
+  const input = card.querySelector('input[type="text"]') || document.querySelector('input[type="text"]');
+  if (!input) throw new Error('No se encontró el input de búsqueda');
+  setInputValue(input, sku);
+  clickEl(buscar);
+  await sleep(1200, signal).catch(() => {});
+}
+
+/** Link del ojo (Acciones) del producto en el listado de inventario: `.../<SKU>` (sin bodegaId). */
+function findProductEyeLink(sku) {
+  const want = ROUTES.inventoryProduct(String(sku)).toLowerCase();
+  return Array.from(document.querySelectorAll(SELECTORS.inventoryEyeLink)).find((a) => {
+    const href = decodeURIComponent(a.getAttribute('href') || '').toLowerCase().replace(/\/+$/, '');
+    return href === want;
+  }) || null;
+}
+
 /**
- * Asigna stock a un producto en la bodega configurada.
- *   1. Navega al detalle de inventario del SKU.
- *   2. Ubica la fila de la bodega y abre su edición.
- *   3. Setea Cantidad y asegura "Bodega TO"; click "Guardar" (salvo dryRun).
+ * Asigna stock a un producto en la bodega configurada, replicando el flujo
+ * manual (el deep-link directo NO carga las bodegas):
+ *   1. Listado de inventario (#/inventario/stock/productos) + buscar el SKU.
+ *   2. Click en el ojo del producto en resultados → página del producto.
+ *   3. Click en el ojo de la bodega (Acciones → .../<sku>/<bodegaId>) → form.
+ *   4. Setea Cantidad y asegura "Bodega TO"; click "Guardar" (salvo dryRun).
  * Devuelve { ok, reason? }.
  */
 export async function remediateStock(sku, bodega, value, { signal, dryRun = false } = {}) {
-  // 1) Detalle de inventario del producto (lista de bodegas).
-  await gotoRoute(ROUTES.inventoryProduct(sku), {
-    ready: () => (onPageType(PAGE_TYPE.INVENTORY_PRODUCT)()
-      && (parseWarehouseRows(sku).length > 0 || firstTable()) ? true : null),
+  // 1) Listado de inventario + búsqueda del SKU.
+  await gotoRoute(ROUTES.inventoryList(), {
+    ready: () => (onPageType(PAGE_TYPE.INVENTORY_LIST)() && findButtonByText(TEXTS.SEARCH) ? true : null),
     signal,
   });
-  await sleep(300, signal).catch(() => {});
+  await searchSku(sku, { signal });
 
-  const wh = findWarehouseRow(sku, bodega);
+  // 2) Ojo del producto en resultados → página del producto (carga las bodegas).
+  const prodLink = await waitFor(() => findProductEyeLink(sku), {
+    signal, timeout: 8000, interval: 150, description: 'producto en el inventario',
+  }).catch(() => null);
+  if (!prodLink) {
+    return { ok: false, reason: `Producto ${sku} no aparece en el inventario (¿no creado?)` };
+  }
+  clickEl(prodLink);
+
+  // 3) Esperar las bodegas del producto y abrir la configurada.
+  await waitFor(() => (onPageType(PAGE_TYPE.INVENTORY_PRODUCT)() && parseWarehouseRows(sku).length > 0 ? true : null), {
+    signal, timeout: 10000, interval: 150, description: 'bodegas del producto',
+  });
+  const rows = parseWarehouseRows(sku);
+  const wh = findWarehouseRow(sku, bodega) || (rows.length === 1 ? rows[0] : null);
   if (!wh) {
-    const found = parseWarehouseRows(sku).length;
-    return { ok: false, reason: `Bodega "${bodega}" no encontrada en inventario (${found} bodega(s) listada(s))` };
+    return {
+      ok: false,
+      reason: `Bodega "${bodega}" no encontrada (${rows.length} bodega(s); ids: ${rows.map((r) => r.bodegaId).join(', ') || '—'})`,
+    };
   }
 
-  // 2) Abrir la edición de esa bodega (link de Acciones → .../<sku>/<bodegaId>).
+  // Abrir la edición de esa bodega (link de Acciones → .../<sku>/<bodegaId>).
   clickEl(wh.linkEl);
   await waitFor(stockEditReady, { signal, timeout: 12000, interval: 150, description: 'form Actualizar Stock' });
   await sleep(300, signal).catch(() => {});
