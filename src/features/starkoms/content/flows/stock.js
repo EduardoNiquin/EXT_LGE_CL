@@ -144,27 +144,41 @@ async function typeText(input, text, { signal } = {}) {
  * `@keyup.enter`) y además clickea "Buscar". Espera a que el grid cambie.
  */
 async function searchSku(sku, { signal } = {}) {
+  log.info('searchSku: inicio', { url: location.href, sku });
   const buscar = findButtonByText(TEXTS.SEARCH);
   if (!buscar) throw new Error('No se encontró el botón "Buscar"');
+  log.info('searchSku: botón Buscar', { text: (buscar.textContent || '').trim(), class: buscar.className });
+
   const input = findSearchInput(buscar);
   if (!input) throw new Error('No se encontró el input de búsqueda');
+  const labelFor = document.querySelector(`label[for="${input.id}"]`)?.textContent?.trim();
+  log.info('searchSku: input encontrado', { id: input.id, type: input.type, label: labelFor, valueAntes: input.value });
 
   const before = firstRowSignature();
 
   // Tipeo carácter por carácter (dispara watchers por pulsación) + Enter + click.
   await typeText(input, sku, { signal });
+  log.info('searchSku: tras tipear', { valueDespues: input.value, esperado: String(sku) });
   await sleep(200, signal).catch(() => {});
   pressEnter(input);
   clickEl(buscar);
+  log.info('searchSku: Enter + click Buscar disparados');
 
   // Esperar a que el grid se refresque (cambie la primera fila) o aparezca el SKU.
-  await waitFor(() => {
-    if (firstRowSignature() !== before) return true;
+  const changed = await waitFor(() => {
+    if (firstRowSignature() !== before) return 'snapshot';
     const hit = Array.from(document.querySelectorAll('table tbody tr'))
       .some((tr) => (tr.textContent || '').toLowerCase().includes(String(sku).toLowerCase()));
-    return hit ? true : null;
-  }, { signal, timeout: 8000, interval: 150, description: 'refresh del grid tras buscar' }).catch(() => {});
+    return hit ? 'sku' : null;
+  }, { signal, timeout: 8000, interval: 150, description: 'refresh del grid tras buscar' }).catch(() => null);
   await sleep(400, signal).catch(() => {});
+  log.info('searchSku: tras buscar', {
+    url: location.href,
+    motivoRefresh: changed || 'timeout',
+    valueFinal: input.value,
+    filas: document.querySelectorAll('table tbody tr').length,
+    primeraFila: firstRowSignature(),
+  });
 }
 
 function escapeRe(s) {
@@ -226,13 +240,18 @@ export async function remediateStock(sku, bodega, value, { signal, dryRun = fals
   if (!prodLink) {
     return { ok: false, reason: `Producto ${sku} no aparece en el inventario (${inventoryDiag(sku)})` };
   }
+  log.info('remediateStock: click ojo producto', { href: prodLink.getAttribute('href'), url: location.href });
   clickEl(prodLink);
 
   // 3) Esperar las bodegas del producto y abrir la configurada.
   await waitFor(() => (onPageType(PAGE_TYPE.INVENTORY_PRODUCT)() && parseWarehouseRows(sku).length > 0 ? true : null), {
     signal, timeout: 10000, interval: 150, description: 'bodegas del producto',
-  });
+  }).catch(() => {});
   const rows = parseWarehouseRows(sku);
+  log.info('remediateStock: bodegas del producto', {
+    url: location.href, total: rows.length, ids: rows.map((r) => r.bodegaId),
+    bodegas: rows.map((r) => r.rowText.slice(0, 40)),
+  });
   const wh = findWarehouseRow(sku, bodega) || (rows.length === 1 ? rows[0] : null);
   if (!wh) {
     return {
@@ -242,13 +261,16 @@ export async function remediateStock(sku, bodega, value, { signal, dryRun = fals
   }
 
   // Abrir la edición de esa bodega (link de Acciones → .../<sku>/<bodegaId>).
+  log.info('remediateStock: click ojo bodega', { href: wh.linkEl.getAttribute('href'), bodegaId: wh.bodegaId });
   clickEl(wh.linkEl);
   await waitFor(stockEditReady, { signal, timeout: 12000, interval: 150, description: 'form Actualizar Stock' });
   await sleep(300, signal).catch(() => {});
+  log.info('remediateStock: form Actualizar Stock', { url: location.href });
 
   // 3) Cantidad + Bodega TO.
   const input = await waitForElement(SELECTORS.numberInput, { signal, timeout: 5000, description: 'input Cantidad' });
   setInputValue(input, String(value));
+  log.info('remediateStock: cantidad seteada', { value: input.value });
 
   // La bodega TO suele venir preseleccionada (navegamos por su id). Si no
   // coincide, la elegimos.
