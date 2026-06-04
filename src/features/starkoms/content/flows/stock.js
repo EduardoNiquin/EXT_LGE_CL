@@ -40,13 +40,7 @@ export async function verifyExists(sku, { signal } = {}) {
     signal,
   });
 
-  const buscar = findButtonByText(TEXTS.SEARCH);
-  const card = buscar?.closest('.v-card, .container, .d-flex') || document;
-  const input = card.querySelector('input[type="text"]') || document.querySelector('input[type="text"]');
-  if (!input || !buscar) throw new Error('No se encontró el buscador de #/productos');
-
-  setInputValue(input, sku);
-  clickEl(buscar);
+  await searchSku(sku, { signal });
 
   await waitFor(() => {
     const table = firstTable();
@@ -70,14 +64,46 @@ function stockEditReady() {
   return document.querySelector(SELECTORS.numberInput) ? true : null;
 }
 
+/** Visible (descarta inputs ocultos). */
+function isVisible(el) {
+  return Boolean(el && el.offsetParent !== null);
+}
+
+/**
+ * Ubica el input del buscador. Preferimos el `<input>` asociado al
+ * `<label>Buscar</label>` (más preciso); si no, subimos desde el botón "Buscar"
+ * hasta el primer ancestro que contiene un input de texto visible (evita agarrar
+ * un input de otra sección, como el filtro por categoría o un search global).
+ */
+function findSearchInput(buscar) {
+  // 1) Por el label "Buscar" → su `for` → input.
+  const lbl = Array.from(document.querySelectorAll('label'))
+    .find((l) => l.textContent.trim().toLowerCase() === TEXTS.SEARCH.toLowerCase());
+  if (lbl) {
+    const id = lbl.getAttribute('for');
+    const byId = id ? document.getElementById(id) : null;
+    if (byId && byId.matches('input') && isVisible(byId)) return byId;
+    const near = lbl.closest('.v-input')?.querySelector('input[type="text"]');
+    if (isVisible(near)) return near;
+  }
+  // 2) Subir desde el botón hasta el ancestro que contenga un input de texto.
+  let cont = buscar?.parentElement;
+  while (cont) {
+    const input = Array.from(cont.querySelectorAll('input[type="text"]')).find(isVisible);
+    if (input) return input;
+    cont = cont.parentElement;
+  }
+  return null;
+}
+
 /** Busca un SKU en el buscador de la pantalla actual (input texto + botón "Buscar"). */
 async function searchSku(sku, { signal } = {}) {
   const buscar = findButtonByText(TEXTS.SEARCH);
-  if (!buscar) throw new Error('No se encontró el buscador');
-  const card = buscar.closest('.v-card, .container, .card, .card-body, .d-flex') || document;
-  const input = card.querySelector('input[type="text"]') || document.querySelector('input[type="text"]');
+  if (!buscar) throw new Error('No se encontró el botón "Buscar"');
+  const input = findSearchInput(buscar);
   if (!input) throw new Error('No se encontró el input de búsqueda');
   setInputValue(input, sku);
+  await sleep(150, signal).catch(() => {});
   clickEl(buscar);
   await sleep(1200, signal).catch(() => {});
 }
