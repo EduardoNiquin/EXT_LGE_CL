@@ -15,7 +15,7 @@ export const STORAGE_KEYS = {
 // GraphQL/REST que le corresponden; el selector interno deja elegir entre ellas.
 export const SCREENS = [
   { id: 'pdp', label: 'PDP', operations: ['getPbpProduct', 'products', 'getAddressLevel1', 'getAddressLevel2'] },
-  { id: 'plp', label: 'PLP', operations: ['retrieveProductList', 'products'] },
+  { id: 'plp', label: 'PLP', operations: ['retrieveProductList', 'products', 'getProductsBySku'] },
   { id: 'pbp', label: 'PBP', operations: ['products'] },
 ];
 
@@ -31,8 +31,8 @@ export const OPERATION_SCREEN = {
 // Clasifica una captura a una pantalla para el auto-seguimiento.
 // PDP y PLP se detectan por operación (getPbpProduct / retrieveProductList).
 // PBP comparte `getProductsBySku` (capturado como `products`) con la PLP, pero la
-// PBP pide UN solo SKU mientras la PLP pide varios → usamos el largo de skuList.
-// Con varios SKUs la operación es ambigua (PLP vs variantes de PDP) → no fuerza.
+// PBP pide UN solo SKU mientras la PLP pide varios → usamos el largo de skuList:
+// 1 SKU → PBP; varios SKUs → PLP (caso landing promocional desde AEM).
 export function screenForCapture(capture) {
   if (!capture) return null;
   const direct = OPERATION_SCREEN[capture.operationName];
@@ -40,6 +40,8 @@ export function screenForCapture(capture) {
   if (capture.operationName === 'products' || capture.operationName === 'getProductsBySku') {
     const list = capture.variables?.skuList;
     if (Array.isArray(list) && list.length === 1) return 'pbp';
+    // Varios SKUs: típico de la landing promocional (PLP especial desde AEM).
+    if (Array.isArray(list) && list.length > 1) return 'plp';
   }
   return null;
 }
@@ -84,6 +86,10 @@ export const OPERATIONS = {
   retrieveProductList: {
     label: 'Lista de productos (PLP)',
     description: 'Catálogo de la PLP con tags, MSRP, estado y datos por modelo.',
+  },
+  getProductsBySku: {
+    label: 'Landing (productos)',
+    description: 'SKUs que conforman una landing promocional (PLP especial desde AEM con promotion id).',
   },
 };
 

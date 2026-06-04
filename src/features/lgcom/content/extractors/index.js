@@ -6,6 +6,7 @@ import { extractPbpProduct } from './pbp-product.js';
 import { extractAddressLevel1 } from './address-level1.js';
 import { extractAddressLevel2 } from './address-level2.js';
 import { extractProducts } from './products.js';
+import { extractProductsBySku } from './products-by-sku.js';
 import { extractRetrieveProductList } from './retrieve-product-list.js';
 
 export const EXTRACTORS = {
@@ -13,6 +14,7 @@ export const EXTRACTORS = {
   getAddressLevel1: extractAddressLevel1,
   getAddressLevel2: extractAddressLevel2,
   products: extractProducts,
+  getProductsBySku: extractProductsBySku,
   retrieveProductList: extractRetrieveProductList,
 };
 
