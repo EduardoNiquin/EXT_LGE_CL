@@ -6,8 +6,12 @@
 // Forma del objeto guardado bajo STORAGE_KEYS.RUN:
 //   {
 //     active: boolean,
+//     kind: RUN_KIND,                        // 'remove' | 'add'
 //     startedAt, finishedAt, finishReason?,
 //     searchBy: SEARCH_BY,                   // 'id' | 'rule'
+//     condition?: {                          // sólo kind 'add'
+//       attributeLabel, operator, operatorLabel, value,
+//     },
 //     currentItemIndex: number,
 //     items: [{
 //       query: string,                       // ID o nombre de Rule pedido
@@ -15,7 +19,8 @@
 //       matchedRuleId?: number,              // id real una vez encontrado
 //       matchedName?: string,                // nombre real una vez encontrado
 //       editHref?: string,
-//       removedConditions?: number,
+//       removedConditions?: number,          // kind 'remove'
+//       addedCondition?: { attribute, operator, value },  // kind 'add'
 //       savedAt?: number,
 //       error?: string,
 //     }],
@@ -59,4 +64,12 @@ export async function getLastConfig() {
 
 export async function setLastConfig(config) {
   return setStorage(STORAGE_KEYS.LAST_CONFIG, config);
+}
+
+export async function getLastConfigAdd() {
+  return (await getStorage(STORAGE_KEYS.LAST_CONFIG_ADD)) || null;
+}
+
+export async function setLastConfigAdd(config) {
+  return setStorage(STORAGE_KEYS.LAST_CONFIG_ADD, config);
 }

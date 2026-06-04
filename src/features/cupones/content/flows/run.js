@@ -18,12 +18,14 @@
 //   EDIT:
 //     ├─ Verificar que el id de la URL matchea el item EDITING.
 //     ├─ Abrir el colapsable Actions.
-//     ├─ Eliminar todas las condiciones (rule-param-remove).
+//     ├─ Según run.kind:
+//     │    ├─ 'remove' → eliminar todas las condiciones (rule-param-remove).
+//     │    └─ 'add'    → agregar una condición (atributo + operador + valor).
 //     ├─ Click Save (Magento navega solo al listing).
 //     └─ Próximo tick (listing) → marca el item OK.
 
 import { logger } from '../../../../shared/utils/logger.js';
-import { ITEM_STATUS, PAGE_TYPE, SEARCH_BY } from '../../constants.js';
+import { ITEM_STATUS, PAGE_TYPE, RUN_KIND, SEARCH_BY } from '../../constants.js';
 import { appendLog, getRun, setRun } from '../../state.js';
 import { detectPage } from '../detector.js';
 import {
@@ -34,6 +36,7 @@ import {
 } from '../magento/filters.js';
 import { parseListingRows } from '../parser.js';
 import {
+  addCondition,
   clickSave,
   leaveEditPage,
   openActionsCollapsible,
@@ -83,9 +86,12 @@ async function onListing(run) {
       item.status  = ITEM_STATUS.OK;
       item.savedAt = Date.now();
       touched = true;
+      const detail = run.kind === RUN_KIND.ADD
+        ? `condición agregada: ${item.addedCondition?.attribute ?? '?'}`
+        : `condiciones eliminadas: ${item.removedConditions ?? 0}`;
       await appendLog({
         level: 'info',
-        message: `Guardado: ${labelOf(item)} — condiciones eliminadas: ${item.removedConditions ?? 0}`,
+        message: `Guardado: ${labelOf(item)} — ${detail}`,
       });
     }
   }
@@ -194,13 +200,25 @@ async function onEdit(run, page) {
 
   try {
     await openActionsCollapsible();
-    const removed = await removeAllConditions();
-    item.removedConditions = removed;
-    await setRun(run);
-    await appendLog({
-      level: 'info',
-      message: `${labelOf(item)}: ${removed} condición(es) eliminada(s) — guardando`,
-    });
+
+    if (run.kind === RUN_KIND.ADD) {
+      const added = await addCondition(run.condition);
+      item.addedCondition = added;
+      await setRun(run);
+      await appendLog({
+        level: 'info',
+        message: `${labelOf(item)}: condición agregada (${added.attribute} ${run.condition.operatorLabel} "${added.value}") — guardando`,
+      });
+    } else {
+      const removed = await removeAllConditions();
+      item.removedConditions = removed;
+      await setRun(run);
+      await appendLog({
+        level: 'info',
+        message: `${labelOf(item)}: ${removed} condición(es) eliminada(s) — guardando`,
+      });
+    }
+
     await clickSave();
   } catch (err) {
     item.status = ITEM_STATUS.ERROR;

@@ -1,8 +1,16 @@
 export const FEATURE_ID = 'cupones';
 
 export const STORAGE_KEYS = {
-  RUN:         `${FEATURE_ID}:run`,
-  LAST_CONFIG: `${FEATURE_ID}:last-config`,
+  RUN:             `${FEATURE_ID}:run`,
+  LAST_CONFIG:     `${FEATURE_ID}:last-config`,      // config de "Quitar Regla"
+  LAST_CONFIG_ADD: `${FEATURE_ID}:last-config-add`,  // config de "Agregar Regla"
+};
+
+// Tipo de operación del run. El estado vive en un único STORAGE_KEYS.RUN; el
+// state machine ramifica en onEdit según este campo.
+export const RUN_KIND = {
+  REMOVE: 'remove',  // Quitar Regla de Cupón (elimina todas las condiciones)
+  ADD:    'add',     // Agregar Regla de Cupón (agrega una condición)
 };
 
 // Estado por item de la cola (cada item es un cupón a procesar).
@@ -60,9 +68,46 @@ export const SELECTORS = {
   ruleTree:            'div[data-index="actions"] .rule-tree',
   ruleConditionsRoot:  'div[data-index="actions"] .rule-tree ul.rule-param-children',
   ruleRemoveButton:    'div[data-index="actions"] .rule-tree a.rule-param-remove',
+  // Agregar condición: el "+" abre el <select> new_child; al elegir una opción
+  // VarienRulesForm hace un AJAX que inserta un nuevo <li> de condición.
+  ruleNewChildSelect:  'div[data-index="actions"] .rule-tree select[id$="__new_child"]',
+  ruleNewChildAdd:     'div[data-index="actions"] .rule-tree .rule-param-new-child a.label',
+  ruleOperatorSelect:  'div[data-index="actions"] .rule-tree select[id$="__operator"]',
+  ruleValueInput:      'div[data-index="actions"] .rule-tree input[id$="__value"]',
   saveButton:          '#save',
   backButton:          '#back',
 };
+
+// Operadores estándar de las condiciones de producto (estáticos en Magento).
+// value = valor del <option>; label = texto visible que ve el usuario.
+export const OPERATORS = [
+  { value: '==',  label: 'is' },
+  { value: '!=',  label: 'is not' },
+  { value: '>=',  label: 'equals or greater than' },
+  { value: '<=',  label: 'equals or less than' },
+  { value: '>',   label: 'greater than' },
+  { value: '<',   label: 'less than' },
+  { value: '{}',  label: 'contains' },
+  { value: '!{}', label: 'does not contain' },
+  { value: '()',  label: 'is one of' },
+  { value: '!()', label: 'is not one of' },
+];
+
+// Sugerencias de atributos para el datalist del popup (el usuario puede escribir
+// cualquier otro). El match real contra el <select> new_child se hace por texto
+// visible (case-insensitive), porque las opciones las puebla el backend.
+export const CONDITION_SUGGESTIONS = [
+  'Level1 Code',
+  'Sales Model Code',
+  'SKU',
+  'Product Carrier',
+  'super_category_id',
+  'category_id',
+  'sub_category_id',
+  'product_name',
+  'Quantity',
+  'Weight',
+];
 
 export const LOG_CAP = 400;
 

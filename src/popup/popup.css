@@ -1211,6 +1211,21 @@ mark {
 .cu-radio:has(input:disabled) { opacity: 0.55; cursor: not-allowed; }
 .lt-log-item--info  .lt-log-msg { color: var(--gray-700); }
 
+/* Cupones — fieldset de condición (Agregar Regla) */
+.cu-condition {
+  border: 1px solid var(--gray-200);
+  border-radius: 8px;
+  padding: 8px 12px 4px;
+  margin: 4px 0 10px;
+}
+.cu-condition legend {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--gray-700);
+  padding: 0 6px;
+}
+.cu-condition:has(input:disabled, select:disabled) { opacity: 0.6; }
+
 /* ────────────────────────────────────────────────
    Panel de logs reutilizable (shared/ui/log-panel.js)
    ──────────────────────────────────────────────── */

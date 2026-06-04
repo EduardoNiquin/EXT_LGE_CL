@@ -1,14 +1,15 @@
-// Sub-router del feature "Cupones". Por ahora una sola sección — pero
-// dejamos la estructura tabbed lista para sumar futuras sub-features
-// (p. ej. "Activar/Desactivar cupón", "Duplicar cupón", etc.).
+// Sub-router del feature "Cupones". Estructura tabbed: cada sub-feature es una
+// sección. Ambas comparten el run (storage) y el ciclo de progreso (run-ui.js).
 
 import * as removeRule from './sections/remove-rule.js';
+import * as addRule from './sections/add-rule.js';
 
 const SECTIONS = [
-  { id: 'remove-rule', label: 'Quitar Regla de Cupón', render: removeRule.render },
+  { id: 'add-rule',    label: 'Agregar Regla de Cupón', render: addRule.render },
+  { id: 'remove-rule', label: 'Quitar Regla de Cupón',  render: removeRule.render },
 ];
 
-const DEFAULT_SECTION = 'remove-rule';
+const DEFAULT_SECTION = 'add-rule';
 
 export function render(container) {
   if (SECTIONS.length === 1) {

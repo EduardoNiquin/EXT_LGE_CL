@@ -4,6 +4,7 @@ import { detectPage, diagnose } from './content/detector.js';
 import { getActiveFilters, getRowCount, parseListingRows } from './content/parser.js';
 import { clearRun, getRun, setRun } from './state.js';
 import { tickIfActive } from './content/flows/run.js';
+import { addCondition, openActionsCollapsible } from './content/magento/edit-page.js';
 
 register('cupones', {
   diagnose: cmd(
@@ -58,5 +59,12 @@ register('cupones', {
   tick: cmd(
     () => tickIfActive(),
     'Fuerza un tick del state machine en este frame',
+  ),
+  addCondition: cmd(
+    async ({ attributeLabel, operator = '{}', value } = {}) => {
+      await openActionsCollapsible();
+      return addCondition({ attributeLabel, operator, value });
+    },
+    'Agrega una condición en la página de edición actual ({attributeLabel, operator, value})',
   ),
 });
