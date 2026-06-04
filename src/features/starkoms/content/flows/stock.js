@@ -109,6 +109,34 @@ function pressEnter(el) {
   }
 }
 
+const nativeInputSetter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set;
+
+function setNativeValue(input, value) {
+  if (nativeInputSetter) nativeInputSetter.call(input, value); else input.value = value;
+}
+
+/**
+ * Tipea texto carácter por carácter, emitiendo `InputEvent` reales por pulsación.
+ * Necesario para inputs cuyo filtro/búsqueda se dispara por watcher de tecleo
+ * (el set directo del value no lo activa, p.ej. el buscador del inventario).
+ */
+async function typeText(input, text, { signal } = {}) {
+  input.focus();
+  setNativeValue(input, '');
+  input.dispatchEvent(new Event('input', { bubbles: true }));
+  let acc = '';
+  for (const ch of String(text)) {
+    acc += ch;
+    input.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: ch }));
+    input.dispatchEvent(new KeyboardEvent('keypress', { bubbles: true, key: ch }));
+    setNativeValue(input, acc);
+    input.dispatchEvent(new InputEvent('input', { bubbles: true, data: ch, inputType: 'insertText' }));
+    input.dispatchEvent(new KeyboardEvent('keyup', { bubbles: true, key: ch }));
+    await sleep(25, signal).catch(() => {});
+  }
+  input.dispatchEvent(new Event('change', { bubbles: true }));
+}
+
 /**
  * Busca un SKU en el buscador de la pantalla actual. Setea el valor con el
  * setter nativo (robusto ante el tracking de value de los frameworks) + eventos
@@ -123,13 +151,9 @@ async function searchSku(sku, { signal } = {}) {
 
   const before = firstRowSignature();
 
-  input.focus();
-  const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set;
-  if (setter) setter.call(input, String(sku)); else input.value = String(sku);
-  input.dispatchEvent(new Event('input', { bubbles: true }));
-  input.dispatchEvent(new Event('change', { bubbles: true }));
+  // Tipeo carácter por carácter (dispara watchers por pulsación) + Enter + click.
+  await typeText(input, sku, { signal });
   await sleep(200, signal).catch(() => {});
-
   pressEnter(input);
   clickEl(buscar);
 
@@ -190,6 +214,9 @@ export async function remediateStock(sku, bodega, value, { signal, dryRun = fals
     ready: () => (onPageType(PAGE_TYPE.INVENTORY_LIST)() && findButtonByText(TEXTS.SEARCH) ? true : null),
     signal,
   });
+  // Esperar a que el grid termine la carga inicial (componente montado) antes de tipear.
+  await waitFor(() => (document.querySelectorAll('table tbody tr').length > 0 ? true : null),
+    { signal, timeout: 8000, interval: 150, description: 'carga inicial del grid de inventario' }).catch(() => {});
   await searchSku(sku, { signal });
 
   // 2) Ojo del producto en resultados → página del producto (carga las bodegas).
