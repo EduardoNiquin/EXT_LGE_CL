@@ -4,7 +4,6 @@
 import { PAGE_TYPE, ROUTES, SELECTORS, TEXTS } from '../../constants.js';
 import { gotoRoute, onPageType } from './navigate.js';
 import { detectPage } from '../detector.js';
-import { firstTable } from '../vuetify/datatable.js';
 import { findWarehouseRow, parseProductsSearchRows, parseWarehouseRows } from '../parser.js';
 import { dismissToast, parseToast, stockForBodega, waitToast } from '../vuetify/toast.js';
 import { findButtonByText } from '../vuetify/buttons.js';
@@ -42,18 +41,15 @@ export async function verifyExists(sku, { signal } = {}) {
 
   await searchSku(sku, { signal });
 
-  await waitFor(() => {
-    const table = firstTable();
-    if (!table) return null;
-    const rows = parseProductsSearchRows();
-    // Resultado positivo: alguna fila menciona el SKU.
-    if (rows.some((t) => t.toLowerCase().includes(String(sku).toLowerCase()))) return 'found';
-    return null;
-  }, { signal, timeout: 8000, interval: 200, description: 'resultados de búsqueda de producto' }).catch(() => {});
+  // Exigir que ALGUNA fila mencione el SKU (la lista por defecto no cuenta:
+  // antes el `|| rows.length>0` daba falso positivo).
+  const skuLc = String(sku).toLowerCase();
+  await waitFor(() => (parseProductsSearchRows().some((t) => t.toLowerCase().includes(skuLc)) ? true : null),
+    { signal, timeout: 8000, interval: 200, description: 'resultados de búsqueda de producto' }).catch(() => {});
 
   await sleep(300, signal).catch(() => {});
   const rows = parseProductsSearchRows();
-  const exists = rows.some((t) => t.toLowerCase().includes(String(sku).toLowerCase())) || rows.length > 0;
+  const exists = rows.some((t) => t.toLowerCase().includes(skuLc));
   log.info(`verifyExists("${sku}") → ${exists} (${rows.length} fila(s))`);
   return exists;
 }
@@ -98,16 +94,53 @@ function findSearchInput(buscar) {
   return null;
 }
 
-/** Busca un SKU en el buscador de la pantalla actual (input texto + botón "Buscar"). */
+/** Firma de la primera fila del grid (para detectar el refresh tras buscar). */
+function firstRowSignature() {
+  const tr = document.querySelector('table tbody tr');
+  return tr ? (tr.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 80) : '';
+}
+
+/** Dispara la secuencia de teclas Enter sobre un elemento. */
+function pressEnter(el) {
+  for (const type of ['keydown', 'keypress', 'keyup']) {
+    el.dispatchEvent(new KeyboardEvent(type, {
+      bubbles: true, cancelable: true, key: 'Enter', code: 'Enter', keyCode: 13, which: 13,
+    }));
+  }
+}
+
+/**
+ * Busca un SKU en el buscador de la pantalla actual. Setea el valor con el
+ * setter nativo (robusto ante el tracking de value de los frameworks) + eventos
+ * input/change, dispara Enter (varios buscadores Vuetify filtran con
+ * `@keyup.enter`) y además clickea "Buscar". Espera a que el grid cambie.
+ */
 async function searchSku(sku, { signal } = {}) {
   const buscar = findButtonByText(TEXTS.SEARCH);
   if (!buscar) throw new Error('No se encontró el botón "Buscar"');
   const input = findSearchInput(buscar);
   if (!input) throw new Error('No se encontró el input de búsqueda');
-  setInputValue(input, sku);
-  await sleep(150, signal).catch(() => {});
+
+  const before = firstRowSignature();
+
+  input.focus();
+  const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set;
+  if (setter) setter.call(input, String(sku)); else input.value = String(sku);
+  input.dispatchEvent(new Event('input', { bubbles: true }));
+  input.dispatchEvent(new Event('change', { bubbles: true }));
+  await sleep(200, signal).catch(() => {});
+
+  pressEnter(input);
   clickEl(buscar);
-  await sleep(1200, signal).catch(() => {});
+
+  // Esperar a que el grid se refresque (cambie la primera fila) o aparezca el SKU.
+  await waitFor(() => {
+    if (firstRowSignature() !== before) return true;
+    const hit = Array.from(document.querySelectorAll('table tbody tr'))
+      .some((tr) => (tr.textContent || '').toLowerCase().includes(String(sku).toLowerCase()));
+    return hit ? true : null;
+  }, { signal, timeout: 8000, interval: 150, description: 'refresh del grid tras buscar' }).catch(() => {});
+  await sleep(400, signal).catch(() => {});
 }
 
 function escapeRe(s) {
