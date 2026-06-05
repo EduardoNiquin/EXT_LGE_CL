@@ -67,7 +67,7 @@ export const SELECTORS = {
 
   // --- Listing (grid de órdenes) ---
   pageTitle:         'h1.page-title',
-  gridWrap:          '.admin__data-grid-wrap',
+  gridWrap:          '.admin__data-grid-wrap, .admin__data-grid-outer-wrap',
   searchInput:       '#fulltext',
   searchSubmit:      '.data-grid-search-control button[aria-label="Search"], .data-grid-search-control-wrap button[aria-label="Search"], .data-grid-search-control-wrap button.action-submit',
   filtersToggle:     'button[data-action="grid-filter-expand"]',
@@ -76,7 +76,7 @@ export const SELECTORS = {
   dateFrom:          'input[name="created_at[from]"]',
   dateTo:            'input[name="created_at[to]"]',
   storeCrumb:        '.admin__action-multiselect-crumb',
-  gridRow:           'tr[data-role="row"]',
+  gridRow:           'tr.data-row, tr[data-role="row"]',
   rowCell:           'td.data-grid-cell',
   multicheckCell:    '.data-grid-multicheck-cell',
   actionsCell:       '.data-grid-actions-cell',

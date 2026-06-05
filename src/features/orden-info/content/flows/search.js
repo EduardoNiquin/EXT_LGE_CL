@@ -51,9 +51,14 @@ async function onListing(search) {
   }
 
   try {
-    const input = await waitForElement(SELECTORS.searchInput, {
+    await waitForElement(SELECTORS.searchInput, {
       timeout: 8000, description: 'buscador fulltext del grid',
     });
+
+    // Esperar a que el grid (Knockout) termine de inicializar y restaurar su
+    // estado guardado ANTES de tocar nada. Si escribimos el fulltext demasiado
+    // pronto, Magento restaura la última búsqueda y pisa nuestro número.
+    await waitForGridReady().catch(() => { /* seguimos igual */ });
 
     // 1) Filtros requeridos por el grid: rango de Purchase Date (<= 1 mes) y
     //    Purchase Point. Sin ellos, buscar una orden puntual da error.
@@ -61,13 +66,15 @@ async function onListing(search) {
     await setSearch(search);
     await applyRequiredFilters();
 
-    // 2) Buscador fulltext con el número de orden.
-    setInputValue(input, orderNumber);
+    // 2) Buscador fulltext con el número de orden (KO ya está estable).
+    const input = document.querySelector(SELECTORS.searchInput);
+    if (input) setInputValue(input, orderNumber);
     search.status = SEARCH_STATUS.SEARCHING;
     await setSearch(search);
     clickSearch();
+    await sleep(300);            // dar tiempo a que aparezca el mask de carga
     await waitForGridReady();
-    await sleep(300);
+    await sleep(400);
   } catch (err) {
     await fail(search, `No se pudo aplicar la búsqueda: ${err?.message || String(err)}`);
     return;
@@ -120,6 +127,7 @@ async function applyRequiredFilters() {
   const apply = document.querySelector(SELECTORS.filterApply);
   if (apply) {
     apply.click();
+    await sleep(300);            // dar tiempo a que aparezca el mask de carga
     await waitForGridReady();
     await sleep(250);
   } else {
