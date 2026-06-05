@@ -9,7 +9,9 @@
 // El detalle de la orden se lee on-demand vía mensaje (content/index.js), no acá.
 
 import { logger } from '../../../../shared/utils/logger.js';
-import { DATE_WINDOW_DAYS, PAGE_TYPE, SEARCH_STATUS, SELECTORS, STORE_VIEW_LABEL } from '../../constants.js';
+import {
+  DATE_WINDOW_DAYS, PAGE_TYPE, PURCHASE_POINT_LABEL, SEARCH_STATUS, SELECTORS, STORE_VIEW_LABEL,
+} from '../../constants.js';
 import { getSearch, setSearch } from '../../state.js';
 import { detectPage } from '../detector.js';
 import { setInputValue, clickEl } from '../../../../shared/dom/events.js';
@@ -60,10 +62,13 @@ async function onListing(search) {
     // pronto, Magento restaura la última búsqueda y pisa nuestro número.
     await waitForGridReady().catch(() => { /* seguimos igual */ });
 
-    // 1) Filtros requeridos por el grid: rango de Purchase Date (<= 1 mes) y
-    //    Purchase Point. Sin ellos, buscar una orden puntual da error.
+    // 1) Dejar SÓLO los dos filtros requeridos por el grid: rango de Purchase
+    //    Date (<= 1 mes) y Purchase Point. Cualquier otro filtro previo (otra
+    //    orden, otra columna, etc.) hace fallar la búsqueda puntual → primero
+    //    reseteamos todo y luego aplicamos sólo esos dos.
     search.status = SEARCH_STATUS.FILTERING;
     await setSearch(search);
+    await resetAllFilters();
     await applyRequiredFilters();
 
     // 2) Buscador fulltext con el número de orden (KO ya está estable).
@@ -107,14 +112,41 @@ async function onListing(search) {
 // filtros requeridos
 // -----------------------------------------------------------------------------
 
-async function applyRequiredFilters() {
-  // Abrir el panel de filtros si está colapsado (los inputs existen igual,
-  // pero abrirlo da feedback visual al usuario y evita rarezas de KO).
+/** Abre el panel de filtros si está colapsado. */
+async function openFiltersPanel() {
+  if (document.querySelector(SELECTORS.filtersWrapActive)) return;
   const expand = document.querySelector(SELECTORS.filtersToggle);
-  if (expand && !expand.classList.contains('_active')) {
+  if (expand) {
     expand.click();
-    await sleep(150);
+    await sleep(200);
   }
+}
+
+/**
+ * Limpia TODOS los filtros activos del grid (excepto el buscador fulltext).
+ * Garantiza que arrancamos desde cero: cualquier filtro de otra orden u otra
+ * columna que haya quedado se elimina. Sólo tiene efecto si hay filtros activos.
+ */
+async function resetAllFilters() {
+  await openFiltersPanel();
+
+  // Si no hay chips de filtros activos, no hay nada que limpiar.
+  const hasActiveFilters = !!document.querySelector(SELECTORS.filtersCurrent);
+  const reset = document.querySelector(SELECTORS.filterReset);
+  if (!hasActiveFilters || !reset) {
+    log.debug('sin filtros activos que resetear');
+    return;
+  }
+
+  reset.click();
+  await sleep(300);              // dar tiempo a que aparezca el mask de carga
+  await waitForGridReady().catch(() => { /* seguimos igual */ });
+  await sleep(250);
+}
+
+async function applyRequiredFilters() {
+  // El reset puede haber recargado el grid y colapsado el panel: reabrir.
+  await openFiltersPanel();
 
   const { from, to } = dateWindow(DATE_WINDOW_DAYS);
   const fromEl = document.querySelector(SELECTORS.dateFrom);
@@ -122,7 +154,7 @@ async function applyRequiredFilters() {
   if (fromEl) setInputValue(fromEl, from);
   if (toEl)   setInputValue(toEl, to);
 
-  ensureStoreView();
+  await ensureStoreView();
 
   const apply = document.querySelector(SELECTORS.filterApply);
   if (apply) {
@@ -135,14 +167,68 @@ async function applyRequiredFilters() {
   }
 }
 
-/** Verifica que el Purchase Point esté en "Chile Default Store View". */
-function ensureStoreView() {
-  const crumbs = Array.from(document.querySelectorAll(SELECTORS.storeCrumb));
-  const selected = crumbs.some((c) => c.textContent.includes(STORE_VIEW_LABEL));
-  if (!selected) {
-    log.warn(`Purchase Point no parece estar en "${STORE_VIEW_LABEL}". ` +
-      'Si la búsqueda no encuentra la orden, seleccionalo manualmente.');
+/**
+ * Asegura que el Purchase Point quede en "Chile Default Store View". Si ya está
+ * seleccionado (hay un crumb), no hace nada. Si no, abre el multiselect y marca
+ * la opción correspondiente (el reset de filtros pudo haberlo deseleccionado).
+ */
+async function ensureStoreView() {
+  if (storeViewSelected()) return;
+
+  const wrap = findPurchasePointMultiselect();
+  if (!wrap) {
+    log.warn(`No se encontró el multiselect "${PURCHASE_POINT_LABEL}". ` +
+      'Si la búsqueda falla, seleccioná el Purchase Point manualmente.');
+    return;
   }
+
+  // Abrir el dropdown del multiselect.
+  if (!wrap.querySelector(`${SELECTORS.multiselectMenu}._active`)) {
+    const toggle = wrap.querySelector(SELECTORS.multiselectToggle);
+    if (toggle) {
+      toggle.click();
+      await sleep(200);
+    }
+  }
+
+  // Marcar la opción "Chile Default Store View" si no está tildada.
+  const items = Array.from(wrap.querySelectorAll(SELECTORS.multiselectItem));
+  const target = items.find((it) => {
+    const span = it.querySelector(SELECTORS.multiselectLabel);
+    return span && span.textContent.trim() === STORE_VIEW_LABEL;
+  });
+  if (target) {
+    const cb = target.querySelector('input[type="checkbox"]');
+    if (!cb || !cb.checked) {
+      target.click();
+      await sleep(150);
+    }
+  } else {
+    log.warn(`No se encontró la opción "${STORE_VIEW_LABEL}" en el Purchase Point.`);
+  }
+
+  // Cerrar el dropdown ("Done").
+  const done = wrap.querySelector(SELECTORS.multiselectDone);
+  if (done) {
+    done.click();
+    await sleep(150);
+  }
+}
+
+/** ¿Hay un crumb del Purchase Point con el store view esperado? */
+function storeViewSelected() {
+  return Array.from(document.querySelectorAll(SELECTORS.storeCrumb))
+    .some((c) => c.textContent.includes(STORE_VIEW_LABEL));
+}
+
+/** Ubica el wrap del multiselect cuya etiqueta es "Purchase Point". */
+function findPurchasePointMultiselect() {
+  const label = Array.from(document.querySelectorAll(SELECTORS.formFieldLabel))
+    .find((s) => s.textContent.trim() === PURCHASE_POINT_LABEL);
+  if (!label) return null;
+  // La etiqueta y el multiselect cuelgan del mismo contenedor de filtro.
+  const field = label.closest('.admin__form-field') || label.parentElement;
+  return field ? field.querySelector(SELECTORS.multiselectWrap) : null;
 }
 
 /** Rango [hoy - days, hoy] en formato jQuery UI "m/dd/yy" (mes sin pad, día pad). */

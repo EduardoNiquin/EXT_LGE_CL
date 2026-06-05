@@ -24,6 +24,9 @@ export const DATE_WINDOW_DAYS = 29;
 // Purchase Point que debe quedar seleccionado para que la búsqueda funcione.
 export const STORE_VIEW_LABEL = 'Chile Default Store View';
 
+// Etiqueta del filtro multiselect de Purchase Point (para ubicar su control).
+export const PURCHASE_POINT_LABEL = 'Purchase Point';
+
 export const PAGE_TYPE = {
   ORDER_VIEW: 'order-view',
   LISTING:    'listing',
@@ -71,11 +74,23 @@ export const SELECTORS = {
   searchInput:       '#fulltext',
   searchSubmit:      '.data-grid-search-control button[aria-label="Search"], .data-grid-search-control-wrap button[aria-label="Search"], .data-grid-search-control-wrap button.action-submit',
   filtersToggle:     'button[data-action="grid-filter-expand"]',
+  filtersWrap:       '.admin__data-grid-filters-wrap',
+  filtersWrapActive: '.admin__data-grid-filters-wrap._show',
   filterApply:       'button[data-action="grid-filter-apply"]',
   filterReset:       'button[data-action="grid-filter-reset"]',
+  filtersCurrent:    '.admin__data-grid-filters-current._show',
   dateFrom:          'input[name="created_at[from]"]',
   dateTo:            'input[name="created_at[to]"]',
   storeCrumb:        '.admin__action-multiselect-crumb',
+
+  // --- Multiselect "Purchase Point" (selección activa del store view) ---
+  formFieldLabel:    '.admin__form-field-label span, .admin__form-field-legend span',
+  multiselectWrap:   '.admin__action-multiselect-wrap',
+  multiselectToggle: '.admin__action-multiselect',
+  multiselectMenu:   '.action-menu',
+  multiselectItem:   '.action-menu-item',
+  multiselectLabel:  '.admin__action-multiselect-label span',
+  multiselectDone:   'button[data-action="close-advanced-select"]',
   gridRow:           'tr.data-row, tr[data-role="row"]',
   rowCell:           'td.data-grid-cell',
   multicheckCell:    '.data-grid-multicheck-cell',
