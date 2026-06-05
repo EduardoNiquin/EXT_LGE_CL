@@ -1,6 +1,7 @@
 import { render as renderColocarTags } from '../features/colocar-tags/popup/view.js';
 import { render as renderLeadTimes }   from '../features/lead-times/popup/view.js';
 import { render as renderCupones }     from '../features/cupones/popup/view.js';
+import { render as renderOrdenInfo }   from '../features/orden-info/popup/view.js';
 import { render as renderStarkoms }    from '../features/starkoms/popup/view.js';
 import { render as renderLgcom }       from '../features/lgcom/popup/view.js';
 import { render as renderAjustes }     from '../features/ajustes/popup/view.js';
@@ -29,6 +30,14 @@ export const features = [
     abbr: 'CUP',
     keywords: ['cupon', 'cupón', 'coupon', 'cart', 'price', 'rule', 'regla', 'magento', 'promo'],
     render: renderCupones,
+  },
+  {
+    id: 'orden-info',
+    name: 'Información de Orden',
+    description: 'Detalle de una orden de Magento con el motivo de pagos rechazados',
+    abbr: 'ORD',
+    keywords: ['orden', 'order', 'magento', 'pago', 'pedido', 'transbank', 'webpay', 'mercadopago', 'rechazo', 'transaccion', 'transacción'],
+    render: renderOrdenInfo,
   },
   {
     id: 'starkoms',

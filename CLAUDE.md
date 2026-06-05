@@ -82,7 +82,7 @@ popup/         view.js (sub-router) · utils.js · sections/ (una sub-vista por 
 
 ## Logs por scope (`Ajustes`)
 `logger('foo')` registra el scope `foo`, que aparece en la UI de Ajustes (`features/ajustes`) con toggle individual + "Habilitar/Deshabilitar todos". `log-config/index.js` cachea en memoria y persiste en `chrome.storage.local` (`log-config:scopes`, cross-context vía `storage.onChanged`). `logger.js` chequea `isScopeEnabled(scope)` antes de emitir. Default: todos habilitados.
-Scopes: `colocar-tags`, `colocar-tags:product`, `colocar-tags:offer`, `colocar-tags:delivery-remove`, `colocar-tags:combobox`, `lead-times`, `cupones`, `starkoms`, `lgcom`, `lgcom/popup`, `content`, `debug`, `popup`.
+Scopes: `colocar-tags`, `colocar-tags:product`, `colocar-tags:offer`, `colocar-tags:delivery-remove`, `colocar-tags:combobox`, `lead-times`, `cupones`, `orden-info`, `starkoms`, `lgcom`, `lgcom/popup`, `content`, `debug`, `popup`.
 
 ## Debug API (`window.__extLgeCl`)
 Existe en content y popup. En DevTools cambiar "JavaScript context" al de la extensión (content scripts viven en isolated world).
@@ -94,7 +94,7 @@ Sumar a una feature: crear `features/<feature>/debug.js` → `register('<feature
 
 ## Estado del proyecto
 Scaffolding + CI completos. Pipeline release corporativo (.crx firmado + política + ZIP). Debug API modular + logger persistente. Content multi-frame con resolución de carrera. Capa `shared/dom`. Driver GP1 L-* (modal/messagebox/combobox).
-Features: **Colocar TAGs** (Lectura | Tag Delivery | Quitar Delivery | Tag Producto | Tag Oferta), **Lead Times** (Magento), **Cupones** (Quitar Regla de Cupón), **Starkoms** (Verificar órdenes y stock), **LG.com** (Info de Producto).
+Features: **Colocar TAGs** (Lectura | Tag Delivery | Quitar Delivery | Tag Producto | Tag Oferta), **Lead Times** (Magento), **Cupones** (Quitar Regla de Cupón), **Información de Orden** (Magento), **Starkoms** (Verificar órdenes y stock), **LG.com** (Info de Producto).
 ⏳ Pendiente: tests en `tests/unit/*.test.js`.
 
 ---
@@ -223,6 +223,31 @@ src/features/cupones/
 **Debug `__extLgeCl.cupones.`:** `diagnose()`, `page()`, `selectors()`, `check()`, `parseRows()`, `filters()`, `rows()`, `state()`, `stop()`, `reset()`, `tick()`.
 **UI popup:** radio `ID | Rule` + textarea cupones (línea/coma/;), Iniciar/Detener/Limpiar, progreso, lista de items + nombre real, `<details>` 50 logs. Live vía `storage.onChanged`. Persiste `{searchBy, rawQueries}`.
 **Pendientes:** no distingue múltiples tabs; sin reintento; sin historial; timeout si grid tarda >15s.
+
+---
+
+## Feature: Información de Orden (Magento)
+Pantalla: detalle de una orden en el admin de Magento (`/sales/order/view/order_id/<N>`). **Read-only**: lee el DOM y lo muestra ordenado en el popup; decodifica el motivo de pagos aprobados/rechazados (Transbank/Webpay y MercadoPago).
+```
+src/features/orden-info/
+├── constants.js   STORAGE_KEYS, SEARCH_STATUS, PAGE_TYPE, MESSAGES, SELECTORS, URLs/REs, diccionarios de errores (TRANSBANK_RESPONSE_CODES/_VCI/_PAYMENT_TYPE/_STATUS, MERCADOPAGO_STATUS/_STATUS_DETAIL)
+├── state.js       get/set/clear/updateSearch + get/setLastQuery (chrome.storage.local)
+├── debug.js
+├── content/ detector.js · parser.js · index.js (handler GET_ORDER_DATA + tick) · flows/search.js
+└── popup/   view.js (sección única) · utils.js · sections/order-info.js
+```
+**Detección (`detector.js`):** `order-view` (URL `/sales/order/view/order_id/N` o presencia de `.order-information-table`), `listing` (título `Orders` o URL `/sales/order/(index|grid)` + `#fulltext`), `other`.
+
+**Display (mensaje one-shot `orden-info:get-order-data`):** el popup hace polling de la pestaña activa **+ botón Actualizar** (`#oi-refresh`, re-lee al instante si el usuario ya tiene la orden abierta); el content devuelve `{ ok, data:{ orderNumber, status, alerts[], groups[] } }`. `parser.js` arma grupos: Resumen (order-information-table + título), Cliente (order-account-information-table), Full In House (`.custom-section` `<p>`), Totales (`.order-subtotal-table`), **Información de pago** (`.order-payment-method` → `.order-payment-method-title` + `.data-table`, fuente fiable de MercadoPago), un grupo **Pago N** por nota de transacción decodificada, e Historial de notas. La UI reusa el render de grupos de LG.com (`.lg-group/.lg-field`, buscador, copiar campo/grupo/todo) + **alertas** (`.oi-alert--error/success/warning`) con el motivo del pago.
+
+**Decodificación de transacciones (`parser.js`):** parsea cada `.note-list-comment` (pares `<strong>Label</strong>: valor<br>` o JSON), detecta la pasarela y traduce con los diccionarios de `constants.js`:
+- **Transbank/Webpay:** `Código de respuesta` (0=aprobado, negativos=rechazos), `VCI` (autenticación 3DS), `Estado` (AUTHORIZED/FAILED/…), `Tipo de pago` (VD/VN/VC/SI/S2/NC/VP), `Código de autorización`. Aprobado si rc==0 / estado AUTHORIZED|CAPTURED; rechazado si rc!=0 / FAILED|NULLIFIED.
+- **MercadoPago:** `status` + `status_detail` (`cc_rejected_*`, `pending_*`, `accredited`). Aprobado/rechazado/pendiente según ambos.
+Notas sin pasarela (JSON de estado, "esperando pago") van al grupo Historial.
+
+**Búsqueda (`flows/search.js`, storage-driven):** el popup escribe `STORAGE_KEYS.SEARCH={active,orderNumber,status}` y navega la pestaña al listado (`chrome.tabs.update`, base `/obsadm` derivada del tab o `DEFAULT_ADMIN_BASE`). En el listing el content: (1) **aplica filtros requeridos** — Purchase Date `created_at[from]/[to]` con ventana de `DATE_WINDOW_DAYS` (29) días en formato jQuery UI `m/dd/yy`, verifica el Purchase Point `Chile Default Store View` (multiselect `.admin__action-multiselect-crumb`, normalmente ya seleccionado; sólo warn si falta), click `button[data-action="grid-filter-apply"]`; (2) setea `#fulltext` con el número y click `button[aria-label="Search"]`; (3) espera el grid, ubica la fila (celda con texto == número; fallback: fila que lo contenga) y abre la orden (anchor `a[href*="/sales/order/view/"]` o `clickEl` en la celda). En `order-view` marca la búsqueda `done`. **Importante:** la búsqueda puntual REQUIERE el rango de fecha (<= 1 mes) y el Purchase Point — sin ellos el grid da error. El grid es UI-component Knockout (sin `<a href>` garantizado por fila ni `<select>` para el store) → date inputs vía `change` (KO datepicker), store sólo verificado, fila vía click sintético.
+**Debug `__extLgeCl.ordenInfo.`:** `diagnose()`, `page()`, `selectors()`, `check()`, `parse()`, `search()`, `reset()`, `tick()`.
+**Pendientes:** click de fila del grid KO sin verificar en vivo (fallback razonable); no distingue múltiples tabs; diccionarios de errores ampliables.
 
 ---
 
