@@ -77,15 +77,17 @@ async function onListing(search) {
     search.status = SEARCH_STATUS.SEARCHING;
     await setSearch(search);
     clickSearch();
-    await sleep(300);            // dar tiempo a que aparezca el mask de carga
-    await waitForGridReady();
-    await sleep(400);
+    await sleep(500);            // dar tiempo a que arranque el mask de carga
   } catch (err) {
     await fail(search, `No se pudo aplicar la búsqueda: ${err?.message || String(err)}`);
     return;
   }
 
-  const row = findRow(orderNumber);
+  // El grid es Knockout y carga lento: a veces devuelve un 400 transitorio y
+  // recién después re-renderiza con el resultado. En vez de mirar una sola vez,
+  // reintentamos localizar la fila varias veces hasta que aparezca (o se agote
+  // el tiempo), respetando el mask de carga entre intentos.
+  const row = await waitForRow(orderNumber).catch(() => null);
   if (!row) {
     await finalize(search, SEARCH_STATUS.NOT_FOUND, `No se encontró la orden ${orderNumber} en el grid.`);
     return;
@@ -288,6 +290,19 @@ async function waitForGridReady({ timeout = 15000 } = {}) {
     if (document.querySelector(SELECTORS.gridWrap)) return 'empty';
     return null;
   }, { timeout, interval: 150, description: 'grid de órdenes listo' });
+}
+
+/**
+ * Reintenta localizar la fila de la orden hasta que aparezca. El grid Knockout
+ * recarga de forma asíncrona (y a veces tras un 400 transitorio), así que
+ * mientras el mask de carga esté visible seguimos esperando; cuando no lo está,
+ * buscamos la fila. Si nunca aparece dentro del timeout, lanza WaitTimeoutError.
+ */
+async function waitForRow(orderNumber, { timeout = 18000 } = {}) {
+  return waitFor(() => {
+    if (loadingMaskVisible()) return null;   // sigue cargando → reintentar
+    return findRow(orderNumber);             // null hasta que la fila exista
+  }, { timeout, interval: 400, description: `fila de la orden ${orderNumber}` });
 }
 
 async function finalize(search, status, error) {
