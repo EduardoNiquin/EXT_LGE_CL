@@ -73,11 +73,17 @@ export async function render(container) {
   renderQueueRows(queueList, queue);
 
   container.querySelector('#lt-add-region').addEventListener('click', () => {
-    queue.push(blankRow());
-    renderQueueRows(queueList, queue);
+    const queueList = container.querySelector('#lt-queue-list');
+    const domRows = Array.from(queueList.querySelectorAll('.lt-queue-row')).map((r) => ({
+      regionName: r.querySelector('[data-field="regionName"]')?.value || '',
+      minDays:    r.querySelector('[data-field="minDays"]')?.value ?? '',
+      maxDays:    r.querySelector('[data-field="maxDays"]')?.value ?? '',
+    }));
+    domRows.push(blankRow());
+    renderQueueRows(queueList, domRows);
   });
 
-  container.querySelector('#lt-start').addEventListener('click', () => onStart(container, queue));
+  container.querySelector('#lt-start').addEventListener('click', () => onStart(container));
   container.querySelector('#lt-stop').addEventListener('click', onStop);
   container.querySelector('#lt-clear').addEventListener('click', () => onClear(container));
 
@@ -151,16 +157,15 @@ function renderQueueRows(container, queue) {
              value="${escapeHtml(row.maxDays)}" data-field="maxDays" ${row.readonly ? 'disabled' : ''} />
       <button type="button" class="lt-row-del" title="Quitar" ${row.readonly ? 'disabled' : ''} aria-label="Quitar">×</button>
     `;
-    wrap.querySelectorAll('input').forEach((inp) => {
-      inp.addEventListener('input', () => {
-        const field = inp.dataset.field;
-        row[field] = field === 'regionName' ? inp.value : inp.value;
-      });
-    });
     wrap.querySelector('.lt-row-del').addEventListener('click', () => {
-      queue.splice(idx, 1);
-      if (queue.length === 0) queue.push(blankRow());
-      renderQueueRows(container, queue);
+      const domRows = Array.from(container.querySelectorAll('.lt-queue-row')).map((r) => ({
+        regionName: r.querySelector('[data-field="regionName"]')?.value || '',
+        minDays:    r.querySelector('[data-field="minDays"]')?.value ?? '',
+        maxDays:    r.querySelector('[data-field="maxDays"]')?.value ?? '',
+      }));
+      domRows.splice(idx, 1);
+      if (domRows.length === 0) domRows.push(blankRow());
+      renderQueueRows(container, domRows);
     });
     container.appendChild(wrap);
   });
@@ -170,8 +175,14 @@ function renderQueueRows(container, queue) {
 // start / stop
 // -----------------------------------------------------------------------------
 
-async function onStart(container, queue) {
-  const cleaned = queue
+async function onStart(container) {
+  const domRows = Array.from(container.querySelectorAll('.lt-queue-row')).map((r) => ({
+    regionName: r.querySelector('[data-field="regionName"]')?.value || '',
+    minDays:    r.querySelector('[data-field="minDays"]')?.value ?? '',
+    maxDays:    r.querySelector('[data-field="maxDays"]')?.value ?? '',
+  }));
+
+  const cleaned = domRows
     .map((r) => ({
       regionName: String(r.regionName ?? '').trim(),
       minDays:    parseInt(r.minDays, 10),

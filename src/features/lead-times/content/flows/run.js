@@ -31,6 +31,7 @@ import {
   setRegionFilter,
   applyFilters,
   getRegionFilterValue,
+  clearAllFilters,
 } from '../magento/filters.js';
 import {
   waitForGridReady,
@@ -114,9 +115,12 @@ async function onListing(run) {
     await appendLog({ level: 'info', message: `Filtrando región: ${region.regionName}` });
 
     try {
+      await waitForGridReady();
       const currentFilter = (getRegionFilterValue() || '').trim().toLowerCase();
       const wantedFilter  = region.regionName.trim().toLowerCase();
       if (currentFilter !== wantedFilter) {
+        await clearAllFilters();
+        await waitForGridReady();
         await openFilters();
         await setRegionFilter(region.regionName);
         await applyFilters();
