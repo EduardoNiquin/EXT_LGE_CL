@@ -4,6 +4,7 @@ import { render as renderCupones }     from '../features/cupones/popup/view.js';
 import { render as renderOrdenInfo }   from '../features/orden-info/popup/view.js';
 import { render as renderStarkoms }    from '../features/starkoms/popup/view.js';
 import { render as renderLgcom }       from '../features/lgcom/popup/view.js';
+import { render as renderSellerCenterFalabella } from '../features/seller-center-falabella/popup/view.js';
 import { render as renderAjustes }     from '../features/ajustes/popup/view.js';
 
 export const features = [
@@ -54,6 +55,14 @@ export const features = [
     abbr: 'LG',
     keywords: ['lg', 'lg.com', 'producto', 'pdp', 'graphql', 'precio', 'info', 'web'],
     render: renderLgcom,
+  },
+  {
+    id: 'seller-center-falabella',
+    name: 'SellerCenter Falabella',
+    description: 'SoporteSeller: cargar "Detalle Orden" desde un CSV',
+    abbr: 'SCF',
+    keywords: ['seller', 'sellercenter', 'falabella', 'fallabella', 'soporte', 'soporteseller', 'detalle', 'orden', 'guia', 'guía', 'paquetes', 'csv'],
+    render: renderSellerCenterFalabella,
   },
   {
     id: 'ajustes',

@@ -82,7 +82,7 @@ popup/         view.js (sub-router) · utils.js · sections/ (una sub-vista por 
 
 ## Logs por scope (`Ajustes`)
 `logger('foo')` registra el scope `foo`, que aparece en la UI de Ajustes (`features/ajustes`) con toggle individual + "Habilitar/Deshabilitar todos". `log-config/index.js` cachea en memoria y persiste en `chrome.storage.local` (`log-config:scopes`, cross-context vía `storage.onChanged`). `logger.js` chequea `isScopeEnabled(scope)` antes de emitir. Default: todos habilitados.
-Scopes: `colocar-tags`, `colocar-tags:product`, `colocar-tags:offer`, `colocar-tags:delivery-remove`, `colocar-tags:combobox`, `lead-times`, `cupones`, `orden-info`, `starkoms`, `lgcom`, `lgcom/popup`, `content`, `debug`, `popup`.
+Scopes: `colocar-tags`, `colocar-tags:product`, `colocar-tags:offer`, `colocar-tags:delivery-remove`, `colocar-tags:combobox`, `lead-times`, `cupones`, `orden-info`, `starkoms`, `lgcom`, `lgcom/popup`, `seller-center-falabella`, `content`, `debug`, `popup`.
 
 ## Debug API (`window.__extLgeCl`)
 Existe en content y popup. En DevTools cambiar "JavaScript context" al de la extensión (content scripts viven en isolated world).
@@ -94,7 +94,7 @@ Sumar a una feature: crear `features/<feature>/debug.js` → `register('<feature
 
 ## Estado del proyecto
 Scaffolding + CI completos. Pipeline release corporativo (.crx firmado + política + ZIP). Debug API modular + logger persistente. Content multi-frame con resolución de carrera. Capa `shared/dom`. Driver GP1 L-* (modal/messagebox/combobox).
-Features: **Colocar TAGs** (Lectura | Tag Delivery | Quitar Delivery | Tag Producto | Tag Oferta), **Lead Times** (Magento), **Cupones** (Quitar Regla de Cupón), **Información de Orden** (Magento), **Starkoms** (Verificar órdenes y stock), **LG.com** (Info de Producto).
+Features: **Colocar TAGs** (Lectura | Tag Delivery | Quitar Delivery | Tag Producto | Tag Oferta), **Lead Times** (Magento), **Cupones** (Quitar Regla de Cupón), **Información de Orden** (Magento), **Starkoms** (Verificar órdenes y stock), **LG.com** (Info de Producto), **SellerCenter Falabella** (SoporteSeller — Detalle Orden).
 ⏳ Pendiente: tests en `tests/unit/*.test.js`.
 
 ---
@@ -321,6 +321,36 @@ Todos formatean CLP/%/sí-no, omiten campos/grupos vacíos, defensivos ante null
 **Debug `__extLgeCl.lgcom.`:** `diagnose()` (host/bridge/operaciones), `captures()`, `operation(name)`, `raw(name)`, `pbp()` (grupos de la última PDP), `extract(name)` (grupos de cualquier operación con extractor), `clear()`.
 **Sumar una operación:** crear `content/extractors/<op>.js` (función pura → grupos), registrarla en `extractors/index.js` y agregar metadata en `OPERATIONS` (constants). El popup la muestra sola.
 **Pendientes:** sin persistencia entre reloads; no distingue múltiples tabs lg.com.
+
+---
+
+## Feature: SellerCenter Falabella
+Sitio **Salesforce (LWC)** — página de Soporte del Seller Center. Sub-sección: **SoporteSeller — Detalle Orden** (estructura tabbed lista para más). Completa automáticamente el acordeón "Detalle Orden" desde un CSV.
+
+**A diferencia de Magento (tick-por-reload):** el acordeón se llena sin recargas → usa el **patrón storage-driven + flujo async continuo** de starkoms (`run` en storage, el frame que detecta el form lo reclama y ejecuta con `AbortController`). LWC usa **synthetic shadow DOM** (nodos en el light DOM), así que `querySelector` global funciona. Content matchea `<all_urls>`; la detección es por DOM (no por host, que puede variar entre orgs).
+
+```
+src/features/seller-center-falabella/
+├── constants.js   STORAGE_KEYS, MESSAGES, STATUS, STEPS, TEXTS, SELECTORS, COLUMNS, LOG_CAP
+├── state.js       getRun/setRun/clearRun/updateRun(writeChain)/appendLog/makeRun/subscribeToRun + get/setDraft
+├── debug.js
+├── content/ detector.js · parser.js · index.js · flows/{accordion,run}.js
+└── popup/   view.js (sub-router) · utils.js (parseCsv/buildDetalles/splitGuias) · run-ui.js · sections/soporte-seller.js
+```
+
+**Estado (`chrome.storage.local["seller-center-falabella:run"]`):** `{ active, claimed, startedAt, finishedAt, finishReason?, errorReason?, total, currentIndex, items:[{ ordernumber, guia, cantP, status, step?, reason? }], log:[...] (cap 400) }`. El popup arma `items` (un item por guía) y los escribe ya en el run (a diferencia de starkoms que los descubre).
+
+**Detección (`detector.js`):** `isSupportSellerPage()` = componente `c-fc_lwc097_-support-center_-order-information` presente, o los 3 inputs por `name` (`ordernumber`/`nGuia`/`cantP`) + ≥1 sección. `getDetalleSections()` = `<lightning-accordion-section>` cuyo summary dice "Detalle Orden" y tiene input de orden, en orden de DOM (== índice).
+
+**CSV (`popup/utils.js`):** `parseCsv` (comillas con escape `""`, saltos de línea citados, BOM, delimitador autodetectado `,`/`;`/tab). 3 columnas EN ORDEN: Número de orden, Nro Guia, Cantidad de Paquetes (1ª fila = encabezados). `buildDetalles` descarta encabezado, valida por fila (colecciona warnings, omite filas inválidas) y aplica la **regla de múltiples guías**: `splitGuias` separa el cell de Nro Guia por espacio/`\n`/`/`/`|` (NO `,`/`;` para no chocar con el delimitador) → un "Detalle Orden" por guía, manteniendo orden y cantP.
+
+**Flujo del batch (`flows/run.js` + `flows/accordion.js`):** por cada item: `ensureSection(i)` (si falta, click "+" de la última sección y espera que aparezca) → `expandSection` (click al summary si `aria-expanded=false`) → `fillSection` (`setInputValue` en los 3 inputs + verify/retry). Si falla crear/expandir una sección, **corta** el loop (las siguientes fallarían igual) para que el usuario revise. **NUNCA toca el botón "-" (eliminar)**; sólo "+". **No guarda/envía nada**: sólo completa los campos; el usuario revisa y guarda manual. `reconcileOnInit` marca interrumpido si un reload mató un run reclamado; `claimWatchdog` (3.5s) → `not-detected` si ningún frame tiene el form.
+
+**Selectores (`SELECTORS`):** `c-fc_lwc097_-support-center_-order-information` · `.seller-accordion` · `lightning-accordion-section` · `.slds-accordion__summary-content` (título) · `button.slds-accordion__summary-action` (expandir, `aria-expanded`) · `input[name="ordernumber"|"nGuia"|"cantP"]` · `button.slds-button_neutral` (los "+"/"-" se distinguen por su texto).
+
+**UI popup (`sections/soporte-seller.js`):** toggle **Subir archivo CSV** / **Pegar texto** (con los nombres de columna explícitos), previsualización (primeras 4 filas + total de "Detalle Orden" a crear + warnings en `<details>`), Iniciar (muestra el conteo)/Detener/Limpiar, progreso en vivo + `<details>` 50 logs. Persiste borrador `{mode,text,fileName}` en `seller-center-falabella:draft`. Live vía `storage.onChanged`.
+**Debug `__extLgeCl.sellerCenterFalabella.`:** `diagnose()`, `detected()`, `selectors()`, `sections()`, `count()`, `state()`, `draft()`, `fillOne({index?,ordernumber,guia,cantP})`, `stop()`, `reset()`, `tick()`.
+**Pendientes:** no distingue múltiples tabs; sin reintento por item (corta al primer error de estructura); asume que el form arranca con 1 sección vacía.
 
 ---
 

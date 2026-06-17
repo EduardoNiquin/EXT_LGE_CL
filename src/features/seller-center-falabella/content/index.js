@@ -1,0 +1,43 @@
+import { logger } from '../../../shared/utils/logger.js';
+import { MESSAGES } from '../constants.js';
+import { diagnose, isSupportSellerPage } from './detector.js';
+import { parseSections } from './parser.js';
+import { abortActiveRun, reconcileOnInit, tickIfActive } from './flows/run.js';
+import { subscribeToRun } from '../state.js';
+
+const log = logger('seller-center-falabella');
+
+// Lectura de pantalla one-shot (para el popup / debug). Responde el frame que
+// tiene el formulario; si ninguno lo tiene, sólo responde el top.
+function handleMessage(message, _sender, sendResponse) {
+  if (message?.type !== MESSAGES.GET_PAGE_DATA) return false;
+
+  const detected = isSupportSellerPage();
+  if (!detected && window !== window.top) return false; // dejá responder a otro frame
+
+  try {
+    sendResponse({ ok: true, detected, sections: parseSections(), diag: diagnose() });
+  } catch (err) {
+    sendResponse({ ok: false, reason: err?.message || String(err), diag: diagnose() });
+  }
+  return true;
+}
+
+export function init() {
+  log.info('content script inicializado', { url: location.href, isTopFrame: window === window.top });
+
+  chrome.runtime.onMessage.addListener(handleMessage);
+
+  reconcileOnInit().catch((err) => log.warn('reconcileOnInit falló', err));
+
+  subscribeToRun((run) => {
+    if (run && run.active) {
+      tickIfActive().catch((err) => log.error('tickIfActive falló', err));
+    } else {
+      abortActiveRun();
+    }
+  });
+
+  // Por si ya había un run activo al cargar el frame.
+  tickIfActive().catch((err) => log.error('tickIfActive inicial falló', err));
+}
