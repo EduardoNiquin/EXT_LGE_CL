@@ -76,15 +76,21 @@ export function parseCsv(input) {
   return { rows: cleaned, delimiter };
 }
 
+/** Deja sólo dígitos (quita puntos de miles, espacios, guiones, etc.). */
+export function onlyDigits(value) {
+  return String(value ?? '').replace(/\D/g, '');
+}
+
 /**
  * Separa una celda "Nro Guia" en uno o más números. Se separan por espacios,
  * saltos de línea, `/` o `|`. NO se usan `,` ni `;` para no chocar con el
- * delimitador del CSV.
+ * delimitador del CSV. Cada guía se normaliza a sólo dígitos (los identificadores
+ * a veces vienen con puntos de miles: "140.111.000" → "140111000").
  */
 export function splitGuias(cell) {
   return String(cell ?? '')
     .split(/[\s/|]+/)
-    .map((g) => g.trim())
+    .map((g) => onlyDigits(g))
     .filter(Boolean);
 }
 
@@ -109,9 +115,9 @@ export function buildDetalles(rows) {
   const dataRows = rows.slice(1); // descartar encabezados
   dataRows.forEach((r, idx) => {
     const lineNo = idx + 2; // +1 por encabezado, +1 porque las líneas son 1-based
-    const ordernumber = String(r[0] ?? '').trim();
+    const ordernumber = onlyDigits(r[0]);
     const guiaCell = r[1] ?? '';
-    const cantP = String(r[2] ?? '').trim();
+    const cantP = onlyDigits(r[2]);
     const guias = splitGuias(guiaCell);
 
     const rowErrors = [];

@@ -3,17 +3,38 @@
 //
 // Flujo manual que se replica:
 //   - El form arranca con UNA sección (índice 0), abierta y vacía.
-//   - El botón "+" agrega otra sección (aparece colapsada, al final).
+//   - El botón "+" agrega otra sección (aparece colapsada, al final). El nuevo
+//     elemento tiene a su vez su propio "+", y así sucesivamente.
 //   - Para escribir en una sección colapsada hay que expandirla (click al summary).
 //   - El botón "-" elimina una sección: NUNCA lo tocamos (solo "+").
+//
+// Quirks (importantes):
+//   - Botones LWC: se activan con `.click()` nativo. `dispatchEvent(MouseEvent)`
+//     falla en silencio (igual que los botones legacy de Magento), por eso el "+"
+//     no agregaba la sección.
+//   - Inputs numéricos (`lightning-input` tipo número, locale es-CL): al recibir
+//     `blur` formatean con puntos de miles ("140111..." → "140.111..."). Para
+//     que el valor quede SÓLO con dígitos, escribimos sin `focus`/`blur` (sólo
+//     `input`/`change`): así el formateador de miles nunca se dispara.
 
 import { SELECTORS, TEXTS } from '../../constants.js';
 import { getDetalleSections } from '../detector.js';
-import { setInputValue, clickEl } from '../../../../shared/dom/events.js';
-import { sleep, waitFor } from '../../../../shared/dom/wait.js';
+import { sleep, waitFor, WaitTimeoutError } from '../../../../shared/dom/wait.js';
 import { logger } from '../../../../shared/utils/logger.js';
 
 const log = logger('seller-center-falabella');
+
+const nativeValueSetter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set;
+
+/** Click nativo (la única forma confiable de activar el handler de un botón LWC). */
+function pressButton(btn) {
+  if (!btn) throw new Error('pressButton: botón nulo');
+  btn.click();
+}
+
+function onlyDigits(value) {
+  return String(value ?? '').replace(/\D/g, '');
+}
 
 /** Busca el botón "+" (agregar) dentro de una sección por su texto. */
 function findAddButton(section) {
@@ -26,8 +47,8 @@ function findAddButton(section) {
 
 /**
  * Garantiza que exista la sección de índice `index`. Si faltan secciones, las
- * crea clickeando el "+" de la última y esperando a que aparezca cada una.
- * Devuelve el elemento <lightning-accordion-section>.
+ * crea clickeando el "+" de la última y esperando a que aparezca cada una
+ * (detecta el cambio en el DOM por polling). Devuelve el <lightning-accordion-section>.
  */
 export async function ensureSection(index, { signal } = {}) {
   let sections = getDetalleSections();
@@ -42,26 +63,44 @@ export async function ensureSection(index, { signal } = {}) {
     if (!addBtn) throw new Error('No se encontró el botón "+" para agregar otro "Detalle Orden".');
 
     const before = sections.length;
-    clickEl(addBtn);
-    await waitFor(() => getDetalleSections().length > before, {
-      timeout: 8000,
-      description: 'que aparezca el nuevo "Detalle Orden"',
-      signal,
-    });
-    await sleep(120, signal); // dejar que LWC termine de renderizar la sección
+    await clickAndWaitForNewSection(addBtn, before, { signal });
+    await sleep(150, signal); // dejar que LWC termine de renderizar la sección
     sections = getDetalleSections();
   }
 
   return sections[index];
 }
 
-/** Expande una sección si está colapsada (click al botón del summary). */
+/** Click al "+" con un reintento si la sección nueva no aparece a la primera. */
+async function clickAndWaitForNewSection(addBtn, before, { signal } = {}) {
+  const waitNew = () => waitFor(() => getDetalleSections().length > before, {
+    timeout: 6000,
+    description: 'que aparezca el nuevo "Detalle Orden"',
+    signal,
+  });
+
+  pressButton(addBtn);
+  try {
+    await waitNew();
+  } catch (err) {
+    if (!(err instanceof WaitTimeoutError) || signal?.aborted) throw err;
+    log.warn('El "+" no agregó la sección al primer intento; reintentando…');
+    pressButton(addBtn);
+    await waitFor(() => getDetalleSections().length > before, {
+      timeout: 8000,
+      description: 'que aparezca el nuevo "Detalle Orden" (reintento)',
+      signal,
+    });
+  }
+}
+
+/** Expande una sección si está colapsada (click nativo al botón del summary). */
 export async function expandSection(section, { signal } = {}) {
   const summary = section.querySelector(SELECTORS.summaryButton);
   if (!summary) throw new Error('No se encontró el control para expandir el "Detalle Orden".');
   if (summary.getAttribute('aria-expanded') === 'true') return;
 
-  clickEl(summary);
+  pressButton(summary);
   await waitFor(() => summary.getAttribute('aria-expanded') === 'true', {
     timeout: 5000,
     description: 'que el "Detalle Orden" se expanda',
@@ -71,10 +110,20 @@ export async function expandSection(section, { signal } = {}) {
 }
 
 /**
- * Escribe los 3 campos de una sección y verifica que el valor haya quedado
- * seteado (reintenta una vez si el framework lo pisó). `cantP` se escribe tal
- * cual del CSV.
+ * Escribe el valor (sólo dígitos) en un input SIN enfocarlo ni hacer blur, para
+ * no disparar el formateo de miles de lightning-input. Verifica comparando por
+ * dígitos y reintenta una vez.
  */
+function setDigitsField(input, value) {
+  const digits = onlyDigits(value);
+  if (nativeValueSetter) nativeValueSetter.call(input, digits);
+  else input.value = digits;
+  input.dispatchEvent(new Event('input',  { bubbles: true }));
+  input.dispatchEvent(new Event('change', { bubbles: true }));
+  return digits;
+}
+
+/** Escribe los 3 campos de una sección y verifica (por dígitos) cada uno. */
 export async function fillSection(section, { ordernumber, guia, cantP }, { signal } = {}) {
   const fields = [
     { sel: SELECTORS.inputOrderNumber, value: ordernumber, label: 'Número de orden' },
@@ -86,14 +135,13 @@ export async function fillSection(section, { ordernumber, guia, cantP }, { signa
     if (signal?.aborted) return;
     const input = section.querySelector(f.sel);
     if (!input) throw new Error(`No se encontró el campo "${f.label}".`);
-    setInputValue(input, f.value);
 
-    // LWC re-renderiza de forma async; verificamos y reintentamos una vez.
-    if (input.value !== String(f.value)) {
+    const digits = setDigitsField(input, f.value);
+    if (onlyDigits(input.value) !== digits) {
       await sleep(60, signal);
-      setInputValue(input, f.value);
-      if (input.value !== String(f.value)) {
-        log.warn(`El campo "${f.label}" no quedó con el valor esperado`, { esperado: f.value, actual: input.value });
+      setDigitsField(input, f.value);
+      if (onlyDigits(input.value) !== digits) {
+        log.warn(`El campo "${f.label}" no quedó con el valor esperado`, { esperado: digits, actual: input.value });
       }
     }
   }
