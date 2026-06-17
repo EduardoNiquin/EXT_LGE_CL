@@ -109,40 +109,72 @@ export async function expandSection(section, { signal } = {}) {
   await sleep(80, signal);
 }
 
-/**
- * Escribe el valor (sólo dígitos) en un input SIN enfocarlo ni hacer blur, para
- * no disparar el formateo de miles de lightning-input. Verifica comparando por
- * dígitos y reintenta una vez.
- */
-function setDigitsField(input, value) {
-  const digits = onlyDigits(value);
-  if (nativeValueSetter) nativeValueSetter.call(input, digits);
-  else input.value = digits;
-  input.dispatchEvent(new Event('input',  { bubbles: true }));
-  input.dispatchEvent(new Event('change', { bubbles: true }));
-  return digits;
+/** Setea el value vía el setter nativo (LWC trackea el cambio igual). */
+function setNativeValue(input, value) {
+  if (nativeValueSetter) nativeValueSetter.call(input, value);
+  else input.value = value;
 }
 
-/** Escribe los 3 campos de una sección y verifica (por dígitos) cada uno. */
+/**
+ * Pasada 1: replica la interacción real (focus → set → input → change → blur).
+ * Es lo que marca el campo como "interactuado/validado" en LWC y hace aparecer
+ * el botón de submit. OJO: el `blur` puede reformatear con puntos de miles; eso
+ * se corrige en la pasada 2.
+ */
+function commitField(input, digits) {
+  input.focus();
+  setNativeValue(input, digits);
+  // `change` no se dispara solo al llamar a blur() de forma programática (el
+  // navegador sólo lo hace cuando el value lo cambió el usuario), así que lo
+  // emitimos a mano para que LWC corra su handleChange / re-dispatch al padre.
+  input.dispatchEvent(new Event('input',  { bubbles: true }));
+  input.dispatchEvent(new Event('change', { bubbles: true }));
+  input.blur(); // dispara focusout/handleBlur → marca tocado + valida
+}
+
+/**
+ * Pasada 2: re-escribe sólo dígitos SIN blur, para sacar los puntos de miles que
+ * el formateador de lightning-input pudo agregar en la pasada 1. El campo ya
+ * quedó validado, así que el botón de submit permanece visible.
+ */
+function normalizeField(input, digits) {
+  setNativeValue(input, digits);
+  input.dispatchEvent(new Event('input', { bubbles: true }));
+}
+
+/**
+ * Escribe los 3 campos de una sección en dos pasadas (commit + normalización) y
+ * verifica (por dígitos) cada uno.
+ */
 export async function fillSection(section, { ordernumber, guia, cantP }, { signal } = {}) {
   const fields = [
-    { sel: SELECTORS.inputOrderNumber, value: ordernumber, label: 'Número de orden' },
-    { sel: SELECTORS.inputGuia,        value: guia,        label: 'Nro Guia' },
-    { sel: SELECTORS.inputCantidad,    value: cantP,       label: 'Cantidad de Paquetes' },
+    { sel: SELECTORS.inputOrderNumber, value: onlyDigits(ordernumber), label: 'Número de orden' },
+    { sel: SELECTORS.inputGuia,        value: onlyDigits(guia),        label: 'Nro Guia' },
+    { sel: SELECTORS.inputCantidad,    value: onlyDigits(cantP),       label: 'Cantidad de Paquetes' },
   ];
 
+  // Resolver inputs una sola vez.
+  for (const f of fields) {
+    f.input = section.querySelector(f.sel);
+    if (!f.input) throw new Error(`No se encontró el campo "${f.label}".`);
+  }
+
+  // Pasada 1: commit con interacción real (valida → aparece el submit).
   for (const f of fields) {
     if (signal?.aborted) return;
-    const input = section.querySelector(f.sel);
-    if (!input) throw new Error(`No se encontró el campo "${f.label}".`);
+    commitField(f.input, f.value);
+    await sleep(40, signal);
+  }
 
-    const digits = setDigitsField(input, f.value);
-    if (onlyDigits(input.value) !== digits) {
-      await sleep(60, signal);
-      setDigitsField(input, f.value);
-      if (onlyDigits(input.value) !== digits) {
-        log.warn(`El campo "${f.label}" no quedó con el valor esperado`, { esperado: digits, actual: input.value });
-      }
+  // Pasada 2: dejar sólo dígitos (sin disparar el formateo de miles).
+  for (const f of fields) {
+    if (signal?.aborted) return;
+    if (onlyDigits(f.input.value) !== f.value) {
+      normalizeField(f.input, f.value);
+      await sleep(20, signal);
+    }
+    if (onlyDigits(f.input.value) !== f.value) {
+      log.warn(`El campo "${f.label}" no quedó con el valor esperado`, { esperado: f.value, actual: f.input.value });
     }
   }
 }
