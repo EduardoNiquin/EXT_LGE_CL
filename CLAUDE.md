@@ -24,6 +24,10 @@ EXT_LGE_CL/
 │   └── shared/                         Reutilizable: api/ debug/ messaging/ storage/ utils/logger.js
 │       ├── dom/                        wait.js (waitFor/waitForElement/waitForGone/sleep + WaitTimeoutError/WaitAbortedError)
 │       │                               events.js (setInputValue/setSelectValue/setChecked/clickEl/findByText)
+│       ├── errors/index.js             ExtError + toMessage(err) + isAbortError(err,signal) + describeError()
+│       ├── dev-mode/index.js           Flag "modo dev" persistente (key `dev-mode:enabled`, cross-context)
+│       ├── diagnostics/index.js        Ring buffer de errores (key `diagnostics:errors`) + installGlobalErrorCapture()
+│       ├── run-store/index.js          createRunStore (run persistido + updateRun coalescido) + createPersistedValue + wireAsync/ReloadTickLifecycle
 │       └── log-config/index.js         Cache de scopes habilitados (key `log-config:scopes`)
 ├── tests/{unit,e2e}/   keys/ (.pem, gitignored)   build/ (gitignored)
 ├── eslint.config.js  vite.config.js (merge de manifests por --mode)  package.json
@@ -54,6 +58,7 @@ npm run install:ext / uninstall:ext   # importa/revierte .reg (con elevación)
 - **No llamar `chrome.*` directo desde features:** usar `shared/messaging`, `shared/storage`, `shared/utils/logger`. Si una feature necesita `chrome.*`, evaluar moverlo a `shared/`.
 - **Manifests:** cambios comunes en `manifest.base.json`; overrides solo para diferencias reales Chrome/Edge.
 - **Logger antes que `console.log`** (respeta nivel global + scope). **Debug API antes que helpers ad-hoc.**
+- **Errores:** usar `toMessage(err)` (no `err?.message || String(err)`) e `isAbortError(err, signal)` (no `err instanceof WaitAbortedError || signal.aborted`) desde `shared/errors`. Todo `logger().error()` se registra automáticamente en el ring buffer de `shared/diagnostics` (visible en Ajustes → "Errores recientes").
 - Assets se referencian desde el manifest como `assets/icons/iconN.png` (relativo a raíz, no a `src/`).
 - **Nunca commitear** `keys/`, `*.pem`, `*.crx`, `build/`.
 
@@ -61,13 +66,15 @@ npm run install:ext / uninstall:ext   # importa/revierte .reg (con elevación)
 Cada feature en `src/features/<feature-id>/`:
 ```
 constants.js   IDs de mensajes/puertos (prefijo `<feature-id>:`), selectores, enums
+state.js       run persistido vía createRunStore (shared/run-store) + makeRun propio + persisted values
 debug.js       comandos auto-registrados en window.__extLgeCl
-content/       detector.js (+diagnose) · parser.js · index.js (listener one-shot + onConnect) · drivers/ · flows/
+content/       detector.js (+diagnose) · parser.js · index.js (listener one-shot + wire*Lifecycle) · drivers/ · flows/
 popup/         view.js (sub-router) · utils.js · sections/ (una sub-vista por archivo)
 ```
 **Wiring:**
 - Registrar en `src/popup/features.js`: `{ id (kebab-case único), name, description, abbr (2-4 letras), keywords[], render }`.
 - `src/content/index.js` importa e inicializa `init()` y `debug.js` de cada feature.
+- **Estado de ejecución:** usar `createRunStore`/`createPersistedValue` (shared/run-store) en `state.js`; enganchar el ciclo de vida con `wireAsyncRunLifecycle` (SPA) o `wireReloadTickLifecycle` (Magento full-page).
 - Comunicación popup↔content vía `chrome.tabs.sendMessage` (helper `shared/messaging/messaging.js`).
 - **Multi-frame** (`all_frames: true`): el handler debe diferenciar top vs iframe. Si el frame detecta la pantalla responde sincrónico; si no, espera unos ms y responde con diagnóstico, dando prioridad a otros frames (patrón en `colocar-tags/content/index.js`).
 
@@ -82,18 +89,33 @@ popup/         view.js (sub-router) · utils.js · sections/ (una sub-vista por 
 
 ## Logs por scope (`Ajustes`)
 `logger('foo')` registra el scope `foo`, que aparece en la UI de Ajustes (`features/ajustes`) con toggle individual + "Habilitar/Deshabilitar todos". `log-config/index.js` cachea en memoria y persiste en `chrome.storage.local` (`log-config:scopes`, cross-context vía `storage.onChanged`). `logger.js` chequea `isScopeEnabled(scope)` antes de emitir. Default: todos habilitados.
-Scopes: `colocar-tags`, `colocar-tags:product`, `colocar-tags:offer`, `colocar-tags:delivery-remove`, `colocar-tags:combobox`, `lead-times`, `cupones`, `orden-info`, `starkoms`, `lgcom`, `lgcom/popup`, `seller-center-falabella`, `content`, `debug`, `popup`.
+Scopes: `colocar-tags`, `colocar-tags:product`, `colocar-tags:offer`, `colocar-tags:delivery-remove`, `colocar-tags:combobox`, `lead-times`, `cupones`, `orden-info`, `starkoms`, `lgcom`, `lgcom/popup`, `seller-center-falabella`, `content`, `service-worker`, `debug`, `popup`.
+
+## Manejo de errores y Modo Dev (`shared/errors` · `shared/dev-mode` · `shared/diagnostics`)
+- **`shared/errors`:** `ExtError` (base con `code`/`context`/`cause`), `toMessage(err)` (mensaje legible de cualquier throw), `isAbortError(err, signal)` (cancelación: WaitAbortedError/AbortError/signal.aborted), `describeError(err, meta)` (forma serializable con stack recortado).
+- **`shared/dev-mode`:** flag global persistente (`dev-mode:enabled`, cache sync + `storage.onChanged` cross-context). `isDevMode()` sync, `setDevMode()`, `subscribeDevMode()`, `whenDevModeReady()`. Activo ⇒ el logger fuerza nivel `debug` en todos los contextos.
+- **`shared/diagnostics`:** ring buffer de errores (cap 60) persistido en `diagnostics:errors` con coalescing de escritura. `recordError(err, {context,scope,extra})`, `getErrors()`, `clearErrors()`, `subscribeErrors()`, `installGlobalErrorCapture(context)` (engancha `window.onerror`/`unhandledrejection`, idempotente). **Todo `logger().error()` alimenta el buffer automáticamente** (busca el primer `Error` entre los args para preservar el stack).
+- **Wiring:** `installGlobalErrorCapture()` se llama en content, popup y service-worker. La UI vive en **Ajustes** (toggle "Modo desarrollador" + tarjeta "Errores recientes" en vivo). Service worker usa logger + `install()` (debug API).
+
+## Run store compartido (`shared/run-store`)
+Factory que unifica la persistencia de estado de ejecución que cada feature con batch reimplementaba en su `state.js`.
+- **`createRunStore({ key, logCap=400 })`** → `{ getRun, setRun, clearRun, updateRun, appendLog, subscribeToRun }`.
+  - **`updateRun` con coalescing de escrituras (velocidad):** encola los updaters y los drena en LOTES — cada lote hace UN `getRun` + UN `setRun` aplicando en orden FIFO todo lo acumulado mientras la IO anterior estaba en vuelo. Reduce de O(N) round-trips a storage a O(rondas de IO) durante las ráfagas de `onStep` fire-and-forget, y reduce los `storage.onChanged` (menos re-renders del popup). Correcto en multi-writer: cada lote re-lee storage, así ve la cancelación que el popup escribe. Resuelve con el estado tras su propio updater (misma semántica que la versión serializada anterior).
+- **`createPersistedValue(key, fallback)`** → `{ get, set }` para last-config / draft / last-query sueltos.
+- **`wireAsyncRunLifecycle({ subscribeToRun, tickIfActive, abortActiveRun?, reconcileOnInit?, topFrameOnly?, log })`** — patrón storage-driven async (Colocar TAGs, Starkoms, Seller Center): reconcile + subscribe(active?tick:abort) + tick inicial.
+- **`wireReloadTickLifecycle({ runKey, tickIfActive, delay=300, log })`** — patrón tick-por-reload (Lead Times, Cupones): top frame, tick inicial con delay + tick en cada `storage.onChanged` del run.
+- **Migrado:** los 6 `state.js` (colocar-tags, starkoms, seller-center, lead-times, cupones, orden-info) usan el factory; cada uno conserva su `makeRun` (forma específica). orden-info aliasa los nombres `search` (`getSearch=store.getRun`, etc.).
 
 ## Debug API (`window.__extLgeCl`)
-Existe en content y popup. En DevTools cambiar "JavaScript context" al de la extensión (content scripts viven en isolated world).
-Generales: `help()`, `features()`, `log.setLevel('debug'|'info'|'warn'|'error'|'silent')` (persiste en localStorage), `log.getLevel()`, `<feature>.<comando>()`.
+Existe en content, popup y service worker. En DevTools cambiar "JavaScript context" al de la extensión (content scripts viven en isolated world).
+Generales: `help()`, `features()`, `log.setLevel('debug'|'info'|'warn'|'error'|'silent')` (persiste en localStorage), `log.getLevel()`, `dev.on()`/`dev.off()`/`dev.status()`, `errors()` (console.table del buffer), `clearErrors()`, `<feature>.<comando>()`.
 Sumar a una feature: crear `features/<feature>/debug.js` → `register('<feature>', {...})` (desde `shared/debug`) → side-effect import desde `content/index.js` y/o `popup/popup.js` → usar helper `cmd(fn, 'descripción')`.
 
 ## Popup navegación
 `popup.js`: routing simple `renderHome()` ↔ `openFeature(feature)`. Back button en header en vistas de feature; título refleja la vista.
 
 ## Estado del proyecto
-Scaffolding + CI completos. Pipeline release corporativo (.crx firmado + política + ZIP). Debug API modular + logger persistente. Content multi-frame con resolución de carrera. Capa `shared/dom`. Driver GP1 L-* (modal/messagebox/combobox).
+Scaffolding + CI completos. Pipeline release corporativo (.crx firmado + política + ZIP). Debug API modular + logger persistente. Manejo de errores centralizado (`shared/errors`) + Modo Dev + ring buffer de errores con captura global (`shared/diagnostics`, visible en Ajustes). Content multi-frame con resolución de carrera. Capa `shared/dom`. Driver GP1 L-* (modal/messagebox/combobox).
 Features: **Colocar TAGs** (Lectura | Tag Delivery | Quitar Delivery | Tag Producto | Tag Oferta), **Lead Times** (Magento), **Cupones** (Quitar Regla de Cupón), **Información de Orden** (Magento), **Starkoms** (Verificar órdenes y stock), **LG.com** (Info de Producto), **SellerCenter Falabella** (SoporteSeller — Detalle Orden).
 ⏳ Pendiente: tests en `tests/unit/*.test.js`.
 

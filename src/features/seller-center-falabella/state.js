@@ -21,45 +21,11 @@
 //   }
 
 import { LOG_CAP, STORAGE_KEYS, STATUS } from './constants.js';
-import { getStorage, setStorage, removeStorage } from '../../shared/storage/storage.js';
+import { createRunStore, createPersistedValue } from '../../shared/run-store/index.js';
 
-export async function getRun() {
-  return (await getStorage(STORAGE_KEYS.RUN)) || null;
-}
-
-export async function setRun(run) {
-  return setStorage(STORAGE_KEYS.RUN, run);
-}
-
-export async function clearRun() {
-  return removeStorage(STORAGE_KEYS.RUN);
-}
-
-// Serializamos los read-modify-write para que los updates concurrentes (setItem
-// + appendLog disparados en cadena) no se pisen entre sí.
-let writeChain = Promise.resolve();
-
-/** Read-modify-write serializado del run. Devuelve el próximo estado (o null). */
-export function updateRun(updater) {
-  const next = writeChain.then(async () => {
-    const run = (await getRun()) || null;
-    if (!run) return null;
-    const updated = updater(run);
-    await setRun(updated);
-    return updated;
-  });
-  writeChain = next.catch(() => {});
-  return next;
-}
-
-/** Agrega una línea de log al run actual (cap aplicado). */
-export async function appendLog(entry) {
-  return updateRun((run) => {
-    const log = Array.isArray(run.log) ? [...run.log, { ts: Date.now(), ...entry }] : [{ ts: Date.now(), ...entry }];
-    if (log.length > LOG_CAP) log.splice(0, log.length - LOG_CAP);
-    return { ...run, log };
-  });
-}
+// Run store compartido con coalescing de escrituras (ver shared/run-store).
+const store = createRunStore({ key: STORAGE_KEYS.RUN, logCap: LOG_CAP });
+export const { getRun, setRun, clearRun, updateRun, appendLog, subscribeToRun } = store;
 
 /**
  * Construye un run nuevo a partir de la cola de "Detalle Orden" ya expandida en
@@ -80,23 +46,7 @@ export function makeRun({ items, message }) {
   };
 }
 
-export function subscribeToRun(callback) {
-  const listener = (changes, area) => {
-    if (area !== 'local') return;
-    if (!changes[STORAGE_KEYS.RUN]) return;
-    callback(changes[STORAGE_KEYS.RUN].newValue || null);
-  };
-  chrome.storage.onChanged.addListener(listener);
-  return () => {
-    try { chrome.storage.onChanged.removeListener(listener); } catch { /* no-op */ }
-  };
-}
-
 // Borrador del formulario (texto del CSV + modo) — independiente del run.
-export async function getDraft() {
-  return (await getStorage(STORAGE_KEYS.DRAFT)) || null;
-}
-
-export async function setDraft(draft) {
-  return setStorage(STORAGE_KEYS.DRAFT, draft);
-}
+const draft = createPersistedValue(STORAGE_KEYS.DRAFT, null);
+export const getDraft = draft.get;
+export const setDraft = draft.set;

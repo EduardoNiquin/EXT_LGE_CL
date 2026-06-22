@@ -4,6 +4,8 @@ import { diagnose, isSupportSellerPage } from './detector.js';
 import { parseSections } from './parser.js';
 import { abortActiveRun, reconcileOnInit, tickIfActive } from './flows/run.js';
 import { subscribeToRun } from '../state.js';
+import { wireAsyncRunLifecycle } from '../../../shared/run-store/index.js';
+import { toMessage } from '../../../shared/errors/index.js';
 
 const log = logger('seller-center-falabella');
 
@@ -18,7 +20,7 @@ function handleMessage(message, _sender, sendResponse) {
   try {
     sendResponse({ ok: true, detected, sections: parseSections(), diag: diagnose() });
   } catch (err) {
-    sendResponse({ ok: false, reason: err?.message || String(err), diag: diagnose() });
+    sendResponse({ ok: false, reason: toMessage(err), diag: diagnose() });
   }
   return true;
 }
@@ -28,16 +30,6 @@ export function init() {
 
   chrome.runtime.onMessage.addListener(handleMessage);
 
-  reconcileOnInit().catch((err) => log.warn('reconcileOnInit falló', err));
-
-  subscribeToRun((run) => {
-    if (run && run.active) {
-      tickIfActive().catch((err) => log.error('tickIfActive falló', err));
-    } else {
-      abortActiveRun();
-    }
-  });
-
-  // Por si ya había un run activo al cargar el frame.
-  tickIfActive().catch((err) => log.error('tickIfActive inicial falló', err));
+  // Reconcile + subscribe(active?tick:abort) + tick inicial (ver shared/run-store).
+  wireAsyncRunLifecycle({ subscribeToRun, tickIfActive, abortActiveRun, reconcileOnInit, log });
 }

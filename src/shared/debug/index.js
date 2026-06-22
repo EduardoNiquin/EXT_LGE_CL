@@ -8,6 +8,9 @@
 //   - Cada API expone funciones con `.doc` para que `help()` las describa.
 //   - El nivel de log persiste en localStorage para sobrevivir reloads.
 
+import { isDevMode, setDevMode } from '../dev-mode/index.js';
+import { getErrors, clearErrors } from '../diagnostics/index.js';
+
 export const NAMESPACE = '__extLgeCl';
 export const LOG_LEVEL_KEY = '__extLgeCl.logLevel';
 export const LOG_LEVELS = ['debug', 'info', 'warn', 'error', 'silent'];
@@ -29,6 +32,13 @@ export function install({ version, context } = {}) {
     context: context ?? 'unknown',
     features: () => Array.from(registry.keys()),
     log: createLogControl(),
+    dev: createDevControl(),
+    errors: cmd(() => {
+      const list = getErrors();
+      console.table(list.map((e) => ({ ts: new Date(e.ts).toLocaleTimeString(), context: e.context, scope: e.scope, name: e.name, message: e.message })));
+      return list;
+    }, 'Lista los errores capturados (ring buffer de diagnóstico)'),
+    clearErrors: cmd(() => clearErrors(), 'Vacía el buffer de errores capturados'),
     help,
   };
   for (const [name, api] of registry) root[name] = api;
@@ -51,6 +61,9 @@ function help() {
   lines.push(`  .features()       → lista features registradas`);
   lines.push(`  .log.setLevel(l)  → niveles: ${LOG_LEVELS.join(' | ')}`);
   lines.push(`  .log.getLevel()`);
+  lines.push(`  .dev.on() / .dev.off() / .dev.status()  → modo desarrollador`);
+  lines.push(`  .errors()         → errores capturados`);
+  lines.push(`  .clearErrors()`);
   lines.push('');
   for (const [name, api] of registry) {
     lines.push(`  ${NAMESPACE}.${name}`);
@@ -79,6 +92,14 @@ function createLogControl() {
     getLevel() {
       try { return localStorage.getItem(LOG_LEVEL_KEY) || 'info'; } catch { return 'info'; }
     },
+  };
+}
+
+function createDevControl() {
+  return {
+    on() { setDevMode(true); console.info('[EXT_LGE_CL][debug] modo dev: ON (logs en debug + captura de errores)'); },
+    off() { setDevMode(false); console.info('[EXT_LGE_CL][debug] modo dev: OFF'); },
+    status() { return isDevMode(); },
   };
 }
 

@@ -1,5 +1,6 @@
 import { features } from './features.js';
 import { install, register, cmd } from '../shared/debug/index.js';
+import { installGlobalErrorCapture } from '../shared/diagnostics/index.js';
 import { sendMessageToActiveTab } from '../shared/messaging/messaging.js';
 import { MESSAGES as COLOCAR_TAGS_MSG } from '../features/colocar-tags/constants.js';
 import { initTheme, getThemePref, cycleTheme, subscribeTheme } from '../shared/theme/index.js';
@@ -9,6 +10,7 @@ initTheme();
 
 const version = chrome?.runtime?.getManifest?.()?.version;
 install({ version, context: 'popup' });
+installGlobalErrorCapture('popup');
 
 // Atajos para depurar el lado del popup sin abrir el content script.
 register('popup', {

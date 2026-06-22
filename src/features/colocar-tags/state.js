@@ -25,47 +25,13 @@
 //   }
 
 import { LOG_CAP, STORAGE_KEYS } from './constants.js';
-import { getStorage, setStorage, removeStorage } from '../../shared/storage/storage.js';
+import { createRunStore } from '../../shared/run-store/index.js';
 
-export async function getRun() {
-  return (await getStorage(STORAGE_KEYS.RUN)) || null;
-}
-
-export async function setRun(run) {
-  return setStorage(STORAGE_KEYS.RUN, run);
-}
-
-export async function clearRun() {
-  return removeStorage(STORAGE_KEYS.RUN);
-}
-
-// Serializamos los read-modify-write: el runner dispara setItem/appendLog en
-// modo fire-and-forget (onStep no se await-ea), así que sin esta cola las
-// llamadas concurrentes se pisarían (get/set intercalados → updates perdidos).
-let writeChain = Promise.resolve();
-
-/** Read-modify-write serializado del run. Devuelve el próximo estado (o null). */
-export function updateRun(updater) {
-  const next = writeChain.then(async () => {
-    const run = (await getRun()) || null;
-    if (!run) return null;
-    const updated = updater(run);
-    await setRun(updated);
-    return updated;
-  });
-  // No dejamos que un rechazo rompa la cadena para las siguientes escrituras.
-  writeChain = next.catch(() => {});
-  return next;
-}
-
-/** Agrega una línea de log al run actual (cap aplicado). */
-export async function appendLog(entry) {
-  return updateRun((run) => {
-    const log = Array.isArray(run.log) ? [...run.log, { ts: Date.now(), ...entry }] : [{ ts: Date.now(), ...entry }];
-    if (log.length > LOG_CAP) log.splice(0, log.length - LOG_CAP);
-    return { ...run, log };
-  });
-}
+// Run store compartido (getRun/setRun/clearRun/updateRun/appendLog/subscribeToRun)
+// con coalescing de escrituras — ver shared/run-store. El runner dispara
+// setItem/appendLog fire-and-forget; el factory los agrupa en lotes.
+const store = createRunStore({ key: STORAGE_KEYS.RUN, logCap: LOG_CAP });
+export const { getRun, setRun, clearRun, updateRun, appendLog, subscribeToRun } = store;
 
 /**
  * Construye un run nuevo a partir de un kind, su config y la lista de SKUs.
@@ -84,17 +50,5 @@ export function makeRun({ kind, config, skus, message }) {
     total: list.length,
     items: list.map((sku, index) => ({ sku, index, status: 'pending', step: null })),
     log: [{ ts: Date.now(), level: 'info', message: message || `Run iniciado — ${list.length} SKU(s)` }],
-  };
-}
-
-export function subscribeToRun(callback) {
-  const listener = (changes, area) => {
-    if (area !== 'local') return;
-    if (!changes[STORAGE_KEYS.RUN]) return;
-    callback(changes[STORAGE_KEYS.RUN].newValue || null);
-  };
-  chrome.storage.onChanged.addListener(listener);
-  return () => {
-    try { chrome.storage.onChanged.removeListener(listener); } catch { /* no-op */ }
   };
 }

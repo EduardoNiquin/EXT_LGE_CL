@@ -16,6 +16,7 @@ import { getSearch, setSearch } from '../../state.js';
 import { detectPage } from '../detector.js';
 import { setInputValue, clickEl } from '../../../../shared/dom/events.js';
 import { sleep, waitFor, waitForElement } from '../../../../shared/dom/wait.js';
+import { toMessage } from '../../../../shared/errors/index.js';
 
 const log = logger('orden-info');
 
@@ -79,7 +80,7 @@ async function onListing(search) {
     clickSearch();
     await sleep(500);            // dar tiempo a que arranque el mask de carga
   } catch (err) {
-    await fail(search, `No se pudo aplicar la búsqueda: ${err?.message || String(err)}`);
+    await fail(search, `No se pudo aplicar la búsqueda: ${toMessage(err)}`);
     return;
   }
 

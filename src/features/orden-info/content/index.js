@@ -3,6 +3,7 @@ import { MESSAGES, STORAGE_KEYS } from '../constants.js';
 import { detectPage, diagnose } from './detector.js';
 import { parseOrder } from './parser.js';
 import { tickIfActive } from './flows/search.js';
+import { toMessage } from '../../../shared/errors/index.js';
 
 const log = logger('orden-info');
 
@@ -25,7 +26,7 @@ function handleMessage(message, _sender, sendResponse) {
     }
   } catch (err) {
     log.error('parseOrder falló', err);
-    sendResponse({ ok: false, reason: `Error al leer la orden: ${err?.message || String(err)}` });
+    sendResponse({ ok: false, reason: `Error al leer la orden: ${toMessage(err)}` });
   }
   return true;
 }

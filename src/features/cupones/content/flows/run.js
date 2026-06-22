@@ -25,6 +25,7 @@
 //     └─ Próximo tick (listing) → marca el item OK.
 
 import { logger } from '../../../../shared/utils/logger.js';
+import { toMessage } from '../../../../shared/errors/index.js';
 import { ITEM_STATUS, PAGE_TYPE, RUN_KIND, SEARCH_BY } from '../../constants.js';
 import { appendLog, getRun, setRun } from '../../state.js';
 import { detectPage } from '../detector.js';
@@ -67,7 +68,7 @@ export async function tickIfActive() {
   } catch (err) {
     log.error('tick falló', err);
     try {
-      await appendLog({ level: 'error', message: `tick falló: ${err?.message || String(err)}` });
+      await appendLog({ level: 'error', message: `tick falló: ${toMessage(err)}` });
     } catch { /* no-op */ }
   } finally {
     running = false;
@@ -144,7 +145,7 @@ async function onListing(run) {
     }
   } catch (err) {
     item.status = ITEM_STATUS.ERROR;
-    item.error  = `Falló al filtrar: ${err?.message || String(err)}`;
+    item.error  = `Falló al filtrar: ${toMessage(err)}`;
     await setRun(run);
     await appendLog({ level: 'error', message: `${item.query}: ${item.error}` });
     return;
@@ -222,7 +223,7 @@ async function onEdit(run, page) {
     await clickSave();
   } catch (err) {
     item.status = ITEM_STATUS.ERROR;
-    item.error  = err?.message || String(err);
+    item.error  = toMessage(err);
     await setRun(run);
     await appendLog({ level: 'error', message: `${labelOf(item)}: ${item.error}` });
     await leaveEditPage();

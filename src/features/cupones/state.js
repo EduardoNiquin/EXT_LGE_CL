@@ -28,48 +28,16 @@
 //   }
 
 import { STORAGE_KEYS, LOG_CAP } from './constants.js';
-import { getStorage, setStorage, removeStorage } from '../../shared/storage/storage.js';
+import { createRunStore, createPersistedValue } from '../../shared/run-store/index.js';
 
-export async function getRun() {
-  return (await getStorage(STORAGE_KEYS.RUN)) || null;
-}
+// Run store compartido (ver shared/run-store).
+const store = createRunStore({ key: STORAGE_KEYS.RUN, logCap: LOG_CAP });
+export const { getRun, setRun, clearRun, updateRun, appendLog, subscribeToRun } = store;
 
-export async function setRun(run) {
-  return setStorage(STORAGE_KEYS.RUN, run);
-}
+const lastConfig = createPersistedValue(STORAGE_KEYS.LAST_CONFIG, null);
+export const getLastConfig = lastConfig.get;
+export const setLastConfig = lastConfig.set;
 
-export async function clearRun() {
-  return removeStorage(STORAGE_KEYS.RUN);
-}
-
-export async function updateRun(updater) {
-  const run = (await getRun()) || null;
-  if (!run) return null;
-  const next = updater(run);
-  await setRun(next);
-  return next;
-}
-
-export async function appendLog(entry) {
-  return updateRun((run) => {
-    const log = Array.isArray(run.log) ? [...run.log, { ts: Date.now(), ...entry }] : [{ ts: Date.now(), ...entry }];
-    if (log.length > LOG_CAP) log.splice(0, log.length - LOG_CAP);
-    return { ...run, log };
-  });
-}
-
-export async function getLastConfig() {
-  return (await getStorage(STORAGE_KEYS.LAST_CONFIG)) || null;
-}
-
-export async function setLastConfig(config) {
-  return setStorage(STORAGE_KEYS.LAST_CONFIG, config);
-}
-
-export async function getLastConfigAdd() {
-  return (await getStorage(STORAGE_KEYS.LAST_CONFIG_ADD)) || null;
-}
-
-export async function setLastConfigAdd(config) {
-  return setStorage(STORAGE_KEYS.LAST_CONFIG_ADD, config);
-}
+const lastConfigAdd = createPersistedValue(STORAGE_KEYS.LAST_CONFIG_ADD, null);
+export const getLastConfigAdd = lastConfigAdd.get;
+export const setLastConfigAdd = lastConfigAdd.set;

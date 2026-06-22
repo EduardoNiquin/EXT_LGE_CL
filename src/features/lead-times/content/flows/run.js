@@ -23,6 +23,7 @@
 //     └─ En error: marcar ERROR y volver al listing.
 
 import { logger } from '../../../../shared/utils/logger.js';
+import { toMessage } from '../../../../shared/errors/index.js';
 import { COMUNA_STATUS, PAGE_TYPE, REGION_STATUS } from '../../constants.js';
 import { appendLog, getRun, setRun } from '../../state.js';
 import { detectPage } from '../detector.js';
@@ -72,7 +73,7 @@ export async function tickIfActive() {
   } catch (err) {
     log.error('tick falló', err);
     try {
-      await appendLog({ level: 'error', message: `tick falló: ${err?.message || String(err)}` });
+      await appendLog({ level: 'error', message: `tick falló: ${toMessage(err)}` });
     } catch { /* no-op */ }
   } finally {
     running = false;
@@ -181,7 +182,7 @@ async function onListing(run) {
       });
     } catch (err) {
       region.status = REGION_STATUS.ERROR;
-      region.error  = err?.message || String(err);
+      region.error  = toMessage(err);
       await setRun(run);
       await appendLog({ level: 'error', message: `Filtrar ${region.regionName} falló: ${region.error}` });
       await advanceRegion(run);
@@ -253,7 +254,7 @@ async function onEdit(run, page) {
     // al llegar al listing (así sabemos que efectivamente navegó).
   } catch (err) {
     comuna.status = COMUNA_STATUS.ERROR;
-    comuna.error  = err?.message || String(err);
+    comuna.error  = toMessage(err);
     await setRun(run);
     await appendLog({
       level: 'error',

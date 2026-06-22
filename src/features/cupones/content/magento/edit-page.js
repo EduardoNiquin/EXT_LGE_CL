@@ -7,6 +7,7 @@
 import { SELECTORS } from '../../constants.js';
 import { clickEl, setInputValue, setSelectValue } from '../../../../shared/dom/events.js';
 import { sleep, waitFor, waitForElement } from '../../../../shared/dom/wait.js';
+import { toMessage } from '../../../../shared/errors/index.js';
 
 /** Error específico: la opción de condición pedida no existe en el <select>. */
 export class ConditionOptionNotFoundError extends Error {
@@ -90,7 +91,7 @@ export async function removeAllConditions({ signal, maxIterations = 50 } = {}) {
         return null;
       }, { signal, timeout: 6000, interval: 120, description: 'condición eliminada del árbol' });
     } catch (err) {
-      throw new Error(`Falló al eliminar condición #${removed + 1}: ${err.message}`, { cause: err });
+      throw new Error(`Falló al eliminar condición #${removed + 1}: ${toMessage(err)}`, { cause: err });
     }
     removed += 1;
     await sleep(120, signal);

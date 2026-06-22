@@ -4,6 +4,8 @@ import { parsePage } from './parser.js';
 import { tickIfActive, abortActiveRun, reconcileOnInit } from './flows/runner.js';
 import { subscribeToRun } from '../state.js';
 import { logger } from '../../../shared/utils/logger.js';
+import { wireAsyncRunLifecycle } from '../../../shared/run-store/index.js';
+import { toMessage } from '../../../shared/errors/index.js';
 
 const log = logger('colocar-tags');
 
@@ -21,7 +23,7 @@ function handleMessage(message, _sender, sendResponse) {
       sendResponse({ ok: true, data, frame: { isTopFrame: diag.isTopFrame, url: diag.url } });
     } catch (err) {
       log.error('parsePage falló', err);
-      sendResponse({ ok: false, reason: `Error al leer la página: ${err.message}`, diag });
+      sendResponse({ ok: false, reason: `Error al leer la página: ${toMessage(err)}`, diag });
     }
     return true;
   }
@@ -55,18 +57,7 @@ export function init() {
   // Lectura de pantalla (one-shot).
   chrome.runtime.onMessage.addListener(handleMessage);
 
-  // Reconciliar un posible run "zombie" si la página se recargó a mitad.
-  reconcileOnInit().catch((err) => log.warn('reconcileOnInit falló', err));
-
-  // Reaccionar a cambios del run: arrancar si se activó, abortar si se desactivó.
-  subscribeToRun((run) => {
-    if (run && run.active) {
-      tickIfActive().catch((err) => log.error('tickIfActive falló', err));
-    } else {
-      abortActiveRun();
-    }
-  });
-
-  // Por si ya había un run activo (sin reclamar) al cargar el frame.
-  tickIfActive().catch((err) => log.error('tickIfActive inicial falló', err));
+  // Reconcile + subscribe(active?tick:abort) + tick inicial (ver shared/run-store).
+  // Corre en todos los frames: el que detecta MIM reclama el run.
+  wireAsyncRunLifecycle({ subscribeToRun, tickIfActive, abortActiveRun, reconcileOnInit, log });
 }

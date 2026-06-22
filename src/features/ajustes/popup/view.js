@@ -10,6 +10,8 @@ import {
 } from '../../../shared/log-config/index.js';
 import { escapeHtml } from '../../colocar-tags/popup/utils.js';
 import { getThemePref, setThemePref } from '../../../shared/theme/index.js';
+import { isDevMode, setDevMode, subscribeDevMode } from '../../../shared/dev-mode/index.js';
+import { getErrors, clearErrors, subscribeErrors } from '../../../shared/diagnostics/index.js';
 
 const THEME_OPTIONS = [
   { value: 'light',  label: 'Claro' },
@@ -47,6 +49,31 @@ export function render(container) {
 
       <section class="aj-card">
         <header class="aj-card-head">
+          <h3 class="aj-card-title">Modo desarrollador</h3>
+          <p class="aj-card-desc">Fuerza el nivel de logs a <code>debug</code> en todos los contextos y resalta la captura de errores. Útil al probar automatizaciones. Cross-context y persistente.</p>
+        </header>
+        <label class="aj-scope-row" for="aj-devmode" style="cursor:pointer;">
+          <span class="aj-scope-name" style="font-family:inherit;font-size:13px;">Activar modo desarrollador</span>
+          <span class="aj-toggle">
+            <input type="checkbox" id="aj-devmode" />
+            <span class="aj-toggle-slot"><span class="aj-toggle-knob"></span></span>
+          </span>
+        </label>
+      </section>
+
+      <section class="aj-card">
+        <header class="aj-card-head aj-card-head-row">
+          <div>
+            <h3 class="aj-card-title">Errores recientes</h3>
+            <p class="aj-card-desc">Últimos errores capturados en cualquier contexto (content, popup, service worker). Se actualiza en vivo.</p>
+          </div>
+          <button type="button" class="aj-btn aj-btn-sm" id="aj-clear-errors">Limpiar</button>
+        </header>
+        <ul class="aj-err-list" id="aj-err-list" role="list"></ul>
+      </section>
+
+      <section class="aj-card">
+        <header class="aj-card-head">
           <h3 class="aj-card-title">Logs por módulo</h3>
           <p class="aj-card-desc">Habilitá o deshabilitá el output de consola por scope. Cambios se aplican al instante y persisten entre sesiones.</p>
         </header>
@@ -66,6 +93,9 @@ export function render(container) {
   injectStyles();
 
   setupThemeSegment(container);
+  const cleanups = [];
+  cleanups.push(setupDevMode(container));
+  cleanups.push(setupErrorList(container));
 
   const listEl = container.querySelector('#aj-scope-list');
   const btnEnableAll  = container.querySelector('#aj-enable-all');
@@ -128,12 +158,59 @@ export function render(container) {
   const mo = new MutationObserver(() => {
     if (!listEl.isConnected) {
       unsubscribe();
+      for (const c of cleanups) { try { c?.(); } catch { /* noop */ } }
       mo.disconnect();
     }
   });
   mo.observe(container, { childList: true, subtree: false });
 
   renderList();
+}
+
+function setupDevMode(container) {
+  const cb = container.querySelector('#aj-devmode');
+  if (!cb) return null;
+  const sync = () => { cb.checked = isDevMode(); };
+  cb.addEventListener('change', () => setDevMode(cb.checked));
+  const unsub = subscribeDevMode(sync);
+  sync();
+  return unsub;
+}
+
+function setupErrorList(container) {
+  const listEl = container.querySelector('#aj-err-list');
+  const clearBtn = container.querySelector('#aj-clear-errors');
+  if (!listEl) return null;
+
+  const fmtTime = (ts) => {
+    if (!ts) return '';
+    const d = new Date(ts);
+    const pad = (n) => String(n).padStart(2, '0');
+    return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+  };
+
+  const render = (errors) => {
+    const list = (errors || getErrors()).slice().reverse();
+    if (!list.length) {
+      listEl.innerHTML = '<li class="aj-err-empty">Sin errores capturados.</li>';
+      return;
+    }
+    listEl.innerHTML = list.map((e) => `
+      <li class="aj-err-item">
+        <div class="aj-err-head">
+          <span class="aj-err-time">${fmtTime(e.ts)}</span>
+          <span class="aj-err-ctx">${escapeHtml(e.context || '?')}${e.scope ? ` · ${escapeHtml(e.scope)}` : ''}</span>
+        </div>
+        <div class="aj-err-msg">${escapeHtml(e.name && e.name !== 'Error' ? `${e.name}: ` : '')}${escapeHtml(e.message || '')}</div>
+        ${e.stack ? `<details class="aj-err-stack"><summary>stack</summary><pre>${escapeHtml(e.stack)}</pre></details>` : ''}
+      </li>
+    `).join('');
+  };
+
+  clearBtn?.addEventListener('click', () => clearErrors());
+  const unsub = subscribeErrors(render);
+  render();
+  return unsub;
 }
 
 function setupThemeSegment(container) {
@@ -170,6 +247,8 @@ function injectStyles() {
       padding: 14px;
     }
     .aj-card-head { margin-bottom: 10px; }
+    .aj-card-head-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+    .aj-card-head-row > div { flex: 1; }
     .aj-card-title { margin: 0 0 4px 0; font-size: 14px; font-weight: 600; }
     .aj-card-desc  { margin: 0; font-size: 12px; color: var(--muted, #6b7280); line-height: 1.4; }
     .aj-card-foot  { margin: 10px 0 0 0; font-size: 11px; color: var(--muted, #6b7280); }
@@ -271,6 +350,28 @@ function injectStyles() {
     .aj-toggle input:checked + .aj-toggle-slot .aj-toggle-knob {
       left: 16px;
     }
+    .aj-err-list { list-style: none; margin: 0; padding: 0; max-height: 220px; overflow-y: auto; }
+    .aj-err-item {
+      border-left: 2px solid var(--danger, #ef4444);
+      background: var(--surface-3, #f9fafb);
+      border-radius: 0 6px 6px 0;
+      padding: 6px 8px;
+      margin-bottom: 6px;
+    }
+    .aj-err-head { display: flex; gap: 8px; align-items: center; margin-bottom: 2px; }
+    .aj-err-time { font-size: 10.5px; color: var(--muted, #9ca3af); font-variant-numeric: tabular-nums; }
+    .aj-err-ctx {
+      font-size: 10px; color: var(--muted, #6b7280);
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+    .aj-err-msg { font-size: 12px; color: var(--text, #111827); word-break: break-word; }
+    .aj-err-stack summary { font-size: 10.5px; color: var(--muted, #6b7280); cursor: pointer; margin-top: 3px; }
+    .aj-err-stack pre {
+      font-size: 10px; white-space: pre-wrap; word-break: break-word;
+      background: var(--code-bg, #f3f4f6); padding: 6px; border-radius: 4px; margin: 4px 0 0 0;
+      max-height: 140px; overflow: auto;
+    }
+    .aj-err-empty { font-size: 12px; color: var(--muted, #9ca3af); padding: 4px 2px; }
   `;
   document.head.appendChild(style);
 }

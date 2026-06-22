@@ -30,8 +30,9 @@ import { ComboboxOptionNotFoundError } from '../gp1/combobox.js';
 import { isMarketingModalOpen, waitForModalClosed } from '../gp1/modal.js';
 import { waitForNoMessagebox, clickMessageboxButton, getTopMessagebox } from '../gp1/messagebox.js';
 import { logger } from '../../../../shared/utils/logger.js';
-import { WaitAbortedError, sleep } from '../../../../shared/dom/wait.js';
+import { sleep } from '../../../../shared/dom/wait.js';
 import { clickEl } from '../../../../shared/dom/events.js';
+import { toMessage, isAbortError } from '../../../../shared/errors/index.js';
 
 const log = logger('colocar-tags');
 
@@ -110,7 +111,7 @@ export async function tickIfActive() {
     await finalize(ctrl.signal.aborted ? 'cancelled' : 'done');
   } catch (err) {
     log.error('run falló', err);
-    await finalize('error', err?.message || String(err));
+    await finalize('error', toMessage(err));
   } finally {
     activeCtrl = null;
     running = false;
@@ -167,7 +168,7 @@ async function runSkuBatch({ run, signal }) {
 
     // Pre-flight a partir del 2º SKU: limpiar modal/messageboxes residuales.
     if (i > 0) {
-      const cleaned = await ensureCleanModalState(signal).catch((err) => ({ ok: false, reason: err?.message || String(err) }));
+      const cleaned = await ensureCleanModalState(signal).catch((err) => ({ ok: false, reason: toMessage(err) }));
       if (cleaned && cleaned.ok === false) {
         log.warn(`pre-flight falló para ${sku}`, cleaned);
         await setItem(i, {
@@ -192,7 +193,7 @@ async function runSkuBatch({ run, signal }) {
       await setItem(i, { status: STATUS.OK, step: STEPS.DONE });
       await appendLog({ level: 'info', message: `${sku}: OK` });
     } catch (err) {
-      if (err instanceof WaitAbortedError || signal.aborted) {
+      if (isAbortError(err, signal)) {
         await setItem(i, { status: STATUS.SKIPPED, step: 'cancelled' });
         break;
       }
@@ -213,8 +214,8 @@ async function runSkuBatch({ run, signal }) {
         continue;
       }
       log.error(`SKU ${sku} falló`, err);
-      await setItem(i, { status: STATUS.ERROR, step: 'error', reason: err?.message || String(err) });
-      await appendLog({ level: 'error', message: `${sku}: ${err?.message || String(err)}` });
+      await setItem(i, { status: STATUS.ERROR, step: 'error', reason: toMessage(err) });
+      await appendLog({ level: 'error', message: `${sku}: ${toMessage(err)}` });
       if (isMarketingModalOpen()) {
         log.warn('modal quedó abierto tras error, intentando cerrar ahora');
         await ensureCleanModalState(signal).catch(() => {});

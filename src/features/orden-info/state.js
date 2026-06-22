@@ -12,32 +12,16 @@
 //   }
 
 import { STORAGE_KEYS } from './constants.js';
-import { getStorage, setStorage, removeStorage } from '../../shared/storage/storage.js';
+import { createRunStore, createPersistedValue } from '../../shared/run-store/index.js';
 
-export async function getSearch() {
-  return (await getStorage(STORAGE_KEYS.SEARCH)) || null;
-}
+// El estado de búsqueda es un "run store" con nombres propios (search en vez de
+// run). Reusamos el factory por su read-modify-write coalescido; ver shared/run-store.
+const store = createRunStore({ key: STORAGE_KEYS.SEARCH });
+export const getSearch = store.getRun;
+export const setSearch = store.setRun;
+export const clearSearch = store.clearRun;
+export const updateSearch = store.updateRun;
 
-export async function setSearch(search) {
-  return setStorage(STORAGE_KEYS.SEARCH, search);
-}
-
-export async function clearSearch() {
-  return removeStorage(STORAGE_KEYS.SEARCH);
-}
-
-export async function updateSearch(updater) {
-  const search = (await getSearch()) || null;
-  if (!search) return null;
-  const next = updater(search);
-  await setSearch(next);
-  return next;
-}
-
-export async function getLastQuery() {
-  return (await getStorage(STORAGE_KEYS.LAST_QUERY)) || '';
-}
-
-export async function setLastQuery(query) {
-  return setStorage(STORAGE_KEYS.LAST_QUERY, query);
-}
+const lastQuery = createPersistedValue(STORAGE_KEYS.LAST_QUERY, '');
+export const getLastQuery = lastQuery.get;
+export const setLastQuery = lastQuery.set;

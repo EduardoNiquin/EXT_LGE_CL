@@ -16,8 +16,8 @@ import { ensureOrdersFiltered, openOrder } from './orders.js';
 import { checkStock, remediateStock, verifyExists } from './stock.js';
 import { setOrderState } from './order-state.js';
 import { SelectOptionNotFoundError } from '../vuetify/select.js';
-import { WaitAbortedError } from '../../../../shared/dom/wait.js';
 import { logger } from '../../../../shared/utils/logger.js';
+import { toMessage, isAbortError } from '../../../../shared/errors/index.js';
 
 const log = logger('starkoms');
 
@@ -50,7 +50,7 @@ export async function tickIfActive() {
     await finalize(ctrl.signal.aborted ? 'cancelled' : 'done');
   } catch (err) {
     log.error('run falló', err);
-    await finalize('error', err?.message || String(err));
+    await finalize('error', toMessage(err));
   } finally {
     activeCtrl = null;
     running = false;
@@ -167,11 +167,11 @@ async function runBatch({ run, signal }) {
         message: `#${order.orderNumber}: OK${dryRun ? ' [simulación]' : ''} (${needSku.length} SKU con stock asignado)`,
       });
     } catch (err) {
-      if (err instanceof WaitAbortedError || signal.aborted) {
+      if (isAbortError(err, signal)) {
         await setItem(i, { status: STATUS.SKIPPED, step: 'cancelled' });
         break;
       }
-      const reason = err instanceof SelectOptionNotFoundError ? err.message : (err?.message || String(err));
+      const reason = err instanceof SelectOptionNotFoundError ? err.message : toMessage(err);
       log.error(`#${order.orderNumber} falló`, err);
       await setItem(i, { status: STATUS.ERROR, step: 'error', reason });
       await appendLog({ level: 'error', message: `#${order.orderNumber}: ${reason}` });

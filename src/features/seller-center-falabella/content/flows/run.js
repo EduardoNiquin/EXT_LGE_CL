@@ -16,8 +16,9 @@ import { STATUS, STEPS } from '../../constants.js';
 import { appendLog, getRun, updateRun } from '../../state.js';
 import { getDetalleSections, isSupportSellerPage } from '../detector.js';
 import { ensureSection, expandSection, fillSection } from './accordion.js';
-import { WaitAbortedError, waitFor } from '../../../../shared/dom/wait.js';
+import { waitFor } from '../../../../shared/dom/wait.js';
 import { logger } from '../../../../shared/utils/logger.js';
+import { toMessage, isAbortError } from '../../../../shared/errors/index.js';
 
 const log = logger('seller-center-falabella');
 
@@ -52,7 +53,7 @@ export async function tickIfActive() {
     await finalize(ctrl.signal.aborted ? 'cancelled' : 'done');
   } catch (err) {
     log.error('run falló', err);
-    await finalize('error', err?.message || String(err));
+    await finalize('error', toMessage(err));
   } finally {
     activeCtrl = null;
     running = false;
@@ -123,11 +124,11 @@ async function runBatch({ run, signal }) {
         message: `Detalle ${i + 1}/${items.length}: orden ${item.ordernumber} · guía ${item.guia} · ${item.cantP} paq.`,
       });
     } catch (err) {
-      if (err instanceof WaitAbortedError || signal.aborted) {
+      if (isAbortError(err, signal)) {
         await setItem(i, { status: STATUS.SKIPPED, step: 'cancelled' });
         break;
       }
-      const reason = err?.message || String(err);
+      const reason = toMessage(err);
       log.error(`Detalle ${i + 1} falló`, err);
       await setItem(i, { status: STATUS.ERROR, step: 'error', reason });
       await appendLog({ level: 'error', message: `Detalle ${i + 1} (orden ${item.ordernumber}): ${reason}` });

@@ -1,5 +1,6 @@
 import { install } from '../shared/debug/index.js';
 import { logger } from '../shared/utils/logger.js';
+import { installGlobalErrorCapture } from '../shared/diagnostics/index.js';
 import * as colocarTags from '../features/colocar-tags/content/index.js';
 import * as leadTimes   from '../features/lead-times/content/index.js';
 import * as cupones     from '../features/cupones/content/index.js';
@@ -23,6 +24,7 @@ const log = logger('content');
 const version = chrome?.runtime?.getManifest?.()?.version;
 
 install({ version, context: 'content' });
+installGlobalErrorCapture('content');
 colocarTags.init();
 leadTimes.init();
 cupones.init();
