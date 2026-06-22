@@ -1,5 +1,5 @@
 # EXT LGE CL
-
+UTILIZA ESPAÑOL NEUTRAL, NADA DE ACENTOS.
 Extensión Chrome + Edge (Chromium, Manifest V3). Modular, escalable, segura.
 
 ## Stack
