@@ -1687,6 +1687,25 @@ mark {
 /* Sello de última revisión */
 .lg-dest-stamp { font-size: 10px; color: var(--text-subtle); margin: var(--space-2) 0 0; }
 
+/* Progreso en vivo */
+.lg-dest-progress { margin: var(--space-3) 0 var(--space-2); }
+.lg-dest-progress-top { display: flex; align-items: center; font-size: 12px; font-weight: 600; color: var(--text); margin-bottom: 6px; }
+.lg-dest-progress-top span { display: inline-flex; align-items: center; gap: 6px; }
+.lg-dest-spin { width: 11px; height: 11px; border-width: 1.5px; flex-shrink: 0; }
+.lg-dest-bar {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--surface-3);
+  overflow: hidden;
+}
+.lg-dest-bar span {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  border-radius: 999px;
+  transition: width var(--transition);
+}
+
 /* Resumen */
 .lg-dest-summary { display: flex; flex-wrap: wrap; gap: 6px; margin: var(--space-3) 0 var(--space-2); }
 .lg-dest-chip {
@@ -1709,6 +1728,8 @@ mark {
   background: var(--surface-2);
   padding: 8px 10px;
 }
+.lg-dest-page--pending      { border-left-color: var(--border-strong); opacity: 0.7; }
+.lg-dest-page--checking     { border-left-color: var(--accent); }
 .lg-dest-page--ok           { border-left-color: var(--success); }
 .lg-dest-page--issues       { border-left-color: var(--danger); }
 .lg-dest-page--no-spotlight { border-left-color: var(--text-subtle); }
@@ -1723,6 +1744,8 @@ mark {
 .lg-dest-status--bad   { background: var(--danger-bg);  color: var(--danger); }
 .lg-dest-status--other { background: var(--surface-3);  color: var(--text-subtle); }
 .lg-dest-status--err   { background: var(--accent-soft); color: var(--warning); }
+.lg-dest-status--pending  { background: var(--surface-3); color: var(--text-subtle); }
+.lg-dest-status--checking { background: var(--accent-soft); color: var(--accent); display: inline-flex; align-items: center; gap: 5px; }
 
 .lg-dest-note { font-size: 11px; color: var(--text-subtle); margin: 6px 0 0; }
 .lg-dest-note--ok  { color: var(--success); }

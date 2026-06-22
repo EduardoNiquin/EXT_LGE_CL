@@ -9,7 +9,7 @@ export const STORAGE_KEYS = {
   SECTION:         `${FEATURE_ID}:section`,          // sección activa (info-web/destacados)
   DESTACADOS_TAB:  `${FEATURE_ID}:destacados-tab`,   // sub-tab de Destacados (review/config)
   DESTACADOS_AUTO: `${FEATURE_ID}:destacados-auto`,  // config revisión automática {enabled,intervalMinutes}
-  DESTACADOS_LAST: `${FEATURE_ID}:destacados-last`,  // último resultado {ranAt,trigger,results}
+  DESTACADOS_RUN:  `${FEATURE_ID}:destacados-run`,   // estado de la corrida (live + último) {active,total,items,...}
   SCREEN:          `${FEATURE_ID}:screen`,           // pantalla activa (pdp/plp/pbp)
   AUTO_FOLLOW:     `${FEATURE_ID}:auto-follow`,      // bool: seguir la pantalla actual
   FONT_SCALE:      `${FEATURE_ID}:font-scale`,       // índice de tamaño de texto
@@ -154,8 +154,11 @@ export const STOCK_STATUS = {
   OUT_OF_STOCK: 'OUT_OF_STOCK',
 };
 
-// Estado de una página revisada.
+// Estado de una página revisada. PENDING/CHECKING son transitorios (progreso);
+// el resto son terminales.
 export const PAGE_STATUS = {
+  PENDING:      'pending',      // en cola, todavía no revisada
+  CHECKING:     'checking',     // revisándose en este momento
   OK:           'ok',           // todos los destacados con tag y stock
   ISSUES:       'issues',       // hay destacados sin tag o sin stock
   NO_SPOTLIGHT: 'no-spotlight', // la página no tiene recuadro de destacados
@@ -175,6 +178,8 @@ export const PRODUCT_ISSUE = {
 export const DESTACADOS_RENDER_TIMEOUT = 18000; // ms a esperar a que el spotlight renderice en la pestaña
 export const DESTACADOS_SETTLE_MS = 1200;       // ms extra tras detectar el spotlight (stock/tags asíncronos)
 export const DESTACADOS_TAB_TIMEOUT = 30000;    // ms tope por página (carga + render + parseo)
+// Cuántas pestañas de fondo se revisan EN PARALELO (acelera vs una por una).
+export const DESTACADOS_POOL = 3;
 
 // Revisión automática: corre en segundo plano mientras haya una pestaña de
 // www.lg.com abierta (el content script la maneja con un tick basado en el

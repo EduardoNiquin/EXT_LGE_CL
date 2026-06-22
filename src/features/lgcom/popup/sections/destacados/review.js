@@ -1,12 +1,11 @@
 // "Revisión" de Revisar Destacados.
 //
-// Pide al content script (pestaña de www.lg.com) que revise el recuadro de
-// destacados de cada categoría configurada y reporta, por página, qué productos
-// quedaron sin tag o sin stock — y qué páginas están todas bien.
-//
-// El último resultado (manual o de la revisión automática de fondo) se guarda
-// en storage, así que al abrir el popup se muestra lo último revisado y se
-// actualiza en vivo cuando la revisión automática corre en una pestaña.
+// El service worker hace el trabajo (abre pestañas de fondo EN PARALELO, lee el
+// DOM renderizado) y persiste el progreso en STORAGE_KEYS.DESTACADOS_RUN. Esta
+// vista solo refleja ese estado: total, cuántas faltan, qué página se está
+// revisando ahora y los resultados por página/producto. Como lee de storage y
+// escucha storage.onChanged, el estado sobrevive a cambiar de tab o cerrar el
+// popup: al volver, muestra la corrida tal cual va.
 
 import {
   DESTACADOS_URLS,
@@ -30,9 +29,9 @@ export function render(container) {
   renderShell(container);
   installStorageListener();
 
-  getStorage(STORAGE_KEYS.DESTACADOS_LAST).then((last) => {
+  getStorage(STORAGE_KEYS.DESTACADOS_RUN).then((run) => {
     if (containerRef !== container) return;
-    if (last?.results) renderResults(container, last);
+    if (run?.items) renderRun(container, run);
   });
 }
 
@@ -44,7 +43,7 @@ function renderShell(container) {
         <p class="lt-hint">
           Revisa las ${DESTACADOS_URLS.length} categorías configuradas y marca los
           productos destacados que estén <strong>sin tag</strong> o <strong>sin stock</strong>.
-          La extensión abre cada categoría en una pestaña de fondo para leerla; no
+          Abre cada categoría en una pestaña de fondo (varias a la vez); no
           necesita que tenga www.lg.com abierto.
         </p>
         <div class="lt-actions">
@@ -57,116 +56,130 @@ function renderShell(container) {
   container.querySelector('#lg-dest-run')?.addEventListener('click', () => runReview(container));
 }
 
-// Actualiza la vista en vivo cuando la revisión automática (u otra pestaña)
-// guarda un nuevo resultado.
+// Mantiene la vista al día con el progreso que escribe el service worker.
 function installStorageListener() {
   if (storageListener) return;
   storageListener = (changes, area) => {
     if (area !== 'local') return;
-    const change = changes[STORAGE_KEYS.DESTACADOS_LAST];
+    const change = changes[STORAGE_KEYS.DESTACADOS_RUN];
     if (!change || !containerRef?.isConnected) return;
-    if (change.newValue?.results) renderResults(containerRef, change.newValue);
+    if (change.newValue?.items) renderRun(containerRef, change.newValue);
   };
   try { chrome.storage.onChanged.addListener(storageListener); } catch { /* noop */ }
 }
 
 async function runReview(container) {
-  const btn = container.querySelector('#lg-dest-run');
-  const results = container.querySelector('#lg-dest-results');
-  if (btn) { btn.disabled = true; btn.textContent = 'Revisando…'; }
-  results.innerHTML = `
-    <div class="ct-state">
-      <span class="ct-spinner"></span>
-      <p>Revisando ${DESTACADOS_URLS.length} categorías…</p>
-      <p class="ct-state-hint">Se abre cada categoría en una pestaña de fondo; puede tardar un poco.</p>
-    </div>`;
-
+  // El SW arranca y persiste el estado; la UI se actualiza por storage.onChanged.
   try {
-    // El service worker hace el trabajo (abre pestañas de fondo y lee el DOM
-    // renderizado) y guarda el resultado en storage; igual usamos la respuesta
-    // directa para refrescar al toque.
-    const res = await chrome.runtime.sendMessage({ type: MESSAGES.RUN_DESTACADOS });
-    if (!res?.ok) throw new Error(res?.reason || 'No se pudo revisar.');
-    if (res.last) renderResults(container, res.last);
+    await chrome.runtime.sendMessage({ type: MESSAGES.RUN_DESTACADOS });
   } catch (err) {
-    log.error('destacados: revisión fallida', new Error(toMessage(err)));
-    renderError(results, err);
-  } finally {
-    if (btn) { btn.disabled = false; btn.textContent = 'Revisar de nuevo'; }
+    log.error('destacados: no se pudo iniciar', new Error(toMessage(err)));
+    const results = container.querySelector('#lg-dest-results');
+    if (results) {
+      results.innerHTML = `
+        <div class="ct-state ct-state--warn">
+          <p>No se pudo iniciar la revisión.</p>
+          <p class="ct-state-hint">${escapeHtml(toMessage(err))}</p>
+        </div>`;
+    }
   }
 }
 
-function renderError(results, err) {
-  results.innerHTML = `
-    <div class="ct-state ct-state--warn">
-      <p>No se pudo revisar.</p>
-      <p class="ct-state-hint">Intente de nuevo en unos segundos.</p>
-      <p class="ct-state-hint">${escapeHtml(toMessage(err))}</p>
-    </div>`;
-}
-
 // -----------------------------------------------------------------------------
-// render de resultados
+// render del estado de la corrida
 // -----------------------------------------------------------------------------
 
-function renderResults(container, last) {
+function renderRun(container, run) {
   const results = container.querySelector('#lg-dest-results');
+  const btn = container.querySelector('#lg-dest-run');
   if (!results) return;
-  const pages = last.results || [];
 
-  if (!pages.length) {
+  const items = run.items || [];
+  const active = Boolean(run.active);
+
+  // Botón: deshabilitado mientras corre.
+  if (btn) {
+    btn.disabled = active;
+    btn.textContent = active ? 'Revisando…' : 'Revisar de nuevo';
+  }
+
+  if (!items.length) {
     results.innerHTML = `<p class="ct-empty">No hay categorías configuradas.</p>`;
     return;
   }
 
-  const okCount = pages.filter((p) => p.status === PAGE_STATUS.OK).length;
-  const issueCount = pages.filter((p) => p.status === PAGE_STATUS.ISSUES).length;
-  const otherCount = pages.length - okCount - issueCount;
+  const done = run.doneCount ?? items.filter((it) => isTerminal(it.status)).length;
+  const total = run.total ?? items.length;
+  const okCount = items.filter((it) => it.status === PAGE_STATUS.OK).length;
+  const issueCount = items.filter((it) => it.status === PAGE_STATUS.ISSUES).length;
+  const otherCount = items.filter((it) =>
+    it.status === PAGE_STATUS.NO_SPOTLIGHT || it.status === PAGE_STATUS.ERROR).length;
 
-  // Páginas con problemas primero (lo importante), luego OK, luego el resto.
-  const order = { [PAGE_STATUS.ISSUES]: 0, [PAGE_STATUS.OK]: 1, [PAGE_STATUS.NO_SPOTLIGHT]: 2, [PAGE_STATUS.ERROR]: 3 };
-  const sorted = [...pages].sort((a, b) => (order[a.status] ?? 9) - (order[b.status] ?? 9));
+  const pct = total ? Math.round((done / total) * 100) : 0;
 
-  const stamp = last.ranAt
-    ? `Última revisión: ${formatTime(last.ranAt)} (${last.trigger === 'auto' ? 'automática' : 'manual'})`
-    : '';
+  const head = active
+    ? `
+      <div class="lg-dest-progress">
+        <div class="lg-dest-progress-top">
+          <span><span class="ct-spinner lg-dest-spin"></span>Revisando ${done}/${total} categorías…</span>
+        </div>
+        <div class="lg-dest-bar"><span style="width:${pct}%"></span></div>
+      </div>`
+    : `
+      ${run.finishedAt ? `<p class="lg-dest-stamp">Última revisión: ${escapeHtml(formatTime(run.finishedAt))} (${run.trigger === 'auto' ? 'automática' : 'manual'})</p>` : ''}
+      <div class="lg-dest-summary">
+        <span class="lg-dest-chip lg-dest-chip--ok">${okCount} OK</span>
+        <span class="lg-dest-chip lg-dest-chip--bad">${issueCount} con problemas</span>
+        ${otherCount ? `<span class="lg-dest-chip lg-dest-chip--other">${otherCount} sin datos</span>` : ''}
+      </div>`;
 
   results.innerHTML = `
-    ${stamp ? `<p class="lg-dest-stamp">${escapeHtml(stamp)}</p>` : ''}
-    <div class="lg-dest-summary">
-      <span class="lg-dest-chip lg-dest-chip--ok">${okCount} OK</span>
-      <span class="lg-dest-chip lg-dest-chip--bad">${issueCount} con problemas</span>
-      ${otherCount ? `<span class="lg-dest-chip lg-dest-chip--other">${otherCount} sin datos</span>` : ''}
-    </div>
+    ${head}
     <ul class="lg-dest-pages">
-      ${sorted.map(renderPage).join('')}
+      ${items.map(renderItem).join('')}
     </ul>`;
 }
 
-function renderPage(page) {
-  const title = escapeHtml(page.label || page.url);
-  const linkUrl = escapeHtml(page.url);
+function isTerminal(status) {
+  return status === PAGE_STATUS.OK || status === PAGE_STATUS.ISSUES ||
+    status === PAGE_STATUS.NO_SPOTLIGHT || status === PAGE_STATUS.ERROR;
+}
+
+function renderItem(item) {
+  const title = escapeHtml(item.label || item.url);
+  const linkUrl = escapeHtml(item.url);
 
   let badge;
-  let body;
+  let body = '';
 
-  if (page.status === PAGE_STATUS.OK) {
-    badge = `<span class="lg-dest-status lg-dest-status--ok">Todo bien</span>`;
-    body = `<p class="lg-dest-note lg-dest-note--ok">Los ${page.spotlightCount} destacados tienen tag y stock.</p>`;
-  } else if (page.status === PAGE_STATUS.ISSUES) {
-    const bad = page.products.filter((p) => p.issues.length);
-    badge = `<span class="lg-dest-status lg-dest-status--bad">${bad.length} con problemas</span>`;
-    body = `<ul class="lg-dest-prods">${bad.map(renderProduct).join('')}</ul>`;
-  } else if (page.status === PAGE_STATUS.NO_SPOTLIGHT) {
-    badge = `<span class="lg-dest-status lg-dest-status--other">Sin destacados</span>`;
-    body = `<p class="lg-dest-note">No se encontró el recuadro de destacados en esta página.</p>`;
-  } else {
-    badge = `<span class="lg-dest-status lg-dest-status--err">Error</span>`;
-    body = `<p class="lg-dest-note lg-dest-note--err">${escapeHtml(page.error || 'No se pudo leer la página.')}</p>`;
+  switch (item.status) {
+    case PAGE_STATUS.PENDING:
+      badge = `<span class="lg-dest-status lg-dest-status--pending">En cola</span>`;
+      break;
+    case PAGE_STATUS.CHECKING:
+      badge = `<span class="lg-dest-status lg-dest-status--checking"><span class="ct-spinner lg-dest-spin"></span>Revisando…</span>`;
+      break;
+    case PAGE_STATUS.OK:
+      badge = `<span class="lg-dest-status lg-dest-status--ok">Todo bien</span>`;
+      body = `<p class="lg-dest-note lg-dest-note--ok">Los ${item.spotlightCount} destacados tienen tag y stock.</p>`;
+      break;
+    case PAGE_STATUS.ISSUES: {
+      const bad = (item.products || []).filter((p) => p.issues?.length);
+      badge = `<span class="lg-dest-status lg-dest-status--bad">${bad.length} con problemas</span>`;
+      body = `<ul class="lg-dest-prods">${bad.map(renderProduct).join('')}</ul>`;
+      break;
+    }
+    case PAGE_STATUS.NO_SPOTLIGHT:
+      badge = `<span class="lg-dest-status lg-dest-status--other">Sin destacados</span>`;
+      body = `<p class="lg-dest-note">No se encontró el recuadro de destacados en esta página.</p>`;
+      break;
+    default: // ERROR
+      badge = `<span class="lg-dest-status lg-dest-status--err">Error</span>`;
+      body = `<p class="lg-dest-note lg-dest-note--err">${escapeHtml(item.error || 'No se pudo leer la página.')}</p>`;
   }
 
   return `
-    <li class="lg-dest-page lg-dest-page--${page.status}">
+    <li class="lg-dest-page lg-dest-page--${item.status}">
       <div class="lg-dest-page-head">
         <a class="lg-dest-page-title" href="${linkUrl}" target="_blank" rel="noopener" title="${linkUrl}">${title}</a>
         ${badge}
@@ -178,7 +191,7 @@ function renderPage(page) {
 function renderProduct(p) {
   const name = escapeHtml(p.modelName || p.sku || 'Producto');
   const sku = p.sku ? `<span class="lg-dest-prod-sku">${escapeHtml(p.sku)}</span>` : '';
-  const flags = p.issues.map((i) => {
+  const flags = (p.issues || []).map((i) => {
     if (i === PRODUCT_ISSUE.NO_TAG) return `<span class="lg-dest-flag lg-dest-flag--tag">Sin tag</span>`;
     if (i === PRODUCT_ISSUE.NO_STOCK) return `<span class="lg-dest-flag lg-dest-flag--stock">Sin stock</span>`;
     return '';
