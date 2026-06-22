@@ -219,21 +219,56 @@ Si Windows SmartScreen bloquea Install.cmd:
 `;
 fs.writeFileSync(path.join(outDir, 'README.txt'), readme);
 
-// Crear ZIP con PowerShell Compress-Archive (sin dependencias)
+// Crear ZIP sin dependencias npm. Algunos equipos corporativos tienen roto el
+// módulo Microsoft.PowerShell.Archive (Compress-Archive no carga), así que
+// intentamos varias estrategias en orden de robustez:
+//   1. .NET System.IO.Compression.ZipFile (no depende de ningún módulo de PS).
+//   2. tar.exe (libarchive, incluido en Windows 10 1803+; .zip por extensión).
+//   3. Compress-Archive importando el módulo explícitamente (último recurso).
 const zipPath = path.join(buildDir, `EXT_LGE_CL-installer-${version}.zip`);
 fs.rmSync(zipPath, { force: true });
-try {
-  execFileSync(
-    'powershell.exe',
-    [
-      '-NoProfile',
-      '-Command',
-      `Compress-Archive -Path '${outDir}\\*' -DestinationPath '${zipPath}' -Force`,
-    ],
-    { stdio: 'inherit' },
-  );
-} catch (err) {
-  console.error('[installer] Compress-Archive failed:', err.message);
+
+// Comillas simples de PowerShell: escapar ' → ''.
+const psq = (s) => s.replace(/'/g, "''");
+
+const strategies = [
+  {
+    name: '.NET ZipFile',
+    run: () => execFileSync('powershell.exe', [
+      '-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command',
+      `Add-Type -AssemblyName System.IO.Compression.FileSystem -ErrorAction SilentlyContinue; ` +
+      `[System.IO.Compression.ZipFile]::CreateFromDirectory('${psq(outDir)}','${psq(zipPath)}')`,
+    ], { stdio: 'inherit' }),
+  },
+  {
+    name: 'tar.exe',
+    run: () => execFileSync('tar.exe', ['-a', '-c', '-f', zipPath, '-C', outDir, '.'], { stdio: 'inherit' }),
+  },
+  {
+    name: 'Compress-Archive',
+    run: () => execFileSync('powershell.exe', [
+      '-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command',
+      `Import-Module Microsoft.PowerShell.Archive -ErrorAction SilentlyContinue; ` +
+      `Compress-Archive -Path '${psq(outDir)}\\*' -DestinationPath '${psq(zipPath)}' -Force`,
+    ], { stdio: 'inherit' }),
+  },
+];
+
+let zipped = false;
+const failures = [];
+for (const s of strategies) {
+  try {
+    s.run();
+    if (fs.existsSync(zipPath)) { console.log(`[installer] ZIP creado con ${s.name}`); zipped = true; break; }
+    failures.push(`${s.name}: no generó el archivo`);
+  } catch (err) {
+    failures.push(`${s.name}: ${err.message.split('\n')[0]}`);
+  }
+}
+
+if (!zipped) {
+  console.error('[installer] no se pudo crear el ZIP. Intentos:');
+  for (const f of failures) console.error(`  - ${f}`);
   process.exit(1);
 }
 
