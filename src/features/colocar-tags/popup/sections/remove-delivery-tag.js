@@ -75,7 +75,7 @@ export async function render(container) {
 function collect(container) {
   const skus = parseSkus(container.querySelector('#dr-skus').value);
   const skipProd = container.querySelector('#dr-skip-prod').checked;
-  if (skus.length === 0) { alert('Ingresá al menos un SKU.'); return null; }
+  if (skus.length === 0) { alert('Ingrese al menos un SKU.'); return null; }
   return { config: { skipProd }, skus, message: `Quitar Delivery — ${skus.length} SKU(s)` };
 }
 

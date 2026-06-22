@@ -109,10 +109,10 @@ function collect(container) {
   const endTime   = container.querySelector('#dt-end-time').value;
   const skipProd  = container.querySelector('#dt-skip-prod').checked;
 
-  if (skus.length === 0) { alert('Ingresá al menos un SKU.'); return null; }
-  if (!tagLabel) { alert('Especificá el Delivery Tag.'); return null; }
-  if (!beginDay || !endDay) { alert('Completá fecha de inicio y fin.'); return null; }
-  if (!beginTime || !endTime) { alert('Completá hora de inicio y fin.'); return null; }
+  if (skus.length === 0) { alert('Ingrese al menos un SKU.'); return null; }
+  if (!tagLabel) { alert('Especifique el Delivery Tag.'); return null; }
+  if (!beginDay || !endDay) { alert('Complete fecha de inicio y fin.'); return null; }
+  if (!beginTime || !endTime) { alert('Complete hora de inicio y fin.'); return null; }
 
   const config = {
     tagLabel,

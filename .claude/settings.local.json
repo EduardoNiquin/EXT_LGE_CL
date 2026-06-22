@@ -17,7 +17,8 @@
       "PowerShell(npm run *)",
       "Bash(wc -l \"C:\\\\Users\\\\eniquin\\\\Desktop\\\\Proyectos\\\\LG\\\\EXT_LGE_CL\\\\Pedida.md\")",
       "Bash(powershell -NoProfile -Command \"\\(Get-Content 'C:\\\\Users\\\\eniquin\\\\Desktop\\\\Proyectos\\\\LG\\\\EXT_LGE_CL\\\\Pedida.md' | Measure-Object -Line\\).Lines\")",
-      "PowerShell(node scripts/build-installer.mjs)"
+      "PowerShell(node scripts/build-installer.mjs)",
+      "Bash(grep -n \"Debug \\\\`__extLgeCl.lgcom\" CLAUDE.md)"
     ]
   }
 }

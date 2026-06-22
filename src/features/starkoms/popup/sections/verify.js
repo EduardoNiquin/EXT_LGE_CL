@@ -33,7 +33,7 @@ export async function render(container) {
         <p class="lt-hint">
           Detecta las órdenes <strong>"On Hold (Fuera de Stock)"</strong> en Starkoms, asigna stock
           al producto en la bodega indicada cuando falta y cambia el estado del pedido a "Ingresado".
-          Abrí <strong>app.starkoms.com</strong> logueado antes de iniciar.
+          Abra <strong>app.starkoms.com</strong> con sesión iniciada antes de comenzar.
         </p>
 
         <div class="dt-field">
@@ -99,7 +99,7 @@ function readForm(container) {
 async function onStart(container) {
   const cfg = readForm(container);
 
-  if (!cfg.bodega) { alert('Ingresá el nombre de la bodega.'); return; }
+  if (!cfg.bodega) { alert('Ingrese el nombre de la bodega.'); return; }
   if (!Number.isFinite(cfg.stockValue) || cfg.stockValue <= 0) {
     alert('El stock a asignar debe ser un número mayor a 0.');
     return;

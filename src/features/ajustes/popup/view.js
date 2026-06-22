@@ -36,7 +36,7 @@ export function render(container) {
       <section class="aj-card">
         <header class="aj-card-head">
           <h3 class="aj-card-title">Apariencia</h3>
-          <p class="aj-card-desc">Elegí el tema de la interfaz. "Sistema" sigue la preferencia del sistema operativo.</p>
+          <p class="aj-card-desc">Elija el tema de la interfaz. "Sistema" sigue la preferencia del sistema operativo.</p>
         </header>
         <div class="aj-theme-seg" id="aj-theme-seg" role="radiogroup" aria-label="Tema">
           ${THEME_OPTIONS.map((o) => `
@@ -75,7 +75,7 @@ export function render(container) {
       <section class="aj-card">
         <header class="aj-card-head">
           <h3 class="aj-card-title">Logs por módulo</h3>
-          <p class="aj-card-desc">Habilitá o deshabilitá el output de consola por scope. Cambios se aplican al instante y persisten entre sesiones.</p>
+          <p class="aj-card-desc">Habilite o deshabilite el output de consola por scope. Los cambios se aplican al instante y persisten entre sesiones.</p>
         </header>
 
         <div class="aj-toolbar">
@@ -85,7 +85,7 @@ export function render(container) {
 
         <ul class="aj-scope-list" id="aj-scope-list" role="list"></ul>
 
-        <p class="aj-card-foot">Tip: hacé <code>__extLgeCl.log.setLevel('debug')</code> en consola para ver más detalle dentro de cada scope.</p>
+        <p class="aj-card-foot">Tip: ejecute <code>__extLgeCl.log.setLevel('debug')</code> en consola para ver más detalle dentro de cada scope.</p>
       </section>
     </div>
   `;

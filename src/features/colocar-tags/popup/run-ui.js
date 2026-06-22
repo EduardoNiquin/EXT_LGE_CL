@@ -183,7 +183,7 @@ function titleFor(run) {
 async function startRun({ kind, config, skus, message }) {
   const current = await getRun();
   if (current?.active) {
-    alert('Ya hay un proceso en curso. Esperá a que termine o cancelalo.');
+    alert('Ya hay un proceso en curso. Espere a que termine o cancélelo.');
     return false;
   }
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -234,13 +234,13 @@ async function finalizeNotDetected() {
     active: false,
     finishedAt: Date.now(),
     finishReason: 'not-detected',
-    errorReason: 'Ninguna pestaña respondió. Abrí GP1 (Marketing Info Mapping) en la pestaña activa y reintentá.',
+    errorReason: 'Ninguna pestaña respondió. Abra GP1 (Marketing Info Mapping) en la pestaña activa y reintente.',
   }));
   alert(
     'No se detectó la pantalla "Marketing Info Mapping" en la pestaña activa.\n\n' +
     'Posibles causas:\n' +
     '• La pestaña activa no es la de GP1/MIM.\n' +
-    '• El content script no cargó (recargá la pestaña de GP1).',
+    '• El content script no cargó (recargue la pestaña de GP1).',
   );
 }
 

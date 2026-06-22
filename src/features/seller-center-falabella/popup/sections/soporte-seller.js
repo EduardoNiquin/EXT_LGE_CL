@@ -39,9 +39,9 @@ export async function render(container) {
         <h3 class="lt-section-title">SoporteSeller — Detalle Orden</h3>
         <p class="lt-hint">
           Completa automáticamente los <strong>"Detalle Orden"</strong> en la página de Soporte del
-          Seller Center. Abrí la página y configurá los campos hasta que el formulario
-          "Detalle Orden" sea visible; recién entonces presioná <strong>Iniciar</strong>.
-          La extensión sólo completa los campos: revisá y guardá manualmente en el sitio.
+          Seller Center. Abra la página y configure los campos hasta que el formulario
+          "Detalle Orden" sea visible; recién entonces presione <strong>Iniciar</strong>.
+          La extensión sólo completa los campos: revise y guarde manualmente en el sitio.
         </p>
 
         <div class="scf-mode-row" role="tablist">
@@ -234,7 +234,7 @@ function updateStartButton(container) {
 async function onStart(container) {
   const detalles = ui.result?.detalles || [];
   if (detalles.length === 0) {
-    alert('No hay "Detalle Orden" para cargar. Revisá el CSV.');
+    alert('No hay "Detalle Orden" para cargar. Revise el CSV.');
     return;
   }
 

@@ -53,7 +53,7 @@ export const features = [
     name: 'LG.com',
     description: 'Información y utilidades sobre www.lg.com',
     abbr: 'LG',
-    keywords: ['lg', 'lg.com', 'producto', 'pdp', 'graphql', 'precio', 'info', 'web'],
+    keywords: ['lg', 'lg.com', 'producto', 'pdp', 'graphql', 'precio', 'info', 'web', 'destacados', 'spotlight', 'tag', 'stock', 'categoria', 'categoría'],
     render: renderLgcom,
   },
   {

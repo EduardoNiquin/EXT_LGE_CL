@@ -1663,3 +1663,77 @@ mark {
 .scf-table tbody tr:last-child td { border-bottom: none; }
 
 .scf-errors summary { color: var(--warning); font-weight: 600; }
+
+/* ===========================================================================
+   LG.com — Revisar Destacados
+   =========================================================================== */
+.lg-section-tabs, .lg-dest-tabs { margin-bottom: var(--space-3); }
+
+/* Configuración: lista de categorías */
+.lg-dest-cfg-list { list-style: none; margin: var(--space-2) 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.lg-dest-cfg-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+}
+.lg-dest-cfg-label { font-size: 12px; font-weight: 600; color: var(--text); }
+.lg-dest-cfg-url { font-size: 11px; color: var(--text-subtle); word-break: break-all; text-decoration: none; }
+.lg-dest-cfg-url:hover { color: var(--accent); text-decoration: underline; }
+
+/* Sello de última revisión */
+.lg-dest-stamp { font-size: 10px; color: var(--text-subtle); margin: var(--space-2) 0 0; }
+
+/* Resumen */
+.lg-dest-summary { display: flex; flex-wrap: wrap; gap: 6px; margin: var(--space-3) 0 var(--space-2); }
+.lg-dest-chip {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 9px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+}
+.lg-dest-chip--ok    { background: var(--success-bg); color: var(--success); border-color: var(--success-border); }
+.lg-dest-chip--bad   { background: var(--danger-bg);  color: var(--danger);  border-color: var(--danger-border); }
+.lg-dest-chip--other { background: var(--surface-3);  color: var(--text-subtle); border-color: var(--border); }
+
+/* Páginas */
+.lg-dest-pages { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-2); }
+.lg-dest-page {
+  border: 1px solid var(--border);
+  border-left-width: 3px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  padding: 8px 10px;
+}
+.lg-dest-page--ok           { border-left-color: var(--success); }
+.lg-dest-page--issues       { border-left-color: var(--danger); }
+.lg-dest-page--no-spotlight { border-left-color: var(--text-subtle); }
+.lg-dest-page--error        { border-left-color: var(--warning); }
+
+.lg-dest-page-head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); }
+.lg-dest-page-title { font-size: 12px; font-weight: 600; color: var(--text); text-decoration: none; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lg-dest-page-title:hover { color: var(--accent); text-decoration: underline; }
+
+.lg-dest-status { flex-shrink: 0; font-size: 10px; font-weight: 700; padding: 3px 7px; border-radius: 999px; white-space: nowrap; }
+.lg-dest-status--ok    { background: var(--success-bg); color: var(--success); }
+.lg-dest-status--bad   { background: var(--danger-bg);  color: var(--danger); }
+.lg-dest-status--other { background: var(--surface-3);  color: var(--text-subtle); }
+.lg-dest-status--err   { background: var(--accent-soft); color: var(--warning); }
+
+.lg-dest-note { font-size: 11px; color: var(--text-subtle); margin: 6px 0 0; }
+.lg-dest-note--ok  { color: var(--success); }
+.lg-dest-note--err { color: var(--warning); }
+
+/* Productos con problemas */
+.lg-dest-prods { list-style: none; margin: 6px 0 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.lg-dest-prod { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); }
+.lg-dest-prod-name { font-size: 11px; color: var(--text); min-width: 0; }
+.lg-dest-prod-sku { color: var(--text-subtle); font-weight: 600; }
+.lg-dest-flags { display: inline-flex; gap: 4px; flex-shrink: 0; }
+.lg-dest-flag { font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 999px; white-space: nowrap; }
+.lg-dest-flag--tag   { background: var(--accent-soft); color: var(--accent); }
+.lg-dest-flag--stock { background: var(--danger-bg);   color: var(--danger); }

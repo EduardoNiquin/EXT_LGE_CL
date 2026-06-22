@@ -47,7 +47,7 @@ export async function render(container) {
     <div class="lt-view lg-view oi-view">
       <section class="lt-form-card oi-search-card">
         <h3 class="lt-section-title">Información de Orden</h3>
-        <p class="lt-hint">Buscá una orden por su número (Magento) o abrí una orden para ver su detalle.</p>
+        <p class="lt-hint">Busque una orden por su número (Magento) o abra una orden para ver su detalle.</p>
         <div class="oi-search-row">
           <div class="search-wrapper oi-search-input">
             <svg class="search-icon" viewBox="0 0 20 20" fill="none" aria-hidden="true">
@@ -85,7 +85,7 @@ async function onSearch(container) {
   const input = container.querySelector('#oi-query');
   const orderNumber = String(input.value || '').trim();
   if (!orderNumber) {
-    showMsg(container, 'Ingresá un número de orden.', 'warn');
+    showMsg(container, 'Ingrese un número de orden.', 'warn');
     return;
   }
 
@@ -111,7 +111,7 @@ async function onSearch(container) {
     }
   } catch (err) {
     log.warn('no se pudo navegar la pestaña', err);
-    showMsg(container, 'No se pudo navegar a Magento. Abrí el admin e intentá de nuevo.', 'warn');
+    showMsg(container, 'No se pudo navegar a Magento. Abra el admin e intente de nuevo.', 'warn');
     return;
   }
 
@@ -202,11 +202,11 @@ function renderIdle(container, tab, res) {
   const isMagento = /\/(obsadm|admin)\//i.test(tab?.url || '') || /\/sales\/order\//i.test(tab?.url || '');
   let msg;
   if (res && !res.ok && res.diag?.page === 'listing') {
-    msg = 'Estás en el listado de órdenes. Buscá una orden arriba o hacé click en una fila.';
+    msg = 'Está en el listado de órdenes. Busque una orden arriba o haga click en una fila.';
   } else if (isMagento) {
-    msg = 'Abrí el detalle de una orden en Magento para ver su información, o usá el buscador.';
+    msg = 'Abra el detalle de una orden en Magento para ver su información, o use el buscador.';
   } else {
-    msg = 'Abrí Magento (admin de órdenes) en esta pestaña para usar esta función.';
+    msg = 'Abra Magento (admin de órdenes) en esta pestaña para usar esta función.';
   }
   body.innerHTML = `
     <section class="lt-form-card">

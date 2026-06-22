@@ -50,7 +50,7 @@ export async function render(container) {
         <textarea id="of-skus" rows="3" class="dt-input dt-textarea" placeholder="OLED65B5PSA.AWH&#10;OLED55C5PSA.AWH">${escapeHtml(cfg.skus ?? '')}</textarea>
       </label>
 
-      <p class="dt-hint">Activá las ofertas que querés aplicar (1 a 4).</p>
+      <p class="dt-hint">Active las ofertas que desea aplicar (1 a 4).</p>
       <div id="of-cards" class="pt-tags"></div>
 
       <label class="dt-check">
@@ -174,10 +174,10 @@ function collect(container, offers) {
   const skus = parseSkus(container.querySelector('#of-skus').value);
   const skipProd = container.querySelector('#of-skip-prod').checked;
 
-  if (skus.length === 0) { alert('Ingresá al menos un SKU.'); return null; }
+  if (skus.length === 0) { alert('Ingrese al menos un SKU.'); return null; }
 
   const enabled = offers.filter((o) => o.enabled);
-  if (enabled.length === 0) { alert('Activá al menos una oferta.'); return null; }
+  if (enabled.length === 0) { alert('Active al menos una oferta.'); return null; }
 
   const cleaned = enabled.map((o) => ({
     index:       o.index,
@@ -189,10 +189,10 @@ function collect(container, offers) {
   }));
   for (const o of cleaned) {
     if (o.use) {
-      if (!o.description) { alert(`Oferta ${o.label}: completá la descripción.`); return null; }
-      if (!o.startDate || !o.endDate) { alert(`Oferta ${o.label}: completá Start y End Date.`); return null; }
+      if (!o.description) { alert(`Oferta ${o.label}: complete la descripción.`); return null; }
+      if (!o.startDate || !o.endDate) { alert(`Oferta ${o.label}: complete Start y End Date.`); return null; }
     } else if ((o.startDate && !o.endDate) || (!o.startDate && o.endDate)) {
-      alert(`Oferta ${o.label}: completá ambas fechas o ninguna.`); return null;
+      alert(`Oferta ${o.label}: complete ambas fechas o ninguna.`); return null;
     }
     if (o.startDate && o.endDate && o.startDate > o.endDate) {
       alert(`Oferta ${o.label}: Start Date es posterior a End Date.`); return null;

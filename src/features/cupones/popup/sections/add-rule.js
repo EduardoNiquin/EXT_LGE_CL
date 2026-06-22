@@ -143,15 +143,15 @@ async function onStart(container) {
   const queries = parseQueries(cfg.rawQueries);
 
   if (queries.length === 0) {
-    alert('Ingresá al menos un cupón.');
+    alert('Ingrese al menos un cupón.');
     return;
   }
   if (!cfg.attributeLabel) {
-    alert('Indicá el atributo de la condición (ej: "Level1 Code").');
+    alert('Indique el atributo de la condición (ej: "Level1 Code").');
     return;
   }
   if (!cfg.value.trim()) {
-    alert('Indicá el valor de la condición (ej: "MN").');
+    alert('Indique el valor de la condición (ej: "MN").');
     return;
   }
   if (cfg.searchBy === SEARCH_BY.ID) {

@@ -15,7 +15,7 @@ function handleMessage(message, _sender, sendResponse) {
   if (message?.type !== MESSAGES.GET_PAGE_DATA) return false;
 
   const detected = isSupportSellerPage();
-  if (!detected && window !== window.top) return false; // dejá responder a otro frame
+  if (!detected && window !== window.top) return false; // deja responder a otro frame
 
   try {
     sendResponse({ ok: true, detected, sections: parseSections(), diag: diagnose() });

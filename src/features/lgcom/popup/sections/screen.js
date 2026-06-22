@@ -177,8 +177,8 @@ function renderEmpty(container, tab) {
         <h3 class="lt-section-title">${escapeHtml(currentScreen.label)}</h3>
         <p class="lt-hint">
           ${isLg
-            ? `No se captó información de ${escapeHtml(currentScreen.label)} en esta pestaña. Navegá/recargá la pantalla correspondiente en www.lg.com.`
-            : 'Esta pestaña no es www.lg.com. Abrí www.lg.com para ver su información.'}
+            ? `No se captó información de ${escapeHtml(currentScreen.label)} en esta pestaña. Navegue o recargue la pantalla correspondiente en www.lg.com.`
+            : 'Esta pestaña no es www.lg.com. Abra www.lg.com para ver su información.'}
         </p>
         <div class="lt-actions">
           <button type="button" id="lg-refresh" class="ct-btn ct-btn--primary">Actualizar</button>

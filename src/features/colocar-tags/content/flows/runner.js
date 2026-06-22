@@ -263,7 +263,7 @@ function scheduleClaimWatchdog() {
       log.warn('ningún frame detectó MIM — finalizando run');
       await appendLog({
         level: 'error',
-        message: 'No se detectó la pantalla "Marketing Info Mapping" en esta pestaña. Abrí GP1/MIM y reintentá.',
+        message: 'No se detectó la pantalla "Marketing Info Mapping" en esta pestaña. Abra GP1/MIM y reintente.',
       });
       await updateRun((x) => ({
         ...x,

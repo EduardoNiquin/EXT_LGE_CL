@@ -181,7 +181,7 @@ async function ensureStoreView() {
   const wrap = findPurchasePointMultiselect();
   if (!wrap) {
     log.warn(`No se encontró el multiselect "${PURCHASE_POINT_LABEL}". ` +
-      'Si la búsqueda falla, seleccioná el Purchase Point manualmente.');
+      'Si la búsqueda falla, seleccione el Purchase Point manualmente.');
     return;
   }
 

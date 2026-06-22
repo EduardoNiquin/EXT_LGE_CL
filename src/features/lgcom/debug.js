@@ -1,7 +1,8 @@
 import { cmd, register } from '../../shared/debug/index.js';
-import { LGCOM_HOST_RE } from './constants.js';
+import { DESTACADOS_URLS, LGCOM_HOST_RE } from './constants.js';
 import * as store from './content/capture-store.js';
 import { extract } from './content/extractors/index.js';
+import { checkUrls, parseSpotlight } from './content/destacados/check.js';
 
 register('lgcom', {
   diagnose: cmd(
@@ -45,5 +46,13 @@ register('lgcom', {
   clear: cmd(
     () => { store.clear(); return 'ok'; },
     'Vacía el store de capturas en memoria',
+  ),
+  destacados: cmd(
+    () => parseSpotlight(document),
+    'Parsea el recuadro de destacados de la página ACTUAL (tags/stock por producto)',
+  ),
+  checkDestacados: cmd(
+    (urls) => checkUrls(Array.isArray(urls) ? urls : DESTACADOS_URLS),
+    'Revisa los destacados de las URLs configuradas (o de las pasadas): checkDestacados()',
   ),
 });

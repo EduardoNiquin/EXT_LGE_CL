@@ -39,7 +39,7 @@ export async function render(container) {
     <div class="lt-view">
       <section class="lt-form-card">
         <h3 class="lt-section-title">Regiones a procesar</h3>
-        <p class="lt-hint">Ingresá el nombre exacto (o parcial) que aparece en "Address Level 1". Los lead times se aplican a cada comuna de la región.</p>
+        <p class="lt-hint">Ingrese el nombre exacto (o parcial) que aparece en "Address Level 1". Los lead times se aplican a cada comuna de la región.</p>
 
         <div id="lt-queue-list" class="lt-queue-list"></div>
 
@@ -191,7 +191,7 @@ async function onStart(container) {
     .filter((r) => r.regionName);
 
   if (cleaned.length === 0) {
-    alert('Agregá al menos una región.');
+    alert('Agregue al menos una región.');
     return;
   }
   for (const r of cleaned) {

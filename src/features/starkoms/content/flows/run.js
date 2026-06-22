@@ -248,7 +248,7 @@ function scheduleClaimWatchdog() {
     if (r && r.active && !r.claimed) {
       await appendLog({
         level: 'error',
-        message: 'No es una pestaña de Starkoms (app.starkoms.com). Abrí Starkoms logueado y reintentá.',
+        message: 'No es una pestaña de Starkoms (app.starkoms.com). Abra Starkoms con sesión iniciada y reintente.',
       });
       await updateRun((x) => ({
         ...x,

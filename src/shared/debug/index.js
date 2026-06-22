@@ -83,7 +83,7 @@ function createLogControl() {
   return {
     setLevel(level) {
       if (!LOG_LEVELS.includes(level)) {
-        console.warn(`[EXT_LGE_CL][debug] nivel inválido. Usá uno de: ${LOG_LEVELS.join(', ')}`);
+        console.warn(`[EXT_LGE_CL][debug] nivel inválido. Use uno de: ${LOG_LEVELS.join(', ')}`);
         return;
       }
       try { localStorage.setItem(LOG_LEVEL_KEY, level); } catch { /* no-op */ }

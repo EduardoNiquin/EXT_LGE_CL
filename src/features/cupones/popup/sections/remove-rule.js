@@ -107,7 +107,7 @@ async function onStart(container) {
   const queries = parseQueries(rawQueries);
 
   if (queries.length === 0) {
-    alert('Ingresá al menos un cupón.');
+    alert('Ingrese al menos un cupón.');
     return;
   }
 

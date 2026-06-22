@@ -6,10 +6,26 @@ export const BRIDGE_SOURCE = 'ext-lge-cl/graphql';
 
 // Preferencias de UI del popup (persistidas en chrome.storage.local).
 export const STORAGE_KEYS = {
-  SCREEN:      `${FEATURE_ID}:screen`,       // pantalla activa (pdp/plp/pbp)
-  AUTO_FOLLOW: `${FEATURE_ID}:auto-follow`,  // bool: seguir la pantalla actual
-  FONT_SCALE:  `${FEATURE_ID}:font-scale`,   // índice de tamaño de texto
+  SECTION:         `${FEATURE_ID}:section`,          // sección activa (info-web/destacados)
+  DESTACADOS_TAB:  `${FEATURE_ID}:destacados-tab`,   // sub-tab de Destacados (review/config)
+  DESTACADOS_AUTO: `${FEATURE_ID}:destacados-auto`,  // config revisión automática {enabled,intervalMinutes}
+  DESTACADOS_LAST: `${FEATURE_ID}:destacados-last`,  // último resultado {ranAt,trigger,results}
+  SCREEN:          `${FEATURE_ID}:screen`,           // pantalla activa (pdp/plp/pbp)
+  AUTO_FOLLOW:     `${FEATURE_ID}:auto-follow`,      // bool: seguir la pantalla actual
+  FONT_SCALE:      `${FEATURE_ID}:font-scale`,       // índice de tamaño de texto
 };
+
+// Secciones de nivel superior de la feature LG.com.
+export const SECTIONS = [
+  { id: 'info-web',   label: 'Información web' },   // PDP / PLP / PBP (captura GraphQL)
+  { id: 'destacados', label: 'Revisar Destacados' },
+];
+
+// Sub-tabs internos de "Revisar Destacados".
+export const DESTACADOS_TABS = [
+  { id: 'review', label: 'Revisión' },
+  { id: 'config', label: 'Configuración' },
+];
 
 // Pantallas (sub-opciones de la feature). Cada una agrupa las operaciones
 // GraphQL/REST que le corresponden; el selector interno deja elegir entre ellas.
@@ -51,8 +67,9 @@ export const FONT_SIZES = [11, 12.5, 14, 16, 18];
 
 // Mensajes one-shot popup ↔ content (chrome.tabs.sendMessage).
 export const MESSAGES = {
-  GET_CAPTURES:  `${FEATURE_ID}:get-captures`,   // → { ok, captures:[{operationName,ts,url,variables}] }
-  GET_OPERATION: `${FEATURE_ID}:get-operation`,  // { operationName } → { ok, operationName, ts, variables, response }
+  GET_CAPTURES:      `${FEATURE_ID}:get-captures`,   // → { ok, captures:[{operationName,ts,url,variables}] }
+  GET_OPERATION:     `${FEATURE_ID}:get-operation`,  // { operationName } → { ok, operationName, ts, variables, response }
+  CHECK_SPOTLIGHTS:  `${FEATURE_ID}:check-spotlights`, // { urls:[{label,url}] } → { ok, results:[PageResult] }
 };
 
 // Hosts donde la feature tiene sentido.
@@ -96,3 +113,63 @@ export const OPERATIONS = {
 // Cuántas capturas retenemos por operación (la última suele bastar, pero
 // guardamos algunas por si la PDP refetchea).
 export const CAPTURE_CAP = 5;
+
+// -----------------------------------------------------------------------------
+// Revisar Destacados
+// -----------------------------------------------------------------------------
+//
+// Páginas de categoría a revisar. Los "destacados" son los 3 productos del
+// recuadro de spotlight: deben tener tag y ser comprables (stock). Como la
+// extensión se reinstala seguido y un panel de configuración persistente se
+// perdería, las URLs van EN DURO acá (ver Pedida.md, punto 1). Editar esta
+// lista para agregar/quitar categorías a vigilar.
+export const DESTACADOS_URLS = [
+  { label: 'TVs y Soundbars',     url: 'https://www.lg.com/cl/tvs-y-soundbars/todos-los-tvs-y-soundbars/' },
+  { label: 'Refrigeradores',      url: 'https://www.lg.com/cl/refrigeradores/todos-los-refrigeradores/' },
+  { label: 'Lavadoras',           url: 'https://www.lg.com/cl/lavadoras/todas-las-lavadoras/' },
+  { label: 'Monitores',           url: 'https://www.lg.com/cl/monitores/todos-los-monitores/' },
+  { label: 'Aire acondicionado',  url: 'https://www.lg.com/cl/aire-acondicionado/todos-los-aires-acondicionados/' },
+];
+
+// Selectores para detectar los destacados dentro de una página de categoría.
+export const DESTACADOS_SELECTORS = {
+  spotlight:    '.c-result-area__spotlight',          // recuadro de destacados
+  item:         '.spotlight-list li.c-product-list__item', // una caja de producto
+  itemFallback: '.spotlight-list > li',
+  tagBox:       '.neo-tag--box',                      // contenedor de tags (vacío = sin tag)
+  skuButton:    '.btn-copy[data-sku]',
+  skuText:      '.c-product-item__sku',
+  modelName:    '.neo-card--ufn h3',
+  link:         '.neo-card--ufn a[href]',
+  stockControl: '[data-shop-stock-status]',           // botón "Comprar ahora" / "Avísame…"
+};
+
+// Estado de stock leído del data-attribute del botón de compra.
+export const STOCK_STATUS = {
+  IN_STOCK:     'IN_STOCK',
+  OUT_OF_STOCK: 'OUT_OF_STOCK',
+};
+
+// Estado de una página revisada.
+export const PAGE_STATUS = {
+  OK:           'ok',           // todos los destacados con tag y stock
+  ISSUES:       'issues',       // hay destacados sin tag o sin stock
+  NO_SPOTLIGHT: 'no-spotlight', // la página no tiene recuadro de destacados
+  ERROR:        'error',        // no se pudo leer la página
+};
+
+// Problemas posibles de un producto destacado.
+export const PRODUCT_ISSUE = {
+  NO_TAG:   'sin-tag',
+  NO_STOCK: 'sin-stock',
+};
+
+// Timeout por página al revisar destacados (ms).
+export const DESTACADOS_FETCH_TIMEOUT = 12000;
+
+// Revisión automática: corre en segundo plano mientras haya una pestaña de
+// www.lg.com abierta (el content script la maneja con un tick basado en el
+// último run guardado, robusto ante navegaciones dentro de lg.com).
+export const DESTACADOS_AUTO_DEFAULT = { enabled: false, intervalMinutes: 30 };
+export const DESTACADOS_AUTO_MIN_MINUTES = 5;
+export const DESTACADOS_AUTO_MAX_MINUTES = 1440; // 24 h

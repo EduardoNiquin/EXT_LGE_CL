@@ -7,6 +7,8 @@ import {
   PROXY_URL_RE,
 } from '../constants.js';
 import * as store from './capture-store.js';
+import { checkUrls } from './destacados/check.js';
+import { initAuto } from './destacados/auto.js';
 
 const log = logger('lgcom');
 
@@ -58,6 +60,15 @@ function handleMessage(message, _sender, sendResponse) {
     });
     return true;
   }
+  if (message?.type === MESSAGES.CHECK_SPOTLIGHTS) {
+    const urls = Array.isArray(message.urls) ? message.urls : [];
+    // Respuesta asíncrona: fetch+parse de cada categoría (mismo origen lg.com).
+    checkUrls(urls).then(
+      (results) => sendResponse({ ok: true, results }),
+      (err) => sendResponse({ ok: false, reason: String(err?.message || err) }),
+    );
+    return true; // mantenemos el canal abierto para la respuesta async
+  }
   return false;
 }
 
@@ -73,6 +84,9 @@ export function init() {
   log.info('lgcom init', { url: location.href });
   window.addEventListener('message', onWindowMessage);
   chrome.runtime.onMessage.addListener(handleMessage);
+
+  // Revisión automática de destacados en segundo plano (si está habilitada).
+  initAuto();
 }
 
 // Reexport para debug.js

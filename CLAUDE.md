@@ -317,7 +317,10 @@ src/features/starkoms/
 ---
 
 ## Feature: LG.com
-Sitio público **www.lg.com** (a diferencia del resto, que opera sobre GP1/Magento admin). Sub-pantallas: **PDP**, **PLP**, **PBP**. `popup/view.js` es el router: barra de tabs PDP/PLP/PBP + switch **Auto** (persistido). Cada pantalla (`SCREENS` en constants) agrupa sus operaciones y se renderiza con `popup/sections/screen.js` (genérico, parametrizado por la pantalla).
+Sitio público **www.lg.com** (a diferencia del resto, que opera sobre GP1/Magento admin). **Router de 2 niveles:** `popup/view.js` es el router de nivel superior con dos secciones (`SECTIONS`, persistido en `STORAGE_KEYS.SECTION`): **Información web** (`popup/sections/info-web.js`) y **Revisar Destacados** (`popup/sections/destacados/index.js`). Sección activa por defecto: Información web.
+
+### Información web (PDP / PLP / PBP)
+Sub-pantallas: **PDP**, **PLP**, **PBP**. `sections/info-web.js` es el sub-router: barra de tabs PDP/PLP/PBP + switch **Auto** (persistido). Cada pantalla (`SCREENS` en constants) agrupa sus operaciones y se renderiza con `popup/sections/screen.js` (genérico, parametrizado por la pantalla).
 
 **Switch "Auto" (auto-seguir pantalla):** cuando está on, la pantalla mostrada sigue a la pantalla en que está el usuario — detecta la pantalla "dueña" de la captura más reciente vía `screenForCapture(capture)` y reacciona a cambios de pestaña/ventana (`chrome.tabs.onActivated/onUpdated` + `windows.onFocusChanged`) + un timer cada 1.5s (cubre navegación same-tab). Off: queda en la pantalla elegida manualmente. Persistido en `STORAGE_KEYS.SCREEN` + `AUTO_FOLLOW`.
 
@@ -342,7 +345,17 @@ Todos formatean CLP/%/sí-no, omiten campos/grupos vacíos, defensivos ante null
 
 **Debug `__extLgeCl.lgcom.`:** `diagnose()` (host/bridge/operaciones), `captures()`, `operation(name)`, `raw(name)`, `pbp()` (grupos de la última PDP), `extract(name)` (grupos de cualquier operación con extractor), `clear()`.
 **Sumar una operación:** crear `content/extractors/<op>.js` (función pura → grupos), registrarla en `extractors/index.js` y agregar metadata en `OPERATIONS` (constants). El popup la muestra sola.
-**Pendientes:** sin persistencia entre reloads; no distingue múltiples tabs lg.com.
+
+### Revisar Destacados (`popup/sections/destacados/`)
+Vigila el recuadro de **destacados** (`.c-result-area__spotlight`, 3 productos puestos a mano) de las páginas de categoría: cada destacado debe tener **tag** y **stock**. Sub-router (`index.js`) con 2 tabs (`DESTACADOS_TABS`, persistido en `STORAGE_KEYS.DESTACADOS_TAB`): **Revisión** (`review.js`) y **Configuración** (`config.js`).
+- **URLs en duro:** las categorías a revisar viven en `constants.js → DESTACADOS_URLS` (`[{label,url}]`), NO en un panel persistente (se perderían al reinstalar; ver Pedida.md). La tab Configuración las muestra read-only. **⚠️ Editar `DESTACADOS_URLS` con las URLs reales de las categorías.**
+- **Detección sin navegar (`content/destacados/check.js`):** el content vive en una pestaña lg.com → hace `fetch` **mismo-origen** de cada URL (con la sesión del usuario) y parsea el HTML con `DOMParser` (sin ejecutar scripts). Por producto (`.spotlight-list li.c-product-list__item`): `sku` (`.btn-copy[data-sku]`/`.c-product-item__sku`), `modelName` (`.neo-card--ufn h3`), **hasTag** = `.neo-tag--box` tiene spans, **hasStock** = el control de compra `[data-shop-stock-status]` == `IN_STOCK` (OUT_OF_STOCK o sin control ⇒ sin stock). `checkUrl` nunca lanza (devuelve `status:'error'`); `checkUrls` itera secuencial con timeout por página (`DESTACADOS_FETCH_TIMEOUT`).
+- **Mensaje one-shot** `lgcom:check-spotlights` `{urls}` → `{ok, results:[PageResult]}` (`PAGE_STATUS`: ok/issues/no-spotlight/error; `PRODUCT_ISSUE`: sin-tag/sin-stock). La revisión REQUIERE una pestaña abierta en www.lg.com (si no, el popup muestra guía). El popup ordena issues→ok→otros, resume con chips y lista por página los productos con problema.
+- **Resultado persistido (`STORAGE_KEYS.DESTACADOS_LAST`):** `{ranAt,trigger:'manual'|'auto',results}`. Lo escribe tanto el run manual del popup como la revisión automática. El popup carga lo último al abrir y se actualiza en vivo vía `storage.onChanged` (sello "Última revisión: HH:MM (manual/automática)").
+- **Revisión automática de fondo (`content/destacados/auto.js`):** config en `STORAGE_KEYS.DESTACADOS_AUTO` `{enabled,intervalMinutes}` (la tab Configuración la edita; `DESTACADOS_AUTO_DEFAULT`/MIN 5/MAX 1440 min). Corre dentro del content script de una pestaña lg.com (NO en el service worker: necesita `DOMParser`, ausente en SW). Patrón tick basado en `DESTACADOS_LAST.ranAt`: en cada init/cambio recalcula `dueIn = ranAt + intervalo - now` y agenda `setTimeout` → robusto ante navegaciones dentro de lg.com (no reinicia el reloj). Guard anti-duplicado entre tabs: re-lee `DESTACADOS_LAST` antes de correr y omite si otro tab revisó dentro del intervalo. Best-effort: si no hay pestaña lg.com abierta, no corre.
+
+**Debug `__extLgeCl.lgcom.`:** además de las de captura — `destacados()` (parsea el spotlight de la página ACTUAL), `checkDestacados(urls?)` (revisa las URLs configuradas o las pasadas).
+**Pendientes:** editor persistente de `DESTACADOS_URLS` pendiente; la auto-revisión sin ninguna pestaña lg.com abierta no corre (haría falta service worker + offscreen document para `DOMParser` tabless); el stock se infiere del HTML server-rendered (si LG lo hidrata client-side habría que pasar a navegar la pestaña).
 
 ---
 

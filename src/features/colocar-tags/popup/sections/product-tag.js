@@ -220,7 +220,7 @@ function collect(container, tags) {
   const skus     = parseSkus(container.querySelector('#pt-skus').value);
   const skipProd = container.querySelector('#pt-skip-prod').checked;
 
-  if (skus.length === 0) { alert('Ingresá al menos un SKU.'); return null; }
+  if (skus.length === 0) { alert('Ingrese al menos un SKU.'); return null; }
 
   const cleanedTags = tags.map((t) => ({
     category:  String(t.category || '').trim(),
@@ -235,12 +235,12 @@ function collect(container, tags) {
   for (let i = 0; i < cleanedTags.length; i++) {
     const t = cleanedTags[i];
     const n = i + 1;
-    if (!t.category) { alert(`Tag ${n}: elegí una categoría.`); return null; }
-    if (!t.group)    { alert(`Tag ${n}: completá el grupo.`); return null; }
-    if (!t.tag)      { alert(`Tag ${n}: completá el tag.`); return null; }
-    if (!t.type)     { alert(`Tag ${n}: elegí un type.`); return null; }
-    if (!t.beginDay || !t.endDay)   { alert(`Tag ${n}: completá las fechas.`); return null; }
-    if (!t.beginTime || !t.endTime) { alert(`Tag ${n}: completá las horas.`); return null; }
+    if (!t.category) { alert(`Tag ${n}: elija una categoría.`); return null; }
+    if (!t.group)    { alert(`Tag ${n}: complete el grupo.`); return null; }
+    if (!t.tag)      { alert(`Tag ${n}: complete el tag.`); return null; }
+    if (!t.type)     { alert(`Tag ${n}: elija un type.`); return null; }
+    if (!t.beginDay || !t.endDay)   { alert(`Tag ${n}: complete las fechas.`); return null; }
+    if (!t.beginTime || !t.endTime) { alert(`Tag ${n}: complete las horas.`); return null; }
   }
 
   const config = { tags: cleanedTags, skipProd, userType: 'ALL' };

@@ -178,7 +178,7 @@ export const MERCADOPAGO_STATUS = {
 // MercadoPago — status_detail (motivos más comunes).
 export const MERCADOPAGO_STATUS_DETAIL = {
   accredited:                          'Acreditado (pago aprobado)',
-  pending_contingency:                 'En procesamiento — esperá unos minutos',
+  pending_contingency:                 'En procesamiento — espere unos minutos',
   pending_review_manual:               'En revisión manual',
   pending_waiting_payment:             'Esperando el pago del cliente',
   pending_waiting_transfer:            'Esperando la transferencia del cliente',

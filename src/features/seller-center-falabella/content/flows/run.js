@@ -180,7 +180,7 @@ function scheduleClaimWatchdog() {
     if (r && r.active && !r.claimed) {
       await appendLog({
         level: 'error',
-        message: 'No se detectó el formulario "Detalle Orden" en la pestaña activa. Abrí la página de Soporte y esperá a que aparezca antes de Iniciar.',
+        message: 'No se detectó el formulario "Detalle Orden" en la pestaña activa. Abra la página de Soporte y espere a que aparezca antes de Iniciar.',
       });
       await updateRun((x) => ({
         ...x,
