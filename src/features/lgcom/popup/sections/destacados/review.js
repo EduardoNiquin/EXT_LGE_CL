@@ -15,8 +15,7 @@ import {
   PRODUCT_ISSUE,
   STORAGE_KEYS,
 } from '../../../constants.js';
-import { sendMessageToActiveTab } from '../../../../../shared/messaging/messaging.js';
-import { getStorage, setStorage } from '../../../../../shared/storage/storage.js';
+import { getStorage } from '../../../../../shared/storage/storage.js';
 import { toMessage } from '../../../../../shared/errors/index.js';
 import { logger } from '../../../../../shared/utils/logger.js';
 import { escapeHtml, formatTime } from '../../utils.js';
@@ -45,7 +44,8 @@ function renderShell(container) {
         <p class="lt-hint">
           Revisa las ${DESTACADOS_URLS.length} categorías configuradas y marca los
           productos destacados que estén <strong>sin tag</strong> o <strong>sin stock</strong>.
-          Abra una pestaña de www.lg.com para poder revisar.
+          La extensión abre cada categoría en una pestaña de fondo para leerla; no
+          necesita que tenga www.lg.com abierto.
         </p>
         <div class="lt-actions">
           <button type="button" id="lg-dest-run" class="ct-btn ct-btn--primary">Revisar ahora</button>
@@ -78,17 +78,16 @@ async function runReview(container) {
     <div class="ct-state">
       <span class="ct-spinner"></span>
       <p>Revisando ${DESTACADOS_URLS.length} categorías…</p>
+      <p class="ct-state-hint">Se abre cada categoría en una pestaña de fondo; puede tardar un poco.</p>
     </div>`;
 
   try {
-    const res = await sendMessageToActiveTab({
-      type: MESSAGES.CHECK_SPOTLIGHTS,
-      urls: DESTACADOS_URLS,
-    });
+    // El service worker hace el trabajo (abre pestañas de fondo y lee el DOM
+    // renderizado) y guarda el resultado en storage; igual usamos la respuesta
+    // directa para refrescar al toque.
+    const res = await chrome.runtime.sendMessage({ type: MESSAGES.RUN_DESTACADOS });
     if (!res?.ok) throw new Error(res?.reason || 'No se pudo revisar.');
-    const last = { ranAt: Date.now(), trigger: 'manual', results: res.results || [] };
-    await setStorage(STORAGE_KEYS.DESTACADOS_LAST, last);
-    renderResults(container, last);
+    if (res.last) renderResults(container, res.last);
   } catch (err) {
     log.error('destacados: revisión fallida', new Error(toMessage(err)));
     renderError(results, err);
@@ -101,9 +100,7 @@ function renderError(results, err) {
   results.innerHTML = `
     <div class="ct-state ct-state--warn">
       <p>No se pudo revisar.</p>
-      <p class="ct-state-hint">
-        Abra una pestaña de <strong>www.lg.com</strong> y vuelva a intentar.
-      </p>
+      <p class="ct-state-hint">Intente de nuevo en unos segundos.</p>
       <p class="ct-state-hint">${escapeHtml(toMessage(err))}</p>
     </div>`;
 }

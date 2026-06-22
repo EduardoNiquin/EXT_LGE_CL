@@ -67,10 +67,14 @@ export const FONT_SIZES = [11, 12.5, 14, 16, 18];
 
 // Mensajes one-shot popup ↔ content (chrome.tabs.sendMessage).
 export const MESSAGES = {
-  GET_CAPTURES:      `${FEATURE_ID}:get-captures`,   // → { ok, captures:[{operationName,ts,url,variables}] }
-  GET_OPERATION:     `${FEATURE_ID}:get-operation`,  // { operationName } → { ok, operationName, ts, variables, response }
-  CHECK_SPOTLIGHTS:  `${FEATURE_ID}:check-spotlights`, // { urls:[{label,url}] } → { ok, results:[PageResult] }
+  GET_CAPTURES:    `${FEATURE_ID}:get-captures`,     // → { ok, captures:[{operationName,ts,url,variables}] }
+  GET_OPERATION:   `${FEATURE_ID}:get-operation`,    // { operationName } → { ok, operationName, ts, variables, response }
+  RUN_DESTACADOS:  `${FEATURE_ID}:run-destacados`,   // popup → service worker: dispara una revisión. → { ok }
+  PARSE_SPOTLIGHT: `${FEATURE_ID}:parse-spotlight`,  // SW → content (pestaña de fondo): { expectPath } → { ok, ready, hasSpotlight, products }
 };
+
+// Nombre de la alarma de revisión automática (chrome.alarms, lo maneja el SW).
+export const DESTACADOS_ALARM = `${FEATURE_ID}:destacados-auto`;
 
 // Hosts donde la feature tiene sentido.
 export const LGCOM_HOST_RE = /(^|\.)lg\.com$/i;
@@ -164,8 +168,13 @@ export const PRODUCT_ISSUE = {
   NO_STOCK: 'sin-stock',
 };
 
-// Timeout por página al revisar destacados (ms).
-export const DESTACADOS_FETCH_TIMEOUT = 12000;
+// La página de categoría usa AEM: el recuadro de destacados lo inyecta el JS
+// en el cliente (no viene en el HTML crudo). Por eso la revisión NO hace fetch
+// del HTML, sino que abre la URL en una pestaña de fondo, deja que el navegador
+// la renderice y lee el DOM vivo.
+export const DESTACADOS_RENDER_TIMEOUT = 18000; // ms a esperar a que el spotlight renderice en la pestaña
+export const DESTACADOS_SETTLE_MS = 1200;       // ms extra tras detectar el spotlight (stock/tags asíncronos)
+export const DESTACADOS_TAB_TIMEOUT = 30000;    // ms tope por página (carga + render + parseo)
 
 // Revisión automática: corre en segundo plano mientras haya una pestaña de
 // www.lg.com abierta (el content script la maneja con un tick basado en el

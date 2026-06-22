@@ -1,26 +1,23 @@
-// Revisión de "Destacados" de las páginas de categoría de www.lg.com.
+// Lectura de los "Destacados" de una página de categoría de www.lg.com.
 //
 // El recuadro de spotlight (`.c-result-area__spotlight`) lista 3 productos que
 // deben tener TAG y ser comprables (con STOCK). Como van puestos a mano, puede
-// pasar que queden sin tag o se agoten. Acá detectamos eso por página.
+// pasar que queden sin tag o se agoten.
 //
-// Estrategia: el content script vive en una pestaña de www.lg.com, así que
-// puede hacer `fetch` mismo-origen de cada URL de categoría (con la sesión del
-// usuario) y parsear el HTML devuelto con DOMParser — sin navegar la pestaña ni
-// ejecutar scripts de la página. Los tags y el estado de stock vienen
-// renderizados en el HTML (spans de `.neo-tag--box` y `data-shop-stock-status`).
+// IMPORTANTE: la página usa AEM y el spotlight lo inyecta el JS en el cliente
+// (no esta en el HTML crudo). Por eso NO se hace fetch del HTML: el service
+// worker abre la URL en una pestaña de fondo y este modulo lee el DOM YA
+// renderizado (espera a que el recuadro aparezca antes de parsear).
 
 import {
-  DESTACADOS_FETCH_TIMEOUT,
+  DESTACADOS_RENDER_TIMEOUT,
   DESTACADOS_SELECTORS as S,
-  PAGE_STATUS,
+  DESTACADOS_SETTLE_MS,
   PRODUCT_ISSUE,
   STOCK_STATUS,
 } from '../../constants.js';
-import { ExtError, toMessage } from '../../../../shared/errors/index.js';
-import { logger } from '../../../../shared/utils/logger.js';
-
-const log = logger('lgcom');
+import { sleep, waitForElement } from '../../../../shared/dom/wait.js';
+import { isAbortError } from '../../../../shared/errors/index.js';
 
 // Parsea un <li> de producto destacado → { sku, modelName, tags, hasTag, hasStock, ... }.
 function parseProduct(li) {
@@ -52,7 +49,7 @@ function parseProduct(li) {
   return { sku, modelName, href, tags, hasTag, hasStock, stockStatus, issues };
 }
 
-// Parsea los destacados de un Document ya construido.
+// Parsea los destacados de un Document (o cualquier raíz con querySelector).
 export function parseSpotlight(doc) {
   const spotlight = doc.querySelector(S.spotlight);
   if (!spotlight) return { hasSpotlight: false, products: [] };
@@ -64,55 +61,53 @@ export function parseSpotlight(doc) {
   return { hasSpotlight: true, products };
 }
 
-// Deriva el estado de una página a partir de sus productos.
-function pageStatusFor(hasSpotlight, products) {
-  if (!hasSpotlight) return PAGE_STATUS.NO_SPOTLIGHT;
-  const problemCount = products.filter((p) => p.issues.length).length;
-  return problemCount ? PAGE_STATUS.ISSUES : PAGE_STATUS.OK;
-}
-
-// Revisa UNA URL de categoría. Nunca lanza: devuelve un PageResult con
-// status:'error' si algo falla, para que el batch continúe.
-export async function checkUrl({ label, url }, signal) {
-  const base = { label: label || '', url };
+// Recorre la página de arriba a abajo para disparar cargas diferidas (lazy /
+// IntersectionObserver): el spotlight puede no renderizar en una pestaña de
+// fondo hasta que su sección "entra" al viewport.
+async function nudgeScroll() {
   try {
-    const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), DESTACADOS_FETCH_TIMEOUT);
-    if (signal) signal.addEventListener('abort', () => ctrl.abort(), { once: true });
-
-    let html;
-    try {
-      const res = await fetch(url, { credentials: 'include', signal: ctrl.signal });
-      if (!res.ok) throw new ExtError(`HTTP ${res.status}`, { code: 'DESTACADOS_HTTP' });
-      html = await res.text();
-    } finally {
-      clearTimeout(timer);
+    const step = Math.max(400, window.innerHeight || 800);
+    const height = Math.max(document.body?.scrollHeight || 0, document.documentElement?.scrollHeight || 0);
+    for (let y = 0; y <= height; y += step) {
+      window.scrollTo(0, y);
+      await sleep(120);
     }
-
-    const doc = new DOMParser().parseFromString(html, 'text/html');
-    const { hasSpotlight, products } = parseSpotlight(doc);
-    const status = pageStatusFor(hasSpotlight, products);
-
-    return {
-      ...base,
-      status,
-      hasSpotlight,
-      spotlightCount: products.length,
-      problemCount: products.filter((p) => p.issues.length).length,
-      products,
-    };
-  } catch (err) {
-    log.error('destacados: fallo al revisar página', new Error(toMessage(err)), { url });
-    return { ...base, status: PAGE_STATUS.ERROR, error: toMessage(err), products: [] };
-  }
+    window.scrollTo(0, 0);
+  } catch { /* da igual si falla el scroll */ }
 }
 
-// Revisa una lista de URLs en secuencia. Devuelve un PageResult por URL.
-export async function checkUrls(urls, signal) {
-  const results = [];
-  for (const entry of urls) {
-    if (signal?.aborted) break;
-    results.push(await checkUrl(entry, signal));
+// Espera a que el spotlight renderice en la página ACTUAL y lo parsea. Se usa
+// dentro de la pestaña de fondo que abre el service worker. Mientras espera,
+// hace scroll para forzar el render diferido. Si el recuadro no aparece dentro
+// del timeout, devuelve hasSpotlight:false (la categoría no tiene destacados o
+// no renderizo).
+export async function waitAndParse(signal) {
+  let found = false;
+  // Sweeper de scroll en paralelo, hasta encontrar el spotlight o cancelar.
+  const sweeper = (async () => {
+    while (!found && !signal?.aborted) {
+      await nudgeScroll();
+      await sleep(400);
+    }
+  })();
+
+  try {
+    await waitForElement(`${S.spotlight} ${S.item}`, {
+      timeout: DESTACADOS_RENDER_TIMEOUT,
+      interval: 250,
+      signal,
+    });
+  } catch (err) {
+    found = true;
+    await sweeper.catch(() => {});
+    if (isAbortError(err, signal)) throw err;
+    // Timeout: puede que la categoría realmente no tenga recuadro de destacados.
+    return parseSpotlight(document);
   }
-  return results;
+  found = true;
+  await sweeper.catch(() => {});
+  // El spotlight ya está; damos un respiro para que el stock/tags asíncronos
+  // terminen de poblarse antes de leer.
+  await sleep(DESTACADOS_SETTLE_MS, signal);
+  return parseSpotlight(document);
 }

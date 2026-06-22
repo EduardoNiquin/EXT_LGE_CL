@@ -7,10 +7,15 @@ import {
   PROXY_URL_RE,
 } from '../constants.js';
 import * as store from './capture-store.js';
-import { checkUrls } from './destacados/check.js';
-import { initAuto } from './destacados/auto.js';
+import { waitAndParse } from './destacados/check.js';
+import { toMessage } from '../../../shared/errors/index.js';
 
 const log = logger('lgcom');
+
+// Path esperado (sin barra final) para comparar contra la navegación actual.
+function normalizePath(p) {
+  return String(p || '').replace(/\/+$/, '');
+}
 
 function isLgcomHost() {
   try {
@@ -60,14 +65,20 @@ function handleMessage(message, _sender, sendResponse) {
     });
     return true;
   }
-  if (message?.type === MESSAGES.CHECK_SPOTLIGHTS) {
-    const urls = Array.isArray(message.urls) ? message.urls : [];
-    // Respuesta asíncrona: fetch+parse de cada categoría (mismo origen lg.com).
-    checkUrls(urls).then(
-      (results) => sendResponse({ ok: true, results }),
-      (err) => sendResponse({ ok: false, reason: String(err?.message || err) }),
+  if (message?.type === MESSAGES.PARSE_SPOTLIGHT) {
+    // El service worker abrió esta pestaña en una URL de categoría y pide leer
+    // el spotlight ya renderizado. Verificamos que la navegación ya esté en la
+    // URL esperada (si no, todavía está cargando la anterior → ready:false).
+    const expect = normalizePath(message.expectPath);
+    if (expect && normalizePath(location.pathname) !== expect) {
+      sendResponse({ ok: true, ready: false });
+      return true;
+    }
+    waitAndParse().then(
+      ({ hasSpotlight, products }) => sendResponse({ ok: true, ready: true, hasSpotlight, products }),
+      (err) => sendResponse({ ok: false, reason: toMessage(err) }),
     );
-    return true; // mantenemos el canal abierto para la respuesta async
+    return true; // canal abierto para la respuesta async
   }
   return false;
 }
@@ -84,9 +95,6 @@ export function init() {
   log.info('lgcom init', { url: location.href });
   window.addEventListener('message', onWindowMessage);
   chrome.runtime.onMessage.addListener(handleMessage);
-
-  // Revisión automática de destacados en segundo plano (si está habilitada).
-  initAuto();
 }
 
 // Reexport para debug.js

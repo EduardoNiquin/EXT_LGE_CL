@@ -1,8 +1,8 @@
 import { cmd, register } from '../../shared/debug/index.js';
-import { DESTACADOS_URLS, LGCOM_HOST_RE } from './constants.js';
+import { LGCOM_HOST_RE, MESSAGES } from './constants.js';
 import * as store from './content/capture-store.js';
 import { extract } from './content/extractors/index.js';
-import { checkUrls, parseSpotlight } from './content/destacados/check.js';
+import { parseSpotlight, waitAndParse } from './content/destacados/check.js';
 
 register('lgcom', {
   diagnose: cmd(
@@ -49,10 +49,14 @@ register('lgcom', {
   ),
   destacados: cmd(
     () => parseSpotlight(document),
-    'Parsea el recuadro de destacados de la página ACTUAL (tags/stock por producto)',
+    'Parsea el recuadro de destacados de la página ACTUAL al instante (tags/stock por producto)',
   ),
-  checkDestacados: cmd(
-    (urls) => checkUrls(Array.isArray(urls) ? urls : DESTACADOS_URLS),
-    'Revisa los destacados de las URLs configuradas (o de las pasadas): checkDestacados()',
+  destacadosLive: cmd(
+    () => waitAndParse(),
+    'Espera a que el spotlight renderice en la página ACTUAL y lo parsea',
+  ),
+  runDestacados: cmd(
+    () => chrome.runtime.sendMessage({ type: MESSAGES.RUN_DESTACADOS }),
+    'Dispara la revisión completa en el service worker (abre pestañas de fondo)',
   ),
 });

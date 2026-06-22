@@ -4,8 +4,8 @@
 //   DESTACADOS_URLS), porque un panel persistente se perdería al reinstalar la
 //   extensión (ver Pedida.md, punto 1). Se muestran en modo lectura.
 // - Revisión automática: el usuario la enciende y define cada cuántos minutos
-//   se revisa. Corre en segundo plano mientras haya una pestaña de www.lg.com
-//   abierta (lo maneja el content script; ver content/destacados/auto.js).
+//   se revisa. Corre en segundo plano vía chrome.alarms en el service worker,
+//   que abre cada categoría en una pestaña de fondo (ver background/destacados.js).
 
 import {
   DESTACADOS_AUTO_DEFAULT,
@@ -41,8 +41,8 @@ export async function render(container) {
         <h3 class="lt-section-title">Revisión automática</h3>
         <p class="lt-hint">
           Revisa los destacados en segundo plano cada cierto tiempo, sin abrir el
-          popup. Funciona mientras haya una pestaña de <strong>www.lg.com</strong>
-          abierta; si no hay ninguna, la revisión queda en pausa hasta que abra una.
+          popup. La extensión abre brevemente cada categoría en una pestaña de
+          fondo para leerla; no necesita tener <strong>www.lg.com</strong> abierto.
         </p>
 
         <label class="dt-check">
