@@ -5,6 +5,7 @@ import { render as renderOrdenInfo }   from '../features/orden-info/popup/view.j
 import { render as renderStarkoms }    from '../features/starkoms/popup/view.js';
 import { render as renderLgcom }       from '../features/lgcom/popup/view.js';
 import { render as renderSellerCenterFalabella } from '../features/seller-center-falabella/popup/view.js';
+import { render as renderEpromoters }   from '../features/e-promoters/popup/view.js';
 import { render as renderAjustes }     from '../features/ajustes/popup/view.js';
 
 export const features = [
@@ -63,6 +64,14 @@ export const features = [
     abbr: 'SCF',
     keywords: ['seller', 'sellercenter', 'falabella', 'fallabella', 'soporte', 'soporteseller', 'detalle', 'orden', 'guia', 'guía', 'paquetes', 'csv'],
     render: renderSellerCenterFalabella,
+  },
+  {
+    id: 'e-promoters',
+    name: 'E-promoters',
+    description: 'Informe de ordenes a recuperar (CSV para e-promoters)',
+    abbr: 'EPR',
+    keywords: ['epromoter', 'e-promoter', 'promoter', 'informe', 'orden', 'ordenes', 'recuperar', 'csv', 'api', 'magento', 'cupon', 'reporte'],
+    render: renderEpromoters,
   },
   {
     id: 'ajustes',

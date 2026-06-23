@@ -20,7 +20,11 @@
       "PowerShell(node scripts/build-installer.mjs)",
       "Bash(grep -n \"Debug \\\\`__extLgeCl.lgcom\" CLAUDE.md)",
       "Bash(grep -rn \"DESTACADOS_FETCH_TIMEOUT\\\\|CHECK_SPOTLIGHTS\\\\|checkUrls\\\\|checkUrl\\\\b\\\\|initAuto\\\\|destacados/auto\" src/)",
-      "Bash(echo \"exit: $?\")"
+      "Bash(echo \"exit: $?\")",
+      "Bash(curl -sk --max-time 60 -H \"X-Api-Token: 9f27700e322dc0dcd3413d9c16ba3f737b730897ab553729378a1014279b5e62\" \"https://147.93.176.66/api/magento/orders?from=2026-06-20&to=2026-06-20T23:59:59&format=json&limit=5\")",
+      "Bash(curl -sk --max-time 180 -H \"X-Api-Token: 9f27700e322dc0dcd3413d9c16ba3f737b730897ab553729378a1014279b5e62\" \"https://147.93.176.66/api/magento/orders?from=2026-06-01&to=2026-06-20T23:59:59&format=json&limit=50000\")",
+      "Bash(python -c \"import sys,json,collections; d=json.load\\(sys.stdin\\); c=collections.Counter\\(r.get\\('Status'\\) for r in d['data']\\); print\\('total',d['count']\\); [print\\(f'{n:6d}  {s}'\\) for s,n in c.most_common\\(\\)]\")",
+      "Bash(curl -sk --max-time 180 -H 'X-Api-Token: 9f27700e322dc0dcd3413d9c16ba3f737b730897ab553729378a1014279b5e62' 'https://147.93.176.66/api/magento/orders?from=2026-05-31&to=2026-06-21T23:59:59&format=json&limit=50000' -o C:/Users/eniquin/AppData/Local/Temp/claude/C--Users-eniquin-Desktop-Proyectos-LG-EXT-LGE-CL/b328f15c-350e-41ff-8bb3-082af3182d47/scratchpad/orders.json)"
     ]
   }
 }
