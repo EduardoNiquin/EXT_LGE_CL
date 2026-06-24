@@ -4,20 +4,24 @@
 // de salida + estadisticas para mostrar en la UI.
 
 import {
-  CANCELLED_STATUSES,
   DATE_COLUMN,
-  DEDUPE_KEYS,
+  EMAIL_COLUMN,
   KEEP_STATUSES,
+  NAME_COLUMN,
   OUTPUT_COLUMNS,
   WAREHOUSE_COLUMN,
   WAREHOUSE_KEEP_TOKEN,
 } from '../constants.js';
 
-const CANCELLED_SET = new Set(CANCELLED_STATUSES.map(normStatus));
 const KEEP_SET = new Set(KEEP_STATUSES.map(normStatus));
 
 function normStatus(s) {
   return String(s ?? '').trim().toLowerCase();
+}
+
+/** Normaliza un valor para comparar identidades (email/nombre). */
+function normKey(v) {
+  return String(v ?? '').trim().toLowerCase();
 }
 
 /** Normaliza un encabezado para lookup tolerante (minusculas, espacios colapsados). */
@@ -61,7 +65,9 @@ export function processReport(records, { from, to } = {}) {
     afterDate: 0,
     afterStatus: 0,
     afterWarehouse: 0,
-    removedDuplicates: 0,
+    removedDuplicateNames: 0,
+    removedBoughtLater: 0,
+    removedDuplicateEmails: 0,
     finalRows: 0,
     byStatus: {},
   };
@@ -82,11 +88,26 @@ export function processReport(records, { from, to } = {}) {
   });
   stats.afterDate = byDate.length;
 
-  // 2. Filtro por estado (ordenes a recuperar).
+  // 2. Identidades de clientes con COMPRA EXITOSA. "Exitosa" = cualquier estado
+  //    no vacio que NO sea de fallo (no esta en KEEP_STATUSES). Se calcula sobre
+  //    TODO el dataset en rango (sin importar estado ni almacen): la idea es que
+  //    un cliente que fallo/cancelo pero luego logro comprar NO debe contactarse.
+  const successEmails = new Set();
+  const successNames = new Set();
+  for (const rec of byDate) {
+    const status = normStatus(get(rec, 'Status'));
+    if (!status || KEEP_SET.has(status)) continue; // vacio o fallo -> no es compra
+    const email = normKey(get(rec, EMAIL_COLUMN));
+    const name = normKey(get(rec, NAME_COLUMN));
+    if (email) successEmails.add(email);
+    if (name) successNames.add(name);
+  }
+
+  // 3. Filtro por estado (ordenes a recuperar).
   const byStatus = byDate.filter((rec) => KEEP_SET.has(normStatus(get(rec, 'Status'))));
   stats.afterStatus = byStatus.length;
 
-  // 3. Filtro por "Warehouse Code": solo filas que contengan el token (p.ej.
+  // 4. Filtro por "Warehouse Code": solo filas que contengan el token (p.ej.
   //    "N2U" o "NB9N2U"). Comparacion tolerante a mayusculas.
   const wantToken = String(WAREHOUSE_KEEP_TOKEN).toUpperCase();
   const byWarehouse = byStatus.filter((rec) =>
@@ -94,23 +115,42 @@ export function processReport(records, { from, to } = {}) {
   );
   stats.afterWarehouse = byWarehouse.length;
 
-  // 4. Dedupe de canceladas por (Customer Email + Bill-to Name). Solo entre
-  //    canceladas; las demas se conservan intactas. Se mantiene la 1a ocurrencia.
-  const seen = new Set();
-  const deduped = [];
+  // 5. Dedupe por "Bill-to Name" (se mantiene la 1a ocurrencia). Los nombres
+  //    vacios NO se deduplican (se conservan todos).
+  const seenNames = new Set();
+  const afterNameDedupe = [];
   for (const rec of byWarehouse) {
-    const status = normStatus(get(rec, 'Status'));
-    if (CANCELLED_SET.has(status)) {
-      const key = DEDUPE_KEYS
-        .map((h) => String(get(rec, h) ?? '').trim().toLowerCase())
-        .join('||');
-      if (seen.has(key)) { stats.removedDuplicates++; continue; }
-      seen.add(key);
+    const name = normKey(get(rec, NAME_COLUMN));
+    if (name) {
+      if (seenNames.has(name)) { stats.removedDuplicateNames++; continue; }
+      seenNames.add(name);
+    }
+    afterNameDedupe.push(rec);
+  }
+
+  // 6. Excluir clientes que SI compraron (match por email O por Bill-to Name).
+  const afterSuccess = afterNameDedupe.filter((rec) => {
+    const email = normKey(get(rec, EMAIL_COLUMN));
+    const name = normKey(get(rec, NAME_COLUMN));
+    const bought = (email && successEmails.has(email)) || (name && successNames.has(name));
+    if (bought) { stats.removedBoughtLater++; return false; }
+    return true;
+  });
+
+  // 7. Dedupe por "Customer Email" (se mantiene la 1a ocurrencia). Los emails
+  //    vacios NO se deduplican (se conservan todos).
+  const seenEmails = new Set();
+  const deduped = [];
+  for (const rec of afterSuccess) {
+    const email = normKey(get(rec, EMAIL_COLUMN));
+    if (email) {
+      if (seenEmails.has(email)) { stats.removedDuplicateEmails++; continue; }
+      seenEmails.add(email);
     }
     deduped.push(rec);
   }
 
-  // 5. Recorte a columnas de salida (con encabezados finales pedidos).
+  // 8. Recorte a columnas de salida (con encabezados finales pedidos).
   const out = deduped.map((rec) => {
     const o = {};
     for (const col of OUTPUT_COLUMNS) {

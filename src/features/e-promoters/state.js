@@ -14,7 +14,7 @@
 //     source: 'api'|'csv',
 //     from, to,                 // rango pedido (YYYY-MM-DD)
 //     phase: PHASE.*,           // que esta haciendo ahora
-//     stats?: { totalRows, afterDate, afterStatus, removedDuplicates, finalRows, byStatus },
+//     stats?: { totalRows, afterDate, afterStatus, afterWarehouse, removedDuplicateNames, removedBoughtLater, removedDuplicateEmails, finalRows, byStatus },
 //     result?: { filename, rows, bytes, ready: true },  // metadata; el CSV va en RESULT
 //     log: [{ ts, level, message }],  (cap LOG_CAP)
 //   }

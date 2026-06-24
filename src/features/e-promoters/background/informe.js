@@ -183,7 +183,7 @@ export async function runInforme(payload) {
     await setPhase(PHASE.DEDUPING, { stats });
     await appendLog({
       level: 'info',
-      message: `Filtrado: ${stats.afterDate} en rango → ${stats.afterStatus} por estado → ${stats.afterWarehouse} con Warehouse N2U → ${stats.removedDuplicates} canceladas duplicadas quitadas → ${stats.finalRows} finales`,
+      message: `Filtrado: ${stats.afterDate} en rango → ${stats.afterStatus} por estado → ${stats.afterWarehouse} con Warehouse N2U → -${stats.removedDuplicateNames} nombres duplicados → -${stats.removedBoughtLater} clientes que ya compraron → -${stats.removedDuplicateEmails} emails duplicados → ${stats.finalRows} finales`,
     });
 
     if (!out.length) {

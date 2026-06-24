@@ -70,12 +70,11 @@ export const KEEP_STATUSES = [
   'customer_canceled',
 ];
 
-// Estados que cuentan como "cancelada" para el dedupe (por Customer Email +
-// Bill-to Name, conservando la primera ocurrencia).
-export const CANCELLED_STATUSES = [
-  'canceled',
-  'customer_canceled',
-];
+// Columnas de identidad del cliente. Se usan para:
+//  - excluir a quienes ya lograron comprar (match por email O nombre), y
+//  - el dedupe por "Bill-to Name" y luego por "Customer Email".
+export const NAME_COLUMN = 'Bill-to Name';
+export const EMAIL_COLUMN = 'Customer Email';
 
 // Columna usada para el filtro por rango de fechas. Formato origen:
 // "2026-06-23 09:37:02" (se compara solo la parte de fecha YYYY-MM-DD).
@@ -105,9 +104,6 @@ export const OUTPUT_COLUMNS = [
   { out: 'Qty Ordered',          src: 'Qty Ordered' },
   { out: 'WareHouse Code',       src: 'Warehouse Code' },
 ];
-
-// Claves para identificar duplicados de canceladas.
-export const DEDUPE_KEYS = ['Customer Email', 'Bill-to Name'];
 
 // -----------------------------------------------------------------------------
 // API de ordenes Magento

@@ -339,7 +339,9 @@ function renderStats(container, stats) {
       <li><span>En rango de fechas</span><strong>${stats.afterDate}</strong></li>
       <li><span>Estados a recuperar</span><strong>${stats.afterStatus}</strong></li>
       <li><span>Con Warehouse N2U</span><strong>${stats.afterWarehouse ?? 0}</strong></li>
-      <li><span>Canceladas duplic. quitadas</span><strong>${stats.removedDuplicates}</strong></li>
+      <li><span>Nombres duplic. quitados</span><strong>${stats.removedDuplicateNames ?? 0}</strong></li>
+      <li><span>Ya compraron (excluidos)</span><strong>${stats.removedBoughtLater ?? 0}</strong></li>
+      <li><span>Emails duplic. quitados</span><strong>${stats.removedDuplicateEmails ?? 0}</strong></li>
       <li class="epr-stat-final"><span>Filas finales</span><strong>${stats.finalRows}</strong></li>
     </ul>
     ${statusRows ? `<details class="ct-diag epr-bystatus"><summary>Desglose por estado</summary><ul class="epr-stat-grid">${statusRows}</ul></details>` : ''}
