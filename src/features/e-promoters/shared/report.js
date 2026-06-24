@@ -9,6 +9,8 @@ import {
   DEDUPE_KEYS,
   KEEP_STATUSES,
   OUTPUT_COLUMNS,
+  WAREHOUSE_COLUMN,
+  WAREHOUSE_KEEP_TOKEN,
 } from '../constants.js';
 
 const CANCELLED_SET = new Set(CANCELLED_STATUSES.map(normStatus));
@@ -58,6 +60,7 @@ export function processReport(records, { from, to } = {}) {
     totalRows: input.length,
     afterDate: 0,
     afterStatus: 0,
+    afterWarehouse: 0,
     removedDuplicates: 0,
     finalRows: 0,
     byStatus: {},
@@ -83,11 +86,19 @@ export function processReport(records, { from, to } = {}) {
   const byStatus = byDate.filter((rec) => KEEP_SET.has(normStatus(get(rec, 'Status'))));
   stats.afterStatus = byStatus.length;
 
-  // 3. Dedupe de canceladas por (Customer Email + Bill-to Name). Solo entre
+  // 3. Filtro por "Warehouse Code": solo filas que contengan el token (p.ej.
+  //    "N2U" o "NB9N2U"). Comparacion tolerante a mayusculas.
+  const wantToken = String(WAREHOUSE_KEEP_TOKEN).toUpperCase();
+  const byWarehouse = byStatus.filter((rec) =>
+    String(get(rec, WAREHOUSE_COLUMN) ?? '').toUpperCase().includes(wantToken)
+  );
+  stats.afterWarehouse = byWarehouse.length;
+
+  // 4. Dedupe de canceladas por (Customer Email + Bill-to Name). Solo entre
   //    canceladas; las demas se conservan intactas. Se mantiene la 1a ocurrencia.
   const seen = new Set();
   const deduped = [];
-  for (const rec of byStatus) {
+  for (const rec of byWarehouse) {
     const status = normStatus(get(rec, 'Status'));
     if (CANCELLED_SET.has(status)) {
       const key = DEDUPE_KEYS
@@ -99,7 +110,7 @@ export function processReport(records, { from, to } = {}) {
     deduped.push(rec);
   }
 
-  // 4. Recorte a columnas de salida (con encabezados finales pedidos).
+  // 5. Recorte a columnas de salida (con encabezados finales pedidos).
   const out = deduped.map((rec) => {
     const o = {};
     for (const col of OUTPUT_COLUMNS) {

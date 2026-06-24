@@ -338,6 +338,7 @@ function renderStats(container, stats) {
       <li><span>Filas leidas</span><strong>${stats.totalRows}</strong></li>
       <li><span>En rango de fechas</span><strong>${stats.afterDate}</strong></li>
       <li><span>Estados a recuperar</span><strong>${stats.afterStatus}</strong></li>
+      <li><span>Con Warehouse N2U</span><strong>${stats.afterWarehouse ?? 0}</strong></li>
       <li><span>Canceladas duplic. quitadas</span><strong>${stats.removedDuplicates}</strong></li>
       <li class="epr-stat-final"><span>Filas finales</span><strong>${stats.finalRows}</strong></li>
     </ul>

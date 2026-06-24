@@ -81,6 +81,11 @@ export const CANCELLED_STATUSES = [
 // "2026-06-23 09:37:02" (se compara solo la parte de fecha YYYY-MM-DD).
 export const DATE_COLUMN = 'Local Time';
 
+// Filtro por "Warehouse Code": se CONSERVAN solo las filas cuyo codigo contenga
+// este token (p.ej. "N2U" o "NB9N2U"). Comparacion tolerante a mayusculas.
+export const WAREHOUSE_COLUMN = 'Warehouse Code';
+export const WAREHOUSE_KEEP_TOKEN = 'N2U';
+
 // Columnas del CSV de salida, EN ORDEN. `out` = encabezado final (tal cual lo
 // pidio el usuario); `src` = encabezado en el origen (Magento/API). El lookup en
 // el origen es tolerante a mayusculas/espacios (ver shared/report.js).
