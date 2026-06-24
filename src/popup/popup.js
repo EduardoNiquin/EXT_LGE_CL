@@ -4,6 +4,7 @@ import { installGlobalErrorCapture } from '../shared/diagnostics/index.js';
 import { sendMessageToActiveTab } from '../shared/messaging/messaging.js';
 import { MESSAGES as COLOCAR_TAGS_MSG } from '../features/colocar-tags/constants.js';
 import { initTheme, getThemePref, cycleTheme, subscribeTheme } from '../shared/theme/index.js';
+import { UNLOCK_KEY, UNLOCK_CLICKS, UNLOCK_WINDOW_MS, catSvg } from '../features/gato/constants.js';
 
 // Aplicar el tema lo antes posible para minimizar el "flash".
 initTheme();
@@ -28,6 +29,51 @@ const panelToggle = document.getElementById('panel-toggle');
 const themeToggle = document.getElementById('theme-toggle');
 
 const HOME_TITLE = 'LGE CL Tools';
+const accentBar   = document.querySelector('.header-accent-bar');
+
+// --- Secreto "GATO" ----------------------------------------------------------
+// Se desbloquea al tocar el toggle de tema UNLOCK_CLICKS veces seguidas (clics
+// dentro de UNLOCK_WINDOW_MS entre si). Al desbloquear, el "logo" (barra de
+// acento del header) se convierte en un gatito y aparece la feature GATO.
+function isUnlocked() {
+  try { return localStorage.getItem(UNLOCK_KEY) === '1'; } catch { return false; }
+}
+function setUnlocked() {
+  try { localStorage.setItem(UNLOCK_KEY, '1'); } catch { /* no-op */ }
+}
+
+// Features visibles: las "secret" solo aparecen una vez desbloqueadas.
+function visibleFeatures() {
+  return isUnlocked() ? features : features.filter((f) => !f.secret);
+}
+
+function applyCatLogo() {
+  if (!accentBar || !isUnlocked()) return;
+  accentBar.classList.add('header-accent-bar--cat');
+  accentBar.innerHTML = catSvg(22);
+}
+
+let unlockClicks = 0;
+let unlockLastTs = 0;
+function registerUnlockClick() {
+  if (isUnlocked()) return;
+  const now = Date.now();
+  unlockClicks = now - unlockLastTs <= UNLOCK_WINDOW_MS ? unlockClicks + 1 : 1;
+  unlockLastTs = now;
+  if (unlockClicks >= UNLOCK_CLICKS) {
+    unlockClicks = 0;
+    setUnlocked();
+    applyCatLogo();
+    if (accentBar) {
+      accentBar.classList.remove('header-accent-bar--pop');
+      // reflow para reiniciar la animacion
+      void accentBar.offsetWidth;
+      accentBar.classList.add('header-accent-bar--pop');
+    }
+    // Si estamos en el home, re-render para que aparezca GATO.
+    if (backBtn.classList.contains('hidden')) renderHome();
+  }
+}
 
 // Contexto de render: el mismo bundle sirve al popup (pequeño) y al side panel
 // (grande, acoplado a la derecha). `sidepanel.html` marca el body.
@@ -81,6 +127,7 @@ function setupThemeToggle() {
   themeToggle.addEventListener('click', () => {
     cycleTheme();
     updateThemeIcon();
+    registerUnlockClick();
   });
   // Mantener el icono en sync si el tema cambia desde otra vista (Ajustes).
   subscribeTheme(updateThemeIcon);
@@ -109,9 +156,10 @@ function highlight(text, query) {
 }
 
 function filterFeatures(query) {
-  if (!query.trim()) return features;
+  const base = visibleFeatures();
+  if (!query.trim()) return base;
   const q = query.toLowerCase();
-  return features.filter(f =>
+  return base.filter(f =>
     f.name.toLowerCase().includes(q) ||
     f.description.toLowerCase().includes(q) ||
     f.keywords.some(k => k.includes(q))
@@ -230,4 +278,5 @@ backBtn.addEventListener('click', renderHome);
 
 setupThemeToggle();
 setupPanelToggle();
+applyCatLogo();
 renderHome();
