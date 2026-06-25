@@ -43,11 +43,27 @@ function makeFieldGetter(sample) {
   };
 }
 
-/** Devuelve la parte de fecha (YYYY-MM-DD) de un "Local Time" tipo "2026-06-23 09:37:02". */
+/**
+ * Devuelve la parte de fecha NORMALIZADA a "YYYY-MM-DD" de un "Local Time".
+ * La API puede entregar dos formatos:
+ *   - ISO:  "2026-06-23 09:37:02"
+ *   - US:   "6/24/2026 19:46"  (M/D/YYYY, dia/mes 1-2 digitos, sin segundos)
+ * Devuelve siempre "YYYY-MM-DD" para que la comparacion de rango (string) sirva.
+ */
 export function dateOnly(localTime) {
   const s = String(localTime ?? '').trim();
-  const m = s.match(/^(\d{4}-\d{2}-\d{2})/);
-  return m ? m[1] : '';
+  if (!s) return '';
+  // ISO: 2026-06-23[...]
+  let m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (m) return `${m[1]}-${m[2]}-${m[3]}`;
+  // US: M/D/YYYY[...] (mes/dia con 1-2 digitos)
+  m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if (m) {
+    const mm = m[1].padStart(2, '0');
+    const dd = m[2].padStart(2, '0');
+    return `${m[3]}-${mm}-${dd}`;
+  }
+  return '';
 }
 
 /**
