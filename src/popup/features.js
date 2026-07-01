@@ -6,6 +6,7 @@ import { render as renderStarkoms }    from '../features/starkoms/popup/view.js'
 import { render as renderLgcom }       from '../features/lgcom/popup/view.js';
 import { render as renderSellerCenterFalabella } from '../features/seller-center-falabella/popup/view.js';
 import { render as renderEpromoters }   from '../features/e-promoters/popup/view.js';
+import { render as renderPim }          from '../features/pim/popup/view.js';
 import { render as renderGato }        from '../features/gato/popup/view.js';
 import { render as renderAjustes }     from '../features/ajustes/popup/view.js';
 
@@ -73,6 +74,14 @@ export const features = [
     abbr: 'EPR',
     keywords: ['epromoter', 'e-promoter', 'promoter', 'informe', 'orden', 'ordenes', 'recuperar', 'csv', 'api', 'magento', 'cupon', 'reporte'],
     render: renderEpromoters,
+  },
+  {
+    id: 'pim',
+    name: 'PIM',
+    description: 'Verificar si un producto existe en PIM (Creación de producto)',
+    abbr: 'PIM',
+    keywords: ['pim', 'producto', 'sku', 'creacion', 'creación', 'existe', 'existencia', 'staging', 'stg', 'model', 'gp1'],
+    render: renderPim,
   },
   {
     id: 'gato',

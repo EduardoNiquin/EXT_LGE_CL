@@ -8,6 +8,7 @@ import * as ordenInfo   from '../features/orden-info/content/index.js';
 import * as starkoms    from '../features/starkoms/content/index.js';
 import * as lgcom       from '../features/lgcom/content/index.js';
 import * as sellerCenterFalabella from '../features/seller-center-falabella/content/index.js';
+import * as pim         from '../features/pim/content/index.js';
 
 // Importar el debug.js de cada feature auto-registra sus comandos.
 // Para sumar una nueva feature: crear src/features/<feature>/debug.js
@@ -19,6 +20,7 @@ import '../features/orden-info/debug.js';
 import '../features/starkoms/debug.js';
 import '../features/lgcom/debug.js';
 import '../features/seller-center-falabella/debug.js';
+import '../features/pim/debug.js';
 
 const log = logger('content');
 const version = chrome?.runtime?.getManifest?.()?.version;
@@ -32,6 +34,7 @@ ordenInfo.init();
 starkoms.init();
 lgcom.init();
 sellerCenterFalabella.init();
+pim.init();
 
 log.info('content script cargado', {
   url: location.href,

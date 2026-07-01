@@ -89,7 +89,7 @@ popup/         view.js (sub-router) · utils.js · sections/ (una sub-vista por 
 
 ## Logs por scope (`Ajustes`)
 `logger('foo')` registra el scope `foo`, que aparece en la UI de Ajustes (`features/ajustes`) con toggle individual + "Habilitar/Deshabilitar todos". `log-config/index.js` cachea en memoria y persiste en `chrome.storage.local` (`log-config:scopes`, cross-context vía `storage.onChanged`). `logger.js` chequea `isScopeEnabled(scope)` antes de emitir. Default: todos habilitados.
-Scopes: `colocar-tags`, `colocar-tags:product`, `colocar-tags:offer`, `colocar-tags:delivery-remove`, `colocar-tags:combobox`, `lead-times`, `cupones`, `orden-info`, `starkoms`, `lgcom`, `lgcom/popup`, `seller-center-falabella`, `e-promoters`, `gato`, `content`, `service-worker`, `debug`, `popup`.
+Scopes: `colocar-tags`, `colocar-tags:product`, `colocar-tags:offer`, `colocar-tags:delivery-remove`, `colocar-tags:combobox`, `lead-times`, `cupones`, `orden-info`, `starkoms`, `lgcom`, `lgcom/popup`, `seller-center-falabella`, `e-promoters`, `pim`, `gato`, `content`, `service-worker`, `debug`, `popup`.
 
 ## Manejo de errores y Modo Dev (`shared/errors` · `shared/dev-mode` · `shared/diagnostics`)
 - **`shared/errors`:** `ExtError` (base con `code`/`context`/`cause`), `toMessage(err)` (mensaje legible de cualquier throw), `isAbortError(err, signal)` (cancelación: WaitAbortedError/AbortError/signal.aborted), `describeError(err, meta)` (forma serializable con stack recortado).
@@ -116,7 +116,7 @@ Sumar a una feature: crear `features/<feature>/debug.js` → `register('<feature
 
 ## Estado del proyecto
 Scaffolding + CI completos. Pipeline release corporativo (.crx firmado + política + ZIP). Debug API modular + logger persistente. Manejo de errores centralizado (`shared/errors`) + Modo Dev + ring buffer de errores con captura global (`shared/diagnostics`, visible en Ajustes). Content multi-frame con resolución de carrera. Capa `shared/dom`. Driver GP1 L-* (modal/messagebox/combobox).
-Features: **Colocar TAGs** (Lectura | Tag Delivery | Quitar Delivery | Tag Producto | Tag Oferta), **Lead Times** (Magento), **Cupones** (Quitar Regla de Cupón), **Información de Orden** (Magento), **Starkoms** (Verificar órdenes y stock), **LG.com** (Info de Producto), **SellerCenter Falabella** (SoporteSeller — Detalle Orden), **E-promoters** (Informe ordenes — CSV/API → filtrado → CSV), **GATO** (tic-tac-toe multijugador secreto vía Firebase).
+Features: **Colocar TAGs** (Lectura | Tag Delivery | Quitar Delivery | Tag Producto | Tag Oferta), **Lead Times** (Magento), **Cupones** (Quitar Regla de Cupón), **Información de Orden** (Magento), **Starkoms** (Verificar órdenes y stock), **LG.com** (Info de Producto), **SellerCenter Falabella** (SoporteSeller — Detalle Orden), **E-promoters** (Informe ordenes — CSV/API → filtrado → CSV), **PIM** (Creación de producto — verificar si un SKU existe en PIM/STG), **GATO** (tic-tac-toe multijugador secreto vía Firebase).
 ⏳ Pendiente: tests en `tests/unit/*.test.js`.
 
 ---
@@ -470,6 +470,36 @@ src/features/gato/
 } }
 ```
 **Pendientes/limitaciones:** la partida MP solo avanza con el popup abierto (persiste el estado, no el juego de fondo); si el jugador en turno cierra el popup nadie pasa su turno; matchmaking por reto sin transacciones reales (mitigado con ETags); reglas RTDB abiertas (sin auth); colisiones raras de `nameKey` si dos nombres distintos normalizan igual.
+
+---
+
+## Feature: PIM
+Pantalla de PIM (Marketing Info / Model Grid): buscador por SKU (`#productId` + botón SEARCH `#search_sales_model_code`) + grilla de resultados **TUI Grid** con pestañas **STG/PROD** (`#ModelGridTab`, `#stg-tab`/`#prod-tab`). Sub-sección: **Creación de producto** (estructura tabbed lista para más). **Read-only:** solo usa el buscador en **Staging (STG)**; NO toca PROD ni ningún botón de guardado.
+
+**Objetivo:** verificar si uno o varios SKU **existen en PIM**. Por cada SKU: selecciona STG, escribe el SKU, click SEARCH, y espera a que la grilla resuelva → arroja `SKU/YES` (existe) o `SKU/NO` (no existe). Copiable + descargable como CSV.
+
+**A diferencia de Magento (tick-por-reload):** la grilla busca sin recargar la página → usa el **patrón storage-driven + flujo async continuo** de starkoms/seller-center (`run` en storage, el frame que detecta el buscador lo reclama y ejecuta con `AbortController`). Content matchea `<all_urls>`; detección por DOM (no por host).
+```
+src/features/pim/
+├── constants.js   STORAGE_KEYS, MESSAGES, STATUS, STEPS, EXISTS, SELECTORS, DEFAULTS, LOG_CAP
+├── state.js       run store (createRunStore) + makeRun + draft
+├── debug.js       __extLgeCl.pim.*
+├── content/ detector.js · parser.js · index.js · flows/{search,run}.js
+└── popup/   view.js (sub-router) · utils.js (parseSkus/buildCsv/buildCopyText/copyToClipboard/downloadText) · run-ui.js · sections/creacion-producto.js
+```
+**Estado (`chrome.storage.local["pim:run"]`):** `{ active, claimed, startedAt, finishedAt, finishReason?:'done'|'cancelled'|'error'|'not-detected', errorReason?, total, currentIndex, items:[{ sku, status:pending|running|ok|error, step?, found?:boolean, reason? }], log:[...] (cap 400) }`. El popup arma `items` desde el textarea (`parseSkus` dedupe + preserva orden) y los escribe en el run.
+
+**Detección (`detector.js`):** `isPimPage()` = presencia de `#productId` + `#search_sales_model_code` + `#ModelGridTab`.
+
+**Búsqueda por SKU (`flows/search.js`):** `ensureStgTab` (click `#stg-tab` nativo si no tiene clase `active`) → `setInputValue(#productId, sku)` → `#search_sales_model_code.click()` (nativo, botón legacy con `onclick`) → `waitFor(resolveResult !== 'pending')` (timeout `DEFAULTS.searchTimeoutMs`=15s).
+
+**Resolución del resultado (`parser.js#resolveResult`):** ámbito = pestaña `#stg` (fallback `document`). `'found'` si alguna fila `.tui-grid-rside-area ... tbody tr` tiene una celda `.tui-grid-cell-content` que matchea el SKU (== `Sales Model Code`, o `SKU (Product ID)` empieza por `SKU.`); `'not-found'` si la capa `.tui-grid-layer-state` está visible con texto "No data." y ninguna fila matchea; si no, `'pending'`. Matchear la fila por el SKU evita leer resultados de la búsqueda anterior (grillas stale).
+
+**Batch (`flows/run.js`):** espejo de seller-center pero **cada SKU es independiente** → un error de SKU se registra y se continúa con el siguiente (no corta el loop). `reconcileOnInit` marca interrumpido si un reload mató un run reclamado; `claimWatchdog` (3.5s) → `not-detected`.
+
+**UI popup (`sections/creacion-producto.js`):** textarea de SKU (uno por línea o separados por coma/`;`/espacio), previsualización del conteo, Iniciar/Detener/Limpiar. Progreso en vivo (barra, badge YES/NO por SKU, `<details>` 50 logs) + al finalizar botones **Copiar resultados** (`SKU/YES` por línea) y **Descargar CSV** (`SKU,Existe en PIM`, con BOM UTF-8). Persiste borrador `{text}` en `pim:draft`. Live vía `storage.onChanged`.
+**Debug `__extLgeCl.pim.`:** `diagnose()`, `detected()`, `selectors()`, `result(sku)` (found/not-found/pending), `check(sku)` (verifica 1 SKU end-to-end → true si existe), `state()`, `draft()`, `stop()`, `reset()`, `tick()`.
+**Pendientes/limitaciones:** solo STG; no distingue múltiples tabs; si el grid tarda >15s el SKU queda ERROR (se continúa); el scope de la grilla asume la pestaña `#stg` (fallback `document`) — afinar en vivo si el DOM de PROD confunde.
 
 ---
 
