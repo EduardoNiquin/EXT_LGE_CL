@@ -35,12 +35,12 @@ function rowKeyOf(row) {
 }
 
 /**
- * Lee el contenido de la columna "Spec Assign" (specAssignmentCode) para la fila
- * que matchea el SKU. La celda puede estar en el área izquierda (columnas fijas)
- * o derecha; se ubica por su data-row-key. Devuelve el texto (ej "Assigned") o
- * null si la celda está vacía / no existe.
+ * Lee el contenido de la columna "Spec Assign" (specAssignmentCode) para una fila
+ * ya encontrada. La celda puede estar en el área izquierda (columnas fijas) o
+ * derecha; se ubica por su data-row-key. Devuelve el texto (ej "Assigned") o null
+ * si la celda está vacía / no existe.
  */
-function readSpecAssign(scope, row) {
+function readSpecAssignForRow(scope, row) {
   const key = rowKeyOf(row);
   let cell = null;
   if (key != null) {
@@ -54,15 +54,48 @@ function readSpecAssign(scope, row) {
   return (content.textContent || '').trim() || null;
 }
 
-/** ¿Está visible la capa de estado vacío con el texto "No data."? */
-function isNoDataVisible(scope) {
-  const layer = scope.querySelector(SELECTORS.stateLayer);
-  if (!layer) return false;
+/**
+ * Relocaliza la fila que matchea el SKU y lee su "Spec Assign". Se usa para
+ * re-leer el valor cuando el grid puebla el link `spec-link` un instante después
+ * de renderizar la fila. Devuelve el texto o null si vacío / no hay fila.
+ */
+export function readSpecAssign(sku) {
+  const scope = gridScope();
+  for (const row of scope.querySelectorAll(SELECTORS.gridRow)) {
+    if (rowMatchesSku(row, sku)) return readSpecAssignForRow(scope, row);
+  }
+  return null;
+}
+
+/** ¿Está visible una capa de estado (offsetParent / display)? */
+function isLayerVisible(layer) {
   const style = layer.style || {};
   if (style.display === 'none') return false;
   if (layer.offsetParent === null && style.display !== 'block') return false;
+  return true;
+}
+
+/** ¿Está visible la capa de estado vacío con el texto "No data."? */
+function isNoDataVisible(scope) {
+  const layer = scope.querySelector(SELECTORS.stateLayer);
+  if (!layer || !isLayerVisible(layer)) return false;
   const textEl = layer.querySelector(SELECTORS.stateText) || layer;
   return /no data/i.test(textEl.textContent || '');
+}
+
+/**
+ * ¿El grid está cargando (fetch en vuelo)? TUI Grid muestra la capa de estado con
+ * un spinner (`.tui-grid-layer-state-loading`, a veces sin texto). Detectar la
+ * carga permite distinguir el "No data." viejo del SKU anterior del resultado
+ * fresco: hasta que no arranca la carga no se confía en un "No data.".
+ */
+export function isGridLoading() {
+  const scope = gridScope();
+  const layer = scope.querySelector(SELECTORS.stateLayer);
+  if (!layer || !isLayerVisible(layer)) return false;
+  if (layer.querySelector(SELECTORS.stateLoading)) return true;
+  const textEl = layer.querySelector(SELECTORS.stateText) || layer;
+  return /loading|cargando/i.test(textEl.textContent || '');
 }
 
 /**
@@ -82,7 +115,7 @@ export function resolveResult(sku) {
   const rows = scope.querySelectorAll(SELECTORS.gridRow);
   for (const row of rows) {
     if (rowMatchesSku(row, sku)) {
-      return { result: 'found', specAssign: readSpecAssign(scope, row) };
+      return { result: 'found', specAssign: readSpecAssignForRow(scope, row) };
     }
   }
   if (isNoDataVisible(scope)) return { result: 'not-found', specAssign: null };

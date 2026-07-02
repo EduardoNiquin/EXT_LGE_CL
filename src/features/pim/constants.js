@@ -56,13 +56,20 @@ export const SELECTORS = {
   // data-row-key para asociarla con la fila que matchea el SKU.
   specCell:    'td[data-column-name="specAssignmentCode"]',
   // Capa de estado vacío ("No data.") / "Loading"
-  stateLayer:  '.tui-grid-layer-state',
-  stateText:   '.tui-grid-layer-state-content',
+  stateLayer:   '.tui-grid-layer-state',
+  stateText:    '.tui-grid-layer-state-content',
+  stateLoading: '.tui-grid-layer-state-loading', // spinner durante el fetch
 };
 
 // Solo verificamos existencia en Staging (STG). No se toca PROD.
 export const DEFAULTS = {
   searchTimeoutMs: 15000,
+  // Tope para esperar a que el nuevo fetch arranque (aparezca "loading") antes
+  // de leer el resultado — evita leer el "No data." del SKU anterior como NO.
+  searchSettleMs:  4000,
+  // Tope para esperar a que el link "Spec Assign" (spec-link) se popule tras
+  // aparecer la fila (el grid lo rellena un instante después).
+  specSettleMs:    2000,
 };
 
 export const LOG_CAP = 400;

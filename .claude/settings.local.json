@@ -28,7 +28,10 @@
       "Bash(sort -t' ' -k2)",
       "Bash(uniq -c -f1)",
       "Bash(perl -i -pe \"s/const BOM = '.*?';/const BOM = '\\\\\\\\\\\\\\\\uFEFF';/\" src/features/pim/popup/utils.js)",
-      "PowerShell(npm test *)"
+      "PowerShell(npm test *)",
+      "Bash(git --no-pager diff -- \"src/features/pim/content/flows/run.js\" \"src/features/pim/content/flows/search.js\" \"src/features/pim/content/parser.js\")",
+      "Bash(git --no-pager log --oneline -3)",
+      "Bash(git --no-pager diff 5a5027a 1461522 -- \"src/features/pim/content/parser.js\" \"src/features/pim/content/flows/search.js\")"
     ]
   }
 }
