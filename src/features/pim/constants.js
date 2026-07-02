@@ -51,6 +51,10 @@ export const SELECTORS = {
   gridRside:   '.tui-grid-rside-area',
   gridRow:     '.tui-grid-rside-area .tui-grid-body-area .tui-grid-table-container table tbody tr',
   cellContent: '.tui-grid-cell-content',
+  // Celda de la columna "Spec Assign" (data-column-name="specAssignmentCode").
+  // Puede vivir en el área izquierda (lside) o derecha (rside); se ubica por su
+  // data-row-key para asociarla con la fila que matchea el SKU.
+  specCell:    'td[data-column-name="specAssignmentCode"]',
   // Capa de estado vacío ("No data.") / "Loading"
   stateLayer:  '.tui-grid-layer-state',
   stateText:   '.tui-grid-layer-state-content',

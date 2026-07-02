@@ -47,24 +47,36 @@ function csvCell(value) {
   return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }
 
+/** Contenido de la columna "Spec Assign" del item, o cadena vacía. */
+function specLabel(it) {
+  return existsLabel(it) === EXISTS.YES && it?.specAssign ? String(it.specAssign) : '';
+}
+
 /**
- * CSV de resultados: dos columnas (SKU, Existe en PIM). Los SKU con error se
- * marcan como ERROR. BOM UTF-8 para que Excel abra bien.
+ * CSV de resultados: tres columnas (SKU, Existe en PIM, Spec Assign). Los SKU con
+ * error se marcan como ERROR. BOM UTF-8 para que Excel abra bien.
  */
 export function buildCsv(items) {
   const BOM = String.fromCharCode(0xFEFF);
-  const lines = ['SKU,Existe en PIM'];
+  const lines = ['SKU,Existe en PIM,Spec Assign'];
   for (const it of items || []) {
     const label = existsLabel(it) ?? (it.status === STATUS.ERROR ? 'ERROR' : '');
-    lines.push(`${csvCell(it.sku)},${csvCell(label)}`);
+    lines.push(`${csvCell(it.sku)},${csvCell(label)},${csvCell(specLabel(it))}`);
   }
   return `${BOM}${lines.join('\r\n')}\r\n`;
 }
 
-/** Texto para copiar: una línea por SKU en formato "SKU/YES" o "SKU/NO". */
+/**
+ * Texto para copiar: una línea por SKU en formato "SKU/YES" o "SKU/NO". Si existe
+ * y tiene Spec Assign se agrega al final: "SKU/YES/Assigned".
+ */
 export function buildCopyText(items) {
   return (items || [])
-    .map((it) => `${it.sku}/${existsLabel(it) ?? (it.status === STATUS.ERROR ? 'ERROR' : '')}`)
+    .map((it) => {
+      const label = existsLabel(it) ?? (it.status === STATUS.ERROR ? 'ERROR' : '');
+      const spec = specLabel(it);
+      return spec ? `${it.sku}/${label}/${spec}` : `${it.sku}/${label}`;
+    })
     .join('\n');
 }
 

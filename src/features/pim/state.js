@@ -15,7 +15,7 @@
 //     errorReason?: string,
 //     total: number,
 //     currentIndex: number,
-//     items: [{ sku, status, step?, found?: boolean, reason? }],
+//     items: [{ sku, status, step?, found?: boolean, specAssign?: string|null, reason? }],
 //     log: [{ ts, level: 'info'|'warn'|'error', message }],  (cap LOG_CAP)
 //   }
 
@@ -39,7 +39,7 @@ export function makeRun({ skus, message }) {
     errorReason: null,
     total: skus.length,
     currentIndex: -1,
-    items: skus.map((sku) => ({ sku, status: STATUS.PENDING, step: null, found: null })),
+    items: skus.map((sku) => ({ sku, status: STATUS.PENDING, step: null, found: null, specAssign: null })),
     log: [{ ts: Date.now(), level: 'info', message: message || 'Run iniciado' }],
   };
 }

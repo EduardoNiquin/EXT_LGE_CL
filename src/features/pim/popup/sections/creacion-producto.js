@@ -26,7 +26,8 @@ export async function render(container) {
           Verifica si uno o varios <strong>SKU</strong> existen en PIM (vista <strong>Staging / STG</strong>).
           Abra la pantalla de PIM con el buscador por SKU visible y recién entonces presione
           <strong>Iniciar</strong>. La extensión sólo busca (no modifica nada) y arroja
-          <code>SKU/YES</code> o <code>SKU/NO</code>, con opción de copiar y descargar CSV.
+          <code>SKU/YES</code> o <code>SKU/NO</code>, e indica el contenido de la columna
+          <strong>Spec Assign</strong> de cada producto encontrado, con opción de copiar y descargar CSV.
         </p>
 
         <label class="lt-hint" for="pim-skus">SKU a verificar (uno por línea o separados por coma):</label>

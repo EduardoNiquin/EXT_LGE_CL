@@ -27,6 +27,33 @@ function rowMatchesSku(row, sku) {
   return false;
 }
 
+/** data-row-key de una fila (lo comparte con sus celdas en ambas áreas). */
+function rowKeyOf(row) {
+  if (row.dataset && row.dataset.rowKey != null) return row.dataset.rowKey;
+  const cell = row.querySelector('td[data-row-key]');
+  return cell ? cell.getAttribute('data-row-key') : null;
+}
+
+/**
+ * Lee el contenido de la columna "Spec Assign" (specAssignmentCode) para la fila
+ * que matchea el SKU. La celda puede estar en el área izquierda (columnas fijas)
+ * o derecha; se ubica por su data-row-key. Devuelve el texto (ej "Assigned") o
+ * null si la celda está vacía / no existe.
+ */
+function readSpecAssign(scope, row) {
+  const key = rowKeyOf(row);
+  let cell = null;
+  if (key != null) {
+    for (const c of scope.querySelectorAll(SELECTORS.specCell)) {
+      if (c.getAttribute('data-row-key') === key) { cell = c; break; }
+    }
+  }
+  if (!cell) cell = row.querySelector(SELECTORS.specCell);
+  if (!cell) return null;
+  const content = cell.querySelector(SELECTORS.cellContent) || cell;
+  return (content.textContent || '').trim() || null;
+}
+
 /** ¿Está visible la capa de estado vacío con el texto "No data."? */
 function isNoDataVisible(scope) {
   const layer = scope.querySelector(SELECTORS.stateLayer);
@@ -39,10 +66,13 @@ function isNoDataVisible(scope) {
 }
 
 /**
- * Resuelve el resultado de la búsqueda del SKU en la grilla:
- *   'found'     → hay una fila que matchea el SKU (existe en PIM)
- *   'not-found' → la capa "No data." está visible y ninguna fila matchea
- *   'pending'   → todavía cargando / estado no concluyente
+ * Resuelve el resultado de la búsqueda del SKU en la grilla. Devuelve un objeto
+ * `{ result, specAssign }`:
+ *   result: 'found'     → hay una fila que matchea el SKU (existe en PIM)
+ *           'not-found' → la capa "No data." está visible y ninguna fila matchea
+ *           'pending'   → todavía cargando / estado no concluyente
+ *   specAssign: contenido de la columna "Spec Assign" de la fila que matchea
+ *               (ej "Assigned"), o null si está vacía / no aplica.
  *
  * Matchear la fila por el SKU evita leer resultados de la búsqueda anterior; la
  * capa "No data." sólo aparece cuando la grilla quedó vacía.
@@ -51,8 +81,10 @@ export function resolveResult(sku) {
   const scope = gridScope();
   const rows = scope.querySelectorAll(SELECTORS.gridRow);
   for (const row of rows) {
-    if (rowMatchesSku(row, sku)) return 'found';
+    if (rowMatchesSku(row, sku)) {
+      return { result: 'found', specAssign: readSpecAssign(scope, row) };
+    }
   }
-  if (isNoDataVisible(scope)) return 'not-found';
-  return 'pending';
+  if (isNoDataVisible(scope)) return { result: 'not-found', specAssign: null };
+  return { result: 'pending', specAssign: null };
 }

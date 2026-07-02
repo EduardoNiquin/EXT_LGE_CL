@@ -10,7 +10,7 @@ register('pim', {
   diagnose:  cmd(() => diagnose(), 'Diagnóstico de detección de la pantalla PIM y selectores'),
   detected:  cmd(() => isPimPage(), 'True si este frame tiene el buscador de PIM'),
   selectors: cmd(() => ({ ...SELECTORS }), 'Mapa de selectores que usa la feature'),
-  result:    cmd((sku) => resolveResult(sku), 'Resultado actual de la grilla para un SKU: found/not-found/pending'),
+  result:    cmd((sku) => resolveResult(sku), 'Resultado actual de la grilla para un SKU: { result: found/not-found/pending, specAssign }'),
   state:     cmd(() => getRun(), 'Estado persistido del run actual'),
   draft:     cmd(() => getDraft(), 'Borrador del formulario del popup'),
 

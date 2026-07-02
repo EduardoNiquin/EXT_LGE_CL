@@ -108,16 +108,17 @@ async function runBatch({ run, signal }) {
 
     try {
       await setItem(i, { status: STATUS.RUNNING, step: STEPS.SELECT_STG });
-      const found = await searchSku(item.sku, {
+      const { found, specAssign } = await searchSku(item.sku, {
         signal,
         onStep: (step) => { setItem(i, { step }); },
       });
       if (signal.aborted) break;
 
-      await setItem(i, { status: STATUS.OK, step: STEPS.DONE, found });
+      await setItem(i, { status: STATUS.OK, step: STEPS.DONE, found, specAssign });
+      const specNote = found && specAssign ? ` · Spec Assign: ${specAssign}` : '';
       await appendLog({
         level: 'info',
-        message: `SKU ${i + 1}/${items.length}: ${item.sku} → ${found ? 'existe (YES)' : 'no existe (NO)'}`,
+        message: `SKU ${i + 1}/${items.length}: ${item.sku} → ${found ? 'existe (YES)' : 'no existe (NO)'}${specNote}`,
       });
     } catch (err) {
       if (isAbortError(err, signal)) break;

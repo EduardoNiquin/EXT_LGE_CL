@@ -1133,6 +1133,16 @@ mark {
   font-family: ui-monospace, monospace;
 }
 
+.lt-region-detail {
+  font-size: 11px;
+  color: var(--gray-600);
+  margin-top: 2px;
+}
+
+.lt-region-detail strong {
+  color: var(--black);
+}
+
 .lt-region-status {
   font-size: 10px;
   font-weight: 700;

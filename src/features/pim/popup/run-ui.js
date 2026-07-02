@@ -140,11 +140,15 @@ export function renderProgress(container, run) {
     li.className = `lt-region lt-region--${itemStatusClass(item)}`;
     const isCurrent = idx === run.currentIndex && run.active && item.status === STATUS.RUNNING;
     if (isCurrent) li.classList.add('lt-region--current');
+    const specLine = item.status === STATUS.OK && item.found
+      ? `<div class="lt-region-detail">Spec Assign: <strong>${item.specAssign ? escapeHtml(item.specAssign) : '—'}</strong></div>`
+      : '';
     li.innerHTML = `
       <div class="lt-region-head">
         <span class="lt-region-name">#${idx + 1} · ${escapeHtml(item.sku)}</span>
         <span class="lt-region-status">${labelStatus(item)}</span>
       </div>
+      ${specLine}
       ${item.reason ? `<div class="lt-err">${escapeHtml(item.reason)}</div>` : ''}
     `;
     itemList.appendChild(li);

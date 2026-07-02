@@ -19,7 +19,9 @@ async function ensureStgTab({ signal } = {}) {
 }
 
 /**
- * Verifica un SKU. Devuelve `true` si existe en PIM (STG), `false` si no.
+ * Verifica un SKU. Devuelve `{ found, specAssign }`: `found` es true si existe en
+ * PIM (STG); `specAssign` es el contenido de la columna "Spec Assign" de la fila
+ * (ej "Assigned"), o null si no existe / la celda está vacía.
  * Lanza WaitTimeoutError si la grilla no resuelve dentro del timeout.
  */
 export async function searchSku(sku, { signal, onStep } = {}) {
@@ -38,9 +40,9 @@ export async function searchSku(sku, { signal, onStep } = {}) {
   btn.click();
 
   onStep?.('read-result');
-  const result = await waitFor(() => {
+  const resolved = await waitFor(() => {
     const r = resolveResult(sku);
-    return r === 'pending' ? null : r;
+    return r.result === 'pending' ? null : r;
   }, {
     timeout: DEFAULTS.searchTimeoutMs,
     interval: 200,
@@ -48,5 +50,5 @@ export async function searchSku(sku, { signal, onStep } = {}) {
     description: `el resultado de la búsqueda de "${sku}"`,
   });
 
-  return result === 'found';
+  return { found: resolved.result === 'found', specAssign: resolved.specAssign };
 }
