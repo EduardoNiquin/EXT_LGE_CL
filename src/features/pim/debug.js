@@ -1,7 +1,7 @@
 import { cmd, register } from '../../shared/debug/index.js';
 import { SELECTORS } from './constants.js';
 import { diagnose, isPimPage } from './content/detector.js';
-import { resolveResult, readSpecAssign, isGridLoading } from './content/parser.js';
+import { resolveResult, readSpecAssign, isGridLoading, scrollGridX } from './content/parser.js';
 import { searchSku } from './content/flows/search.js';
 import { tickIfActive } from './content/flows/run.js';
 import { clearRun, getDraft, getRun, setRun } from './state.js';
@@ -11,8 +11,10 @@ register('pim', {
   detected:  cmd(() => isPimPage(), 'True si este frame tiene el buscador de PIM'),
   selectors: cmd(() => ({ ...SELECTORS }), 'Mapa de selectores que usa la feature'),
   result:    cmd((sku) => resolveResult(sku), 'Resultado actual de la grilla para un SKU: { result: found/not-found/pending, specAssign }'),
-  specAssign: cmd((sku) => readSpecAssign(sku), 'Lee la columna "Spec Assign" de la fila que matchea el SKU (o null)'),
+  specAssign: cmd((sku) => readSpecAssign(sku), 'Lee "Spec Assign" del SKU (requiere columna renderizada; usar tras scrollRight)'),
   loading:   cmd(() => isGridLoading(), 'True si el grid está cargando (fetch en vuelo)'),
+  scrollRight: cmd(() => scrollGridX(-1), 'Scrollea el grid al extremo derecho (materializa "Spec Assign")'),
+  scrollLeft:  cmd(() => scrollGridX(0), 'Scrollea el grid a la izquierda (columnas base del SKU)'),
   state:     cmd(() => getRun(), 'Estado persistido del run actual'),
   draft:     cmd(() => getDraft(), 'Borrador del formulario del popup'),
 

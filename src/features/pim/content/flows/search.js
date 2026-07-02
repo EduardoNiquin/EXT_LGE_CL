@@ -3,7 +3,10 @@
 // existe; capa "No data." → no existe).
 
 import { DEFAULTS, SELECTORS } from '../../constants.js';
-import { resolveResult, readSpecAssign, isGridLoading } from '../parser.js';
+import {
+  resolveResult, isGridLoading,
+  getRowKeyForSku, readSpecByRowKey, scrollGridX,
+} from '../parser.js';
 import { setInputValue } from '../../../../shared/dom/events.js';
 import { waitFor, sleep } from '../../../../shared/dom/wait.js';
 import { isAbortError } from '../../../../shared/errors/index.js';
@@ -57,25 +60,42 @@ export async function searchSku(sku, { signal, onStep } = {}) {
     description: `el resultado de la búsqueda de "${sku}"`,
   });
 
-  let specAssign = resolved.specAssign;
-  // El link "Spec Assign" (spec-link) se puebla un instante DESPUÉS de aparecer la
-  // fila; si aún no está, re-leer hasta que aparezca (tope corto). Vacío tras el
-  // tope = el producto realmente no tiene Spec Assign.
-  if (resolved.result === 'found' && !specAssign) {
-    try {
-      specAssign = await waitFor(() => readSpecAssign(sku), {
-        timeout: DEFAULTS.specSettleMs,
-        interval: 120,
-        signal,
-        description: `el valor de Spec Assign de "${sku}"`,
-      });
-    } catch (err) {
-      if (isAbortError(err, signal)) throw err;
-      specAssign = null;
-    }
-  }
+  const found = resolved.result === 'found';
+  const specAssign = found ? await readSpecAssignScrolled(sku, { signal }) : null;
+  return { found, specAssign };
+}
 
-  return { found: resolved.result === 'found', specAssign };
+/**
+ * Lee la columna "Spec Assign" del SKU encontrado. TUI Grid **virtualiza columnas
+ * horizontalmente**: la columna vive lejos a la derecha y NO está en el DOM hasta
+ * scrollear. Se captura el data-row-key con las columnas del SKU aún visibles,
+ * se scrollea al extremo derecho para materializar la celda, se lee por row-key y
+ * se vuelve a la izquierda (para que el próximo SKU matchee sus columnas base).
+ */
+async function readSpecAssignScrolled(sku, { signal } = {}) {
+  const rowKey = getRowKeyForSku(sku);
+  if (rowKey == null) return null;
+
+  // ¿ya renderizada? (grid angosto / pocas columnas → no hace falta scrollear)
+  const direct = readSpecByRowKey(rowKey);
+  if (direct) return direct;
+
+  scrollGridX(-1); // extremo derecho: materializa "Spec Assign"
+  let value;
+  try {
+    value = await waitFor(() => readSpecByRowKey(rowKey), {
+      timeout: DEFAULTS.specSettleMs,
+      interval: 120,
+      signal,
+      description: `el valor de Spec Assign de "${sku}"`,
+    });
+  } catch (err) {
+    if (isAbortError(err, signal)) throw err;
+    value = readSpecByRowKey(rowKey); // último intento; null = sin Spec Assign
+  } finally {
+    scrollGridX(0); // volver a la izquierda para el próximo SKU
+  }
+  return value || null;
 }
 
 /**

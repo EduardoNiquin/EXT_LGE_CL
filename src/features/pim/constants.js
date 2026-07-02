@@ -49,6 +49,7 @@ export const SELECTORS = {
   stgPane:     '#stg',
   // Grilla de resultados (TUI Grid) — área derecha (columnas de datos)
   gridRside:   '.tui-grid-rside-area',
+  gridBodyArea:'.tui-grid-rside-area .tui-grid-body-area', // scroll horizontal del área de datos
   gridRow:     '.tui-grid-rside-area .tui-grid-body-area .tui-grid-table-container table tbody tr',
   cellContent: '.tui-grid-cell-content',
   // Celda de la columna "Spec Assign" (data-column-name="specAssignmentCode").

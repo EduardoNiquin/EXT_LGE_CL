@@ -35,36 +35,60 @@ function rowKeyOf(row) {
 }
 
 /**
- * Lee el contenido de la columna "Spec Assign" (specAssignmentCode) para una fila
- * ya encontrada. La celda puede estar en el área izquierda (columnas fijas) o
- * derecha; se ubica por su data-row-key. Devuelve el texto (ej "Assigned") o null
- * si la celda está vacía / no existe.
+ * data-row-key de la fila que matchea el SKU, o null. Requiere que las columnas
+ * del SKU (Sales Model Code / Product ID) estén renderizadas — TUI Grid virtualiza
+ * columnas por scroll horizontal, así que hay que leerlo antes de scrollear.
  */
-function readSpecAssignForRow(scope, row) {
-  const key = rowKeyOf(row);
-  let cell = null;
-  if (key != null) {
-    for (const c of scope.querySelectorAll(SELECTORS.specCell)) {
-      if (c.getAttribute('data-row-key') === key) { cell = c; break; }
-    }
+export function getRowKeyForSku(sku) {
+  const scope = gridScope();
+  for (const row of scope.querySelectorAll(SELECTORS.gridRow)) {
+    if (rowMatchesSku(row, sku)) return rowKeyOf(row);
   }
-  if (!cell) cell = row.querySelector(SELECTORS.specCell);
-  if (!cell) return null;
-  const content = cell.querySelector(SELECTORS.cellContent) || cell;
-  return (content.textContent || '').trim() || null;
+  return null;
 }
 
 /**
- * Relocaliza la fila que matchea el SKU y lee su "Spec Assign". Se usa para
- * re-leer el valor cuando el grid puebla el link `spec-link` un instante después
- * de renderizar la fila. Devuelve el texto o null si vacío / no hay fila.
+ * Lee el contenido de la columna "Spec Assign" (specAssignmentCode) por data-row-key.
+ * La celda sólo existe en el DOM si la columna está renderizada (ver
+ * `scrollGridX`), porque TUI Grid virtualiza columnas horizontalmente. Devuelve el
+ * texto (ej "Assigned") o null si vacía / no renderizada.
  */
-export function readSpecAssign(sku) {
+export function readSpecByRowKey(rowKey) {
+  if (rowKey == null) return null;
   const scope = gridScope();
-  for (const row of scope.querySelectorAll(SELECTORS.gridRow)) {
-    if (rowMatchesSku(row, sku)) return readSpecAssignForRow(scope, row);
+  const key = String(rowKey);
+  for (const c of scope.querySelectorAll(SELECTORS.specCell)) {
+    if (c.getAttribute('data-row-key') === key) {
+      const content = c.querySelector(SELECTORS.cellContent) || c;
+      return (content.textContent || '').trim() || null;
+    }
   }
   return null;
+}
+
+/**
+ * Lee "Spec Assign" relocalizando la fila por SKU (atajo para debug / cuando la
+ * columna ya está renderizada). Para el flujo real usar
+ * `getRowKeyForSku` + `scrollGridX` + `readSpecByRowKey` (la columna vive lejos a
+ * la derecha y no está en el DOM hasta scrollear).
+ */
+export function readSpecAssign(sku) {
+  return readSpecByRowKey(getRowKeyForSku(sku));
+}
+
+/**
+ * Desplaza el grid horizontalmente para materializar columnas virtualizadas.
+ * `x < 0` va al extremo derecho (última columna), `x = 0` vuelve a la izquierda.
+ * TUI Grid usa scroll nativo en `.tui-grid-body-area` y re-renderiza al recibir el
+ * evento `scroll`. Devuelve false si no encontró el área de datos.
+ */
+export function scrollGridX(x) {
+  const el = gridScope().querySelector(SELECTORS.gridBodyArea);
+  if (!el) return false;
+  const max = Math.max(0, el.scrollWidth - el.clientWidth);
+  el.scrollLeft = x < 0 ? max : Math.min(x, max);
+  el.dispatchEvent(new Event('scroll', { bubbles: true }));
+  return true;
 }
 
 /** ¿Está visible una capa de estado (offsetParent / display)? */
@@ -99,25 +123,21 @@ export function isGridLoading() {
 }
 
 /**
- * Resuelve el resultado de la búsqueda del SKU en la grilla. Devuelve un objeto
- * `{ result, specAssign }`:
- *   result: 'found'     → hay una fila que matchea el SKU (existe en PIM)
- *           'not-found' → la capa "No data." está visible y ninguna fila matchea
- *           'pending'   → todavía cargando / estado no concluyente
- *   specAssign: contenido de la columna "Spec Assign" de la fila que matchea
- *               (ej "Assigned"), o null si está vacía / no aplica.
+ * Resuelve el resultado de la búsqueda del SKU en la grilla:
+ *   'found'     → hay una fila que matchea el SKU (existe en PIM)
+ *   'not-found' → la capa "No data." está visible y ninguna fila matchea
+ *   'pending'   → todavía cargando / estado no concluyente
  *
  * Matchear la fila por el SKU evita leer resultados de la búsqueda anterior; la
- * capa "No data." sólo aparece cuando la grilla quedó vacía.
+ * capa "No data." sólo aparece cuando la grilla quedó vacía. El "Spec Assign" NO
+ * se lee acá (su columna está virtualizada fuera del DOM); ver `flows/search.js`.
  */
 export function resolveResult(sku) {
   const scope = gridScope();
   const rows = scope.querySelectorAll(SELECTORS.gridRow);
   for (const row of rows) {
-    if (rowMatchesSku(row, sku)) {
-      return { result: 'found', specAssign: readSpecAssignForRow(scope, row) };
-    }
+    if (rowMatchesSku(row, sku)) return { result: 'found' };
   }
-  if (isNoDataVisible(scope)) return { result: 'not-found', specAssign: null };
-  return { result: 'pending', specAssign: null };
+  if (isNoDataVisible(scope)) return { result: 'not-found' };
+  return { result: 'pending' };
 }
