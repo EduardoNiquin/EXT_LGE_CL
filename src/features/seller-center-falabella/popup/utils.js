@@ -82,6 +82,24 @@ export function onlyDigits(value) {
 }
 
 /**
+ * Parsea una lista de números de orden pegados por el usuario. Acepta separación
+ * por saltos de línea, comas, punto y coma, espacios, tabs, `/` o `|`. Cada
+ * número se normaliza a sólo dígitos y se descartan vacíos y duplicados,
+ * preservando el orden de aparición.
+ */
+export function parseOrderList(text) {
+  const seen = new Set();
+  const out = [];
+  for (const tok of String(text ?? '').split(/[\s,;/|]+/)) {
+    const digits = onlyDigits(tok);
+    if (!digits || seen.has(digits)) continue;
+    seen.add(digits);
+    out.push(digits);
+  }
+  return out;
+}
+
+/**
  * Separa una celda "Nro Guia" en uno o más números. Se separan por espacios,
  * saltos de línea, `/` o `|`. NO se usan `,` ni `;` para no chocar con el
  * delimitador del CSV. Cada guía se normaliza a sólo dígitos (los identificadores

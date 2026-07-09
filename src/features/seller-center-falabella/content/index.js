@@ -3,7 +3,12 @@ import { MESSAGES } from '../constants.js';
 import { diagnose, isSupportSellerPage } from './detector.js';
 import { parseSections } from './parser.js';
 import { abortActiveRun, reconcileOnInit, tickIfActive } from './flows/run.js';
-import { subscribeToRun } from '../state.js';
+import {
+  abortActiveRun as abortSearch,
+  reconcileOnInit as reconcileSearch,
+  tickIfActive as tickSearch,
+} from './case-search/run.js';
+import { subscribeToRun, subscribeToSearchRun } from '../state.js';
 import { wireAsyncRunLifecycle } from '../../../shared/run-store/index.js';
 import { toMessage } from '../../../shared/errors/index.js';
 
@@ -30,6 +35,15 @@ export function init() {
 
   chrome.runtime.onMessage.addListener(handleMessage);
 
-  // Reconcile + subscribe(active?tick:abort) + tick inicial (ver shared/run-store).
+  // Flujo "Detalle Orden": reconcile + subscribe(active?tick:abort) + tick inicial.
   wireAsyncRunLifecycle({ subscribeToRun, tickIfActive, abortActiveRun, reconcileOnInit, log });
+
+  // Flujo "Buscar número de órden en caso": mismo ciclo de vida, run independiente.
+  wireAsyncRunLifecycle({
+    subscribeToRun: subscribeToSearchRun,
+    tickIfActive: tickSearch,
+    abortActiveRun: abortSearch,
+    reconcileOnInit: reconcileSearch,
+    log,
+  });
 }

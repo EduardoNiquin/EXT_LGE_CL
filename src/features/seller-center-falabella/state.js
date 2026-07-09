@@ -50,3 +50,62 @@ export function makeRun({ items, message }) {
 const draft = createPersistedValue(STORAGE_KEYS.DRAFT, null);
 export const getDraft = draft.get;
 export const setDraft = draft.set;
+
+// ---------------------------------------------------------------------------
+// "Buscar número de órden en caso"
+// ---------------------------------------------------------------------------
+//
+// Segundo flujo, storage-driven e independiente del anterior. El popup escribe
+// el run con la lista de órdenes a buscar; el content script (en la pestaña con
+// el listado de casos) lo reclama y recorre los casos página por página. Soporta
+// PAUSA (paused=true: el runner queda a la espera sin abortar) además de DETENER
+// (active=false: aborta el flujo). Progreso/logs viven en el mismo objeto.
+//
+// Forma del objeto guardado bajo STORAGE_KEYS.SEARCH_RUN:
+//   {
+//     active:  boolean,
+//     paused:  boolean,             // pausa reanudable (no aborta)
+//     claimed: boolean,
+//     startedAt, finishedAt,
+//     finishReason?: 'all-found'|'exhausted'|'cancelled'|'error'|'not-detected',
+//     errorReason?: string,
+//     fromFirstPage: boolean,       // arrancar desde la página 1
+//     targets: string[],            // números de orden a buscar (sólo dígitos)
+//     found: { [order]: { caseNumber, caseId, page } },
+//     casesScanned: number,
+//     currentPage: number|null,
+//     totalPages: number|null,
+//     log: [{ ts, level, message }],
+//   }
+const searchStore = createRunStore({ key: STORAGE_KEYS.SEARCH_RUN, logCap: LOG_CAP });
+export const getSearchRun       = searchStore.getRun;
+export const setSearchRun       = searchStore.setRun;
+export const clearSearchRun     = searchStore.clearRun;
+export const updateSearchRun    = searchStore.updateRun;
+export const appendSearchLog    = searchStore.appendLog;
+export const subscribeToSearchRun = searchStore.subscribeToRun;
+
+/** Construye un run nuevo de búsqueda a partir de la lista de órdenes objetivo. */
+export function makeSearchRun({ targets, fromFirstPage = true, message }) {
+  return {
+    active: true,
+    paused: false,
+    claimed: false,
+    startedAt: Date.now(),
+    finishedAt: null,
+    finishReason: null,
+    errorReason: null,
+    fromFirstPage: fromFirstPage !== false,
+    targets: [...targets],
+    found: {},
+    casesScanned: 0,
+    currentPage: null,
+    totalPages: null,
+    log: [{ ts: Date.now(), level: 'info', message: message || 'Búsqueda iniciada' }],
+  };
+}
+
+// Borrador de la búsqueda (texto de órdenes + opción) — independiente del run.
+const searchDraft = createPersistedValue(STORAGE_KEYS.SEARCH_DRAFT, null);
+export const getSearchDraft = searchDraft.get;
+export const setSearchDraft = searchDraft.set;

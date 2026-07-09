@@ -62,9 +62,9 @@ export const features = [
   {
     id: 'seller-center-falabella',
     name: 'SellerCenter Falabella',
-    description: 'SoporteSeller: cargar "Detalle Orden" desde un CSV',
+    description: 'SoporteSeller: cargar "Detalle Orden" y buscar N° de orden en casos',
     abbr: 'SCF',
-    keywords: ['seller', 'sellercenter', 'falabella', 'fallabella', 'soporte', 'soporteseller', 'detalle', 'orden', 'guia', 'guía', 'paquetes', 'csv'],
+    keywords: ['seller', 'sellercenter', 'falabella', 'fallabella', 'soporte', 'soporteseller', 'detalle', 'orden', 'guia', 'guía', 'paquetes', 'csv', 'caso', 'casos', 'ticket', 'buscar', 'devolucion', 'devolución', 'reclamo'],
     render: renderSellerCenterFalabella,
   },
   {
