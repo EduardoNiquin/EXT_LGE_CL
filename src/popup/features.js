@@ -7,6 +7,7 @@ import { render as renderLgcom }       from '../features/lgcom/popup/view.js';
 import { render as renderSellerCenterFalabella } from '../features/seller-center-falabella/popup/view.js';
 import { render as renderEpromoters }   from '../features/e-promoters/popup/view.js';
 import { render as renderPim }          from '../features/pim/popup/view.js';
+import { render as renderSolotodo }    from '../features/solotodo/popup/view.js';
 import { render as renderGato }        from '../features/gato/popup/view.js';
 import { render as renderAjustes }     from '../features/ajustes/popup/view.js';
 
@@ -82,6 +83,14 @@ export const features = [
     abbr: 'PIM',
     keywords: ['pim', 'producto', 'sku', 'creacion', 'creación', 'existe', 'existencia', 'staging', 'stg', 'model', 'gp1'],
     render: renderPim,
+  },
+  {
+    id: 'solotodo',
+    name: 'SoloTodo',
+    description: 'Generar reportes de export en el backoffice de SoloTodo',
+    abbr: 'STO',
+    keywords: ['solotodo', 'reporte', 'report', 'export', 'generar', 'tv', 'televisores', 'tienda', 'tiendas', 'categoria', 'categoría'],
+    render: renderSolotodo,
   },
   {
     id: 'gato',

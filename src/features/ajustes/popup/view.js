@@ -25,6 +25,7 @@ const KNOWN_SCOPES_FALLBACK = [
   'colocar-tags:combobox',
   'colocar-tags:messagebox',
   'lead-times',
+  'solotodo',
   'content',
   'debug',
   'popup',
