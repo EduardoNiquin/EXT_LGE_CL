@@ -1,4 +1,4 @@
-// Constantes del feature "GATO" (tic-tac-toe multijugador, secreto).
+// Constantes del feature "GATO" (Batalla Naval multijugador, secreto).
 //
 // Es una feature SOLO de popup (sin content script): el matchmaking y la
 // partida corren mientras el popup/sidepanel esta abierto, contra Firebase
@@ -43,45 +43,42 @@ export const PHASE = {
   IDLE: 'idle',                 // pantalla de nombre + buscar
   SEARCHING: 'searching',       // "Buscando rivales..." + lista de jugadores
   CHALLENGED: 'challenged',     // "X te ha retado" (forzado a jugar)
-  PLAYING: 'playing',           // tablero en juego (multijugador)
-  FINISHED: 'finished',         // resultado (ganador/empate) multijugador
+  PLAYING: 'playing',           // partida en curso (despliegue o batalla)
+  FINISHED: 'finished',         // resultado (ganador) multijugador
   LEADERBOARD: 'leaderboard',   // tabla de clasificaciones
-  AI: 'ai',                     // partida local contra la IA (no puntua)
 };
-
-// Rol del humano y de la IA en las partidas locales (IA no puntua). Reusan los
-// mismos colores: humano = P1 (ROJO), IA = P2 (NEGRO).
-export const AI_ROLE = { HUMAN: 'P1', CPU: 'P2' };
-// Nombre que muestra la IA como rival.
-export const AI_NAME = 'IA (gatito)';
-// Pausa antes de la jugada de la IA, para que se sienta natural.
-export const AI_THINK_MS = 600;
 
 // Estado de una partida en Firebase.
 export const GAME_STATUS = {
-  PLAYING: 'playing',
+  PLACING: 'placing',   // ambos jugadores colocando barcos y bombas
+  PLAYING: 'playing',   // batalla por turnos
   FINISHED: 'finished',
 };
 
-// Resultado.
-export const WINNER = {
-  DRAW: 'draw',
-};
-
-// Roles. P1 = jugador con uid menor (orden lexicografico); marca ROJO.
-// P2 = uid mayor; marca NEGRO.
+// Roles. P1 = jugador con uid menor (orden lexicografico); P2 = uid mayor.
 export const ROLE = { P1: 'P1', P2: 'P2' };
 
 // --- Reglas del tablero ------------------------------------------------------
-export const BOARD_SIZE = 9;
-export const WIN_LINES = [
-  [0, 1, 2], [3, 4, 5], [6, 7, 8], // filas
-  [0, 3, 6], [1, 4, 7], [2, 5, 8], // columnas
-  [0, 4, 8], [2, 4, 6],            // diagonales
+// Tablero COMPARTIDO de 16x16: ambos jugadores despliegan su flota en el mismo
+// mapa (ocultos entre si) y disparan a cualquier casilla. Asi las bombas
+// (trampas) del rival pueden danar a los barcos de quien las detona.
+export const GRID = 16;
+
+// Flota de cada jugador: 1 barco 4x1, 1 barco 3x1 y 2 barcos 2x1.
+export const FLEET = [
+  { id: 's4', size: 4 },
+  { id: 's3', size: 3 },
+  { id: 's2a', size: 2 },
+  { id: 's2b', size: 2 },
 ];
 
-// Tiempo por jugada (ms). Al agotarse pasa el turno.
-export const TURN_MS = 10000;
+// Bombas (trampas de 1 casilla) por jugador. Solo las ve su dueno hasta que
+// explotan; al dispararle a una, explota en un area 3x3 (recortada en bordes y
+// esquinas) y dana UNICAMENTE a los barcos del jugador que disparo.
+export const BOMBS_PER_PLAYER = 2;
+
+// Tiempo por turno (ms). Al agotarse pasa el turno.
+export const TURN_MS = 30000;
 
 // Presencia: se considera activo un jugador con heartbeat reciente.
 export const PRESENCE_FRESH_MS = 30000;   // ventana de "activo"
@@ -118,4 +115,23 @@ export const CAT_SVG_PATHS = `
 /** SVG completo del gato a un tamano dado (px). */
 export function catSvg(size = 22) {
   return `<svg viewBox="0 0 36 36" width="${size}" height="${size}" fill="none" aria-hidden="true">${CAT_SVG_PATHS}</svg>`;
+}
+
+// --- Logo del barco (SVG simple, hecho a mano) --------------------------------
+export const SHIP_SVG_PATHS = `
+<rect fill="#78909c" x="30" y="4" width="4" height="10"/>
+<rect fill="#90a4ae" x="24" y="14" width="16" height="8" rx="1"/>
+<rect fill="#78909c" x="14" y="20" width="8" height="4"/>
+<rect fill="#78909c" x="8" y="21" width="6" height="2"/>
+<path fill="#546e7a" d="M4 26h56l-8 12H12z"/>
+<circle fill="#cfd8dc" cx="20" cy="31" r="1.5"/>
+<circle fill="#cfd8dc" cx="28" cy="31" r="1.5"/>
+<circle fill="#cfd8dc" cx="36" cy="31" r="1.5"/>
+<circle fill="#cfd8dc" cx="44" cy="31" r="1.5"/>
+<path stroke="#4fc3f7" stroke-width="2" stroke-linecap="round" fill="none" d="M2 41q4-3 8 0t8 0t8 0t8 0t8 0t8 0t8 0"/>
+`.trim();
+
+/** SVG completo del barco a un tamano dado (px de ancho). */
+export function shipSvg(size = 22) {
+  return `<svg viewBox="0 0 64 44" width="${size}" height="${Math.round(size * 0.69)}" fill="none" aria-hidden="true">${SHIP_SVG_PATHS}</svg>`;
 }

@@ -1997,35 +1997,130 @@ mark {
 }
 .gato-turn--you { color: var(--accent); }
 
-.gato-board {
+/* --- Batalla Naval: tablero 16x16 --- */
+.bn-board {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  grid-template-rows: repeat(3, 1fr);
-  gap: 8px;
+  grid-template-columns: repeat(16, 1fr);
+  grid-template-rows: repeat(16, 1fr);
+  gap: 1px;
   width: 100%;
   aspect-ratio: 1 / 1;
+  padding: 3px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #0e4f78, #0a3a5c);
 }
-.gato-cell {
-  border: 2px solid var(--border-strong);
-  border-radius: 12px;
-  background: var(--surface);
-  font-size: 40px; font-weight: 800; line-height: 1;
+.bn-cell {
+  position: relative;
+  border: none;
+  border-radius: 2px;
+  padding: 0;
+  background: linear-gradient(135deg, #3ba7dd, #2b8ec4);
+  font-size: 9px; line-height: 1;
   display: flex; align-items: center; justify-content: center;
-  cursor: pointer; font-family: inherit; color: var(--text);
-  transition: border-color var(--transition), background var(--transition), transform var(--transition);
+  cursor: pointer; font-family: inherit; color: #eaf6ff;
+  animation: bn-sea 5s ease-in-out infinite;
+  transition: filter var(--transition), transform var(--transition);
 }
-.gato-cell:not(:disabled):hover { border-color: var(--accent); transform: translateY(-1px); }
-.gato-cell:disabled { cursor: default; }
-.gato-cell--p1 { color: #ea1917; border-color: #ea1917; }
-.gato-cell--p2 { color: #111111; border-color: #555555; }
-:root[data-theme="dark"] .gato-cell--p2 { color: #f2f2f2; border-color: #888888; }
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme]) .gato-cell--p2 { color: #f2f2f2; border-color: #888888; }
+/* Marea suave: desfases por celda para que el mar "se mueva" levemente. */
+@keyframes bn-sea {
+  0%, 100% { filter: brightness(1); }
+  50%      { filter: brightness(1.13) saturate(1.08); }
 }
-.gato-cell--win {
-  background: var(--accent-soft);
-  box-shadow: inset 0 0 0 2px var(--accent);
+.bn-cell:nth-child(4n+1) { animation-delay: -1.2s; }
+.bn-cell:nth-child(4n+2) { animation-delay: -2.6s; }
+.bn-cell:nth-child(4n+3) { animation-delay: -3.9s; }
+.bn-cell:not(:disabled):hover { filter: brightness(1.3); transform: scale(1.12); z-index: 1; }
+.bn-cell:disabled { cursor: default; }
+
+/* Barcos propios (grises) y del rival (revelados: cafe oscuro). */
+.bn-cell--ship {
+  background: linear-gradient(135deg, #78909c, #546e7a);
+  animation: none;
 }
+.bn-cell--ship-enemy {
+  background: linear-gradient(135deg, #8d6e63, #5d4037);
+  animation: none;
+}
+.bn-cell--bomb { font-size: 10px; }
+.bn-cell--hit {
+  background: linear-gradient(135deg, #ef5350, #c62828);
+  color: #fff;
+  animation: none;
+}
+.bn-cell--sunk {
+  background: linear-gradient(135deg, #4e342e, #212121);
+  color: #ffab91;
+  animation: none;
+}
+.bn-cell--boom {
+  background: linear-gradient(135deg, #ff9800, #e65100);
+  animation: none;
+  font-size: 10px;
+}
+.bn-cell--miss { color: rgba(234, 246, 255, 0.85); font-size: 12px; }
+
+/* Pieza "en mano" (ghost translucido): gris si cabe, rojo si no. */
+.bn-cell--ghost-ok {
+  background: linear-gradient(135deg, #78909c, #546e7a);
+  opacity: 0.55;
+  animation: none;
+}
+.bn-cell--ghost-bad {
+  background: linear-gradient(135deg, #ef5350, #b71c1c);
+  opacity: 0.55;
+  animation: none;
+}
+
+/* Flash de feedback (lo que paso en el turno del rival / tu disparo). */
+.bn-cell--flash { animation: bn-flash 1.6s ease-out 1; z-index: 1; }
+@keyframes bn-flash {
+  0%   { box-shadow: 0 0 0 3px #ffee58, 0 0 12px 4px rgba(255, 238, 88, 0.9); transform: scale(1.25); }
+  60%  { box-shadow: 0 0 0 2px rgba(255, 238, 88, 0.6), 0 0 8px 2px rgba(255, 238, 88, 0.4); }
+  100% { box-shadow: none; transform: scale(1); }
+}
+
+/* Barra de piezas (despliegue): barcos a la izquierda, bombas a la derecha. */
+.bn-tray {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  padding: 6px 8px; border: 1px solid var(--border); border-radius: var(--radius-sm);
+  background: var(--surface-2);
+}
+.bn-tray-ships { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.bn-tray-bombs { display: flex; align-items: center; gap: 4px; }
+.bn-piece {
+  display: flex; align-items: center; gap: 2px;
+  padding: 4px; border: 2px solid transparent; border-radius: 6px;
+  background: transparent; cursor: pointer; font-family: inherit; font-size: 14px;
+  transition: border-color var(--transition), opacity var(--transition), transform var(--transition);
+}
+.bn-piece:not(:disabled):hover { border-color: var(--accent); transform: translateY(-1px); }
+.bn-piece--sel { border-color: var(--accent); background: var(--accent-soft); opacity: 0.6; }
+.bn-piece--placed { opacity: 0.25; cursor: default; }
+.bn-piece-cell {
+  width: 11px; height: 11px; border-radius: 2px;
+  background: linear-gradient(135deg, #78909c, #546e7a);
+}
+.bn-piece--bomb { padding: 2px 4px; }
+
+/* Etiqueta de fase + eventos + leyenda */
+.bn-phase-tag {
+  font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em;
+  padding: 4px 10px; border-radius: 999px;
+  background: var(--accent-soft); color: var(--accent);
+}
+.bn-event {
+  font-size: 11px; font-weight: 600; text-align: center;
+  padding: 6px 8px; border-radius: var(--radius-sm);
+  background: var(--surface-3); color: var(--text-muted);
+}
+.bn-event--enemy { background: var(--danger-bg); color: var(--danger); }
+.bn-legend {
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  font-size: 10px; color: var(--text-subtle); flex-wrap: wrap;
+}
+.bn-legend span { display: inline-flex; align-items: center; gap: 3px; }
+.bn-dot { display: inline-block; width: 9px; height: 9px; border-radius: 2px; }
+.bn-dot--ship { background: linear-gradient(135deg, #78909c, #546e7a); }
 
 .gato-score {
   display: flex; align-items: center; justify-content: center; gap: 8px;
@@ -2044,12 +2139,6 @@ mark {
 
 .gato-hero--sm { padding: 2px 0; }
 .gato-hero--sm span { font-size: 12px; letter-spacing: 0.1em; }
-
-/* Nota IA */
-.gato-ai-note {
-  font-size: 11px; color: var(--text-subtle); text-align: center;
-  font-style: italic; margin-top: -2px;
-}
 
 /* Buscando: lista de jugadores para retar */
 .gato-searching {

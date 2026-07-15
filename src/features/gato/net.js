@@ -20,19 +20,17 @@ import {
   TICKET_FRESH_MS,
   TURN_MS,
   GAME_STATUS,
-  WINNER,
   ROLE,
   LEADERBOARD_PATH,
 } from './constants.js';
 import {
-  emptyBoard,
-  findWinner,
-  isFull,
   otherRole,
   rolesFromUids,
   pairId,
   roleForUid,
   nameKey,
+  emptySetup,
+  resolveShot,
 } from './game.js';
 
 // --- Presencia ---------------------------------------------------------------
@@ -169,7 +167,9 @@ export async function challengePlayer(uid, name, target) {
 /**
  * Crea la partida si no existe (o la reinicia preservando el marcador). El
  * gameId es determinista por par, asi el marcador de victorias sobrevive entre
- * revanchas y reconexiones de los mismos dos jugadores.
+ * revanchas y reconexiones de los mismos dos jugadores. La partida nace en
+ * fase de DESPLIEGUE (status 'placing'): cada jugador coloca su flota y sus
+ * bombas, y la batalla arranca cuando ambos estan listos (startBattle).
  */
 export async function ensureGame(uidA, nameA, uidB, nameB) {
   const gameId = pairId(uidA, uidB);
@@ -182,7 +182,7 @@ export async function ensureGame(uidA, nameA, uidB, nameB) {
     [ROLE.P2]: { uid: roles[ROLE.P2], name: nameByUid[roles[ROLE.P2]] },
   };
   // Si hay una partida en curso valida con estos mismos jugadores, no la pisamos.
-  if (existing && existing.status === GAME_STATUS.PLAYING && existing.players) {
+  if (existing && existing.status !== GAME_STATUS.FINISHED && existing.players) {
     return gameId;
   }
 
@@ -190,15 +190,14 @@ export async function ensureGame(uidA, nameA, uidB, nameB) {
     ? { [ROLE.P1]: existing.score[ROLE.P1] || 0, [ROLE.P2]: existing.score[ROLE.P2] || 0 }
     : { [ROLE.P1]: 0, [ROLE.P2]: 0 };
 
-  const starter = Math.random() < 0.5 ? ROLE.P1 : ROLE.P2;
-
   await rset(`games/${gameId}`, {
     players,
-    board: emptyBoard(),
-    turn: starter,
-    status: GAME_STATUS.PLAYING,
+    status: GAME_STATUS.PLACING,
+    setup: emptySetup(),
+    seq: 0,
+    turn: null,
     winner: null,
-    moveDeadline: Date.now() + TURN_MS,
+    moveDeadline: null,
     rematch: { [ROLE.P1]: false, [ROLE.P2]: false },
     leaver: null,
     score,
@@ -213,30 +212,76 @@ export function getGame(gameId) {
 }
 
 /**
- * Aplica una jugada si es legal. Solo el jugador en turno escribe sus jugadas.
- * Resuelve ganador/empate, suma al marcador de la partida y, si hay ganador,
- * incrementa el ranking global (solo lo hace el que cierra la jugada).
+ * Publica la flota y las bombas de este rol y lo marca listo. Se escribe el
+ * nodo completo setup/{role}; el rival NO renderiza estos datos hasta que
+ * corresponda (bombas ocultas, barcos ocultos salvo impactos/hundidos).
  */
-export async function makeMove(gameId, role, index) {
+export function submitSetup(gameId, role, ships, bombs) {
+  return rset(`games/${gameId}/setup/${role}`, {
+    ready: true,
+    ships: (ships || []).map((s) => ({ id: s.id, size: s.size, r: s.r, c: s.c, dir: s.dir })),
+    bombs: (bombs || []).map((b) => ({ r: b.r, c: b.c, exploded: false })),
+  });
+}
+
+/**
+ * Arranca la batalla cuando ambos estan listos. Cualquiera de los dos clientes
+ * puede llamarlo: el claim del cambio de status es ATOMICO via ETag, asi solo
+ * uno sortea el turno inicial (sin dobles escrituras).
+ */
+export async function startBattle(gameId) {
   const game = await getGame(gameId);
-  if (!game || game.status !== GAME_STATUS.PLAYING) return game;
-  if (game.turn !== role) return game;
-  const board = Array.isArray(game.board) ? game.board.slice() : emptyBoard();
-  if (board[index]) return game; // casilla ocupada
+  if (!game || game.status !== GAME_STATUS.PLACING) return game;
+  const setup = game.setup || {};
+  if (!setup[ROLE.P1]?.ready || !setup[ROLE.P2]?.ready) return game;
 
-  board[index] = role;
-  const patch = { board };
+  const cur = await rgetWithEtag(`games/${gameId}/status`);
+  if (cur.value !== GAME_STATUS.PLACING) return getGame(gameId);
+  const claim = await rsetIfMatch(`games/${gameId}/status`, GAME_STATUS.PLAYING, cur.etag);
+  if (claim.ok) {
+    await rupdate(`games/${gameId}`, {
+      turn: Math.random() < 0.5 ? ROLE.P1 : ROLE.P2,
+      moveDeadline: Date.now() + TURN_MS,
+      seq: 0,
+      last: null,
+      shots: null,
+    });
+  }
+  return getGame(gameId);
+}
 
-  const win = findWinner(board);
-  if (win) {
+/**
+ * Dispara a la casilla (r,c). Solo el jugador en turno escribe (un unico
+ * escritor por turno). Resuelve impactos/bombas/hundimientos en el cliente
+ * (game.resolveShot), registra el disparo y el evento `last` para el feedback
+ * del rival, cambia el turno (1 accion por turno) y cierra la partida si una
+ * flota quedo hundida (sumando al marcador y al ranking global).
+ */
+export async function fireShot(gameId, role, r, c) {
+  const game = await getGame(gameId);
+  if (!game || game.status !== GAME_STATUS.PLAYING || game.turn !== role) return game;
+  const shotKey = `${role}_${r}_${c}`;
+  if (game.shots?.[shotKey]) return game; // ya disparo ahi
+
+  const { setup, event, winner } = resolveShot(game, role, r, c);
+  const seq = (game.seq || 0) + 1;
+  const last = { ...event, seq, ts: Date.now() };
+  const shot = { by: role, r, c, res: event.res, seq };
+
+  // PATCH con keys profundas: actualiza setup/shots/last sin pisar el resto.
+  const patch = {
+    [`setup/${ROLE.P1}`]: setup[ROLE.P1],
+    [`setup/${ROLE.P2}`]: setup[ROLE.P2],
+    [`shots/${shotKey}`]: shot,
+    seq,
+    last,
+  };
+  if (winner) {
     patch.status = GAME_STATUS.FINISHED;
-    patch.winner = win.role;
+    patch.winner = winner;
     const score = { ...(game.score || {}) };
-    score[win.role] = (score[win.role] || 0) + 1;
+    score[winner] = (score[winner] || 0) + 1;
     patch.score = score;
-  } else if (isFull(board)) {
-    patch.status = GAME_STATUS.FINISHED;
-    patch.winner = WINNER.DRAW;
   } else {
     patch.turn = otherRole(role);
     patch.moveDeadline = Date.now() + TURN_MS;
@@ -244,23 +289,39 @@ export async function makeMove(gameId, role, index) {
 
   await rupdate(`games/${gameId}`, patch);
 
-  // Ranking global (solo el ganador de la jugada lo toca → un unico incremento).
-  if (win) {
-    const winnerName = game.players?.[win.role]?.name;
+  // Ranking global (solo quien cierra la jugada lo toca → un unico incremento).
+  if (winner) {
+    const winnerName = game.players?.[winner]?.name;
     if (winnerName) incrementLeaderboard(winnerName).catch(() => {});
   }
 
-  return { ...game, ...patch };
+  return {
+    ...game,
+    setup,
+    shots: { ...(game.shots || {}), [shotKey]: shot },
+    seq,
+    last,
+    ...(winner
+      ? { status: GAME_STATUS.FINISHED, winner, score: patch.score }
+      : { turn: patch.turn, moveDeadline: patch.moveDeadline }),
+  };
 }
 
 /**
  * Pasa el turno por tiempo agotado. Solo lo ejecuta el jugador en turno (no
- * escribe nadie mas), evitando dobles escrituras.
+ * escribe nadie mas), evitando dobles escrituras. Deja un evento `last` para
+ * que el rival sepa que no paso nada.
  */
 export async function passTurn(gameId, role) {
   const game = await getGame(gameId);
   if (!game || game.status !== GAME_STATUS.PLAYING || game.turn !== role) return game;
-  const patch = { turn: otherRole(role), moveDeadline: Date.now() + TURN_MS };
+  const seq = (game.seq || 0) + 1;
+  const patch = {
+    turn: otherRole(role),
+    moveDeadline: Date.now() + TURN_MS,
+    seq,
+    last: { by: role, res: 'pass', seq, ts: Date.now() },
+  };
   await rupdate(`games/${gameId}`, patch);
   return { ...game, ...patch };
 }
@@ -272,13 +333,16 @@ export async function requestRematch(gameId, role, uid) {
   const rematch = game?.rematch || {};
   const bothWant = rematch[ROLE.P1] && rematch[ROLE.P2];
   if (bothWant && game.players?.[ROLE.P1]?.uid === uid) {
-    const starter = Math.random() < 0.5 ? ROLE.P1 : ROLE.P2;
+    // Nueva partida: vuelve a la fase de despliegue (flotas nuevas).
     await rupdate(`games/${gameId}`, {
-      board: emptyBoard(),
-      turn: starter,
-      status: GAME_STATUS.PLAYING,
+      status: GAME_STATUS.PLACING,
+      setup: emptySetup(),
+      shots: null,
+      seq: 0,
+      last: null,
+      turn: null,
       winner: null,
-      moveDeadline: Date.now() + TURN_MS,
+      moveDeadline: null,
       rematch: { [ROLE.P1]: false, [ROLE.P2]: false },
       leaver: null,
     });
