@@ -9,6 +9,7 @@ import {
   tickIfActive as tickSearch,
 } from './case-search/run.js';
 import { subscribeToRun, subscribeToSearchRun } from '../state.js';
+import { initPairing } from '../devoluciones/content.js';
 import { wireAsyncRunLifecycle } from '../../../shared/run-store/index.js';
 import { toMessage } from '../../../shared/errors/index.js';
 
@@ -46,4 +47,7 @@ export function init() {
     reconcileOnInit: reconcileSearch,
     log,
   });
+
+  // Devoluciones: lee el token de emparejamiento de la web y lo persiste.
+  initPairing();
 }

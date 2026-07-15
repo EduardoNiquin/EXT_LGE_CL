@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "EXT LGE CL",
-  "version": "4.3",
+  "version": "4.5",
   "description": "",
   "permissions": [
     "storage",

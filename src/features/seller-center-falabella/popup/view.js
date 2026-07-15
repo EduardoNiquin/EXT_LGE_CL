@@ -1,12 +1,15 @@
-// Router del feature "SellerCenter Falabella". Dos sub-secciones:
-// "SoporteSeller" (Detalle Orden) y "Buscar caso" (buscar N° de orden en casos).
+// Router del feature "SellerCenter Falabella". Tres sub-secciones:
+// "Detalle Orden", "Buscar caso" (buscar N° de orden en casos) y "Devoluciones"
+// (puente para subir comprimidos y guardar los resultados en disco).
 
 import * as soporteSeller from './sections/soporte-seller.js';
 import * as buscarCaso from './sections/buscar-caso.js';
+import * as devoluciones from './sections/devoluciones.js';
 
 const SECTIONS = [
   { id: 'soporte-seller', label: 'Detalle Orden', render: soporteSeller.render },
   { id: 'buscar-caso',    label: 'Buscar caso',   render: buscarCaso.render },
+  { id: 'devoluciones',   label: 'Devoluciones',  render: devoluciones.render },
 ];
 
 const DEFAULT_SECTION = 'soporte-seller';
