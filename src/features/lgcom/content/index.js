@@ -8,6 +8,7 @@ import {
 } from '../constants.js';
 import * as store from './capture-store.js';
 import { waitAndParse } from './destacados/check.js';
+import { waitAndParseSearch, normSku } from './busqueda/check.js';
 import { toMessage } from '../../../shared/errors/index.js';
 
 const log = logger('lgcom');
@@ -76,6 +77,23 @@ function handleMessage(message, _sender, sendResponse) {
     }
     waitAndParse().then(
       ({ hasSpotlight, products }) => sendResponse({ ok: true, ready: true, hasSpotlight, products }),
+      (err) => sendResponse({ ok: false, reason: toMessage(err) }),
+    );
+    return true; // canal abierto para la respuesta async
+  }
+  if (message?.type === MESSAGES.PARSE_SEARCH) {
+    // El service worker abrió esta pestaña en la URL del buscador para un SKU y
+    // pide leer los resultados ya renderizados. Verificamos que la navegación
+    // ya refleje el SKU buscado (query ?search=), si no, sigue cargando la
+    // búsqueda anterior → ready:false.
+    const expect = normSku(message.sku);
+    const current = new URLSearchParams(location.search).get('search') || '';
+    if (expect && normSku(current) !== expect) {
+      sendResponse({ ok: true, ready: false });
+      return true;
+    }
+    waitAndParseSearch(message.sku).then(
+      (res) => sendResponse({ ok: true, ready: true, ...res }),
       (err) => sendResponse({ ok: false, reason: toMessage(err) }),
     );
     return true; // canal abierto para la respuesta async

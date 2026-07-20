@@ -1,7 +1,8 @@
 // Router de nivel superior del feature "LG.com".
 //
-// Dos secciones:
+// Secciones:
 //   - "Información web": captura GraphQL/REST de PDP/PLP/PBP (sections/info-web).
+//   - "Búsqueda": busca SKUs en el buscador de lg.com (sections/busqueda).
 //   - "Revisar Destacados": revisa el recuadro de destacados de las páginas de
 //     categoría (tag + stock) — sections/destacados.
 //
@@ -10,12 +11,14 @@
 import { SECTIONS, STORAGE_KEYS } from '../constants.js';
 import { getStorage, setStorage } from '../../../shared/storage/storage.js';
 import * as infoWeb from './sections/info-web.js';
+import * as busqueda from './sections/busqueda.js';
 import * as destacados from './sections/destacados/index.js';
 
 const DEFAULT_SECTION = 'info-web';
 
 const RENDERERS = {
   'info-web':   infoWeb.render,
+  'busqueda':   busqueda.render,
   'destacados': destacados.render,
 };
 

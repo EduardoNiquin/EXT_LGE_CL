@@ -14,6 +14,19 @@ export function formatTime(ts) {
   return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
 }
 
+// Dispara la descarga de un texto como archivo, sin permisos extra.
+export function downloadText(text, filename, mime = 'text/csv;charset=utf-8') {
+  const blob = new Blob([text], { type: mime });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
 // Copia texto al portapapeles con fallback para contextos sin clipboard API.
 export async function copyToClipboard(text) {
   const value = String(text ?? '');

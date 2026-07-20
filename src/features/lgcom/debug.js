@@ -3,6 +3,7 @@ import { LGCOM_HOST_RE, MESSAGES } from './constants.js';
 import * as store from './content/capture-store.js';
 import { extract } from './content/extractors/index.js';
 import { parseSpotlight, waitAndParse } from './content/destacados/check.js';
+import { parseSearch, waitAndParseSearch } from './content/busqueda/check.js';
 
 register('lgcom', {
   diagnose: cmd(
@@ -58,5 +59,21 @@ register('lgcom', {
   runDestacados: cmd(
     () => chrome.runtime.sendMessage({ type: MESSAGES.RUN_DESTACADOS }),
     'Dispara la revisión completa en el service worker (abre pestañas de fondo)',
+  ),
+  search: cmd(
+    (sku) => parseSearch(sku, document),
+    'Parsea los resultados del buscador de la página ACTUAL para un SKU: search("86MRGB95BSA")',
+  ),
+  searchLive: cmd(
+    (sku) => waitAndParseSearch(sku),
+    'Espera a que rendericen los resultados en la página ACTUAL y busca el SKU',
+  ),
+  runBusqueda: cmd(
+    (...skus) => chrome.runtime.sendMessage({ type: MESSAGES.RUN_BUSQUEDA, skus }),
+    'Dispara una búsqueda en el service worker: runBusqueda("SKU1","SKU2",...)',
+  ),
+  stopBusqueda: cmd(
+    () => chrome.runtime.sendMessage({ type: MESSAGES.STOP_BUSQUEDA }),
+    'Detiene la búsqueda en curso en el service worker',
   ),
 });

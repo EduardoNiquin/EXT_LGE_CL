@@ -3,6 +3,7 @@ import { installGlobalErrorCapture } from '../shared/diagnostics/index.js';
 import { logger } from '../shared/utils/logger.js';
 import { onMessage } from '../shared/messaging/messaging.js';
 import { wireDestacadosBackground } from '../features/lgcom/background/destacados.js';
+import { wireBusquedaBackground } from '../features/lgcom/background/busqueda.js';
 import { wireInformeBackground } from '../features/e-promoters/background/informe.js';
 import { wireDevolucionesBackground } from '../features/seller-center-falabella/devoluciones/background/runner.js';
 import '../features/e-promoters/debug.js';
@@ -15,6 +16,9 @@ installGlobalErrorCapture('service-worker');
 
 // Revisar Destacados (LG.com): disparo manual desde el popup + alarma automática.
 wireDestacadosBackground();
+
+// Búsqueda (LG.com): busca una lista de SKUs en el buscador (pestañas de fondo).
+wireBusquedaBackground();
 
 // E-promoters — Informe ordenes: procesa y descarga el CSV en segundo plano.
 wireInformeBackground();

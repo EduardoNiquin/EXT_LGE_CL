@@ -6,10 +6,13 @@ export const BRIDGE_SOURCE = 'ext-lge-cl/graphql';
 
 // Preferencias de UI del popup (persistidas en chrome.storage.local).
 export const STORAGE_KEYS = {
-  SECTION:         `${FEATURE_ID}:section`,          // sección activa (info-web/destacados)
+  SECTION:         `${FEATURE_ID}:section`,          // sección activa (info-web/busqueda/destacados)
   DESTACADOS_TAB:  `${FEATURE_ID}:destacados-tab`,   // sub-tab de Destacados (review/config)
   DESTACADOS_AUTO: `${FEATURE_ID}:destacados-auto`,  // config revisión automática {enabled,intervalMinutes}
   DESTACADOS_RUN:  `${FEATURE_ID}:destacados-run`,   // estado de la corrida (live + último) {active,total,items,...}
+  BUSQUEDA_RUN:    `${FEATURE_ID}:busqueda-run`,     // estado de la búsqueda de SKUs {active,total,items,...}
+  BUSQUEDA_SKUS:   `${FEATURE_ID}:busqueda-skus`,    // último texto ingresado (SKUs, uno por línea)
+  BUSQUEDA_POOL:   `${FEATURE_ID}:busqueda-pool`,    // pestañas en paralelo elegidas (1-5)
   SCREEN:          `${FEATURE_ID}:screen`,           // pantalla activa (pdp/plp/pbp)
   AUTO_FOLLOW:     `${FEATURE_ID}:auto-follow`,      // bool: seguir la pantalla actual
   FONT_SCALE:      `${FEATURE_ID}:font-scale`,       // índice de tamaño de texto
@@ -18,6 +21,7 @@ export const STORAGE_KEYS = {
 // Secciones de nivel superior de la feature LG.com.
 export const SECTIONS = [
   { id: 'info-web',   label: 'Información web' },   // PDP / PLP / PBP (captura GraphQL)
+  { id: 'busqueda',   label: 'Búsqueda' },          // busca SKUs en el buscador de lg.com
   { id: 'destacados', label: 'Revisar Destacados' },
 ];
 
@@ -71,6 +75,9 @@ export const MESSAGES = {
   GET_OPERATION:   `${FEATURE_ID}:get-operation`,    // { operationName } → { ok, operationName, ts, variables, response }
   RUN_DESTACADOS:  `${FEATURE_ID}:run-destacados`,   // popup → service worker: dispara una revisión. → { ok }
   PARSE_SPOTLIGHT: `${FEATURE_ID}:parse-spotlight`,  // SW → content (pestaña de fondo): { expectPath } → { ok, ready, hasSpotlight, products }
+  RUN_BUSQUEDA:    `${FEATURE_ID}:run-busqueda`,     // popup → service worker: busca una lista de SKUs. { skus } → { ok, run }
+  STOP_BUSQUEDA:   `${FEATURE_ID}:stop-busqueda`,    // popup → service worker: detiene la búsqueda en curso. → { ok }
+  PARSE_SEARCH:    `${FEATURE_ID}:parse-search`,     // SW → content (pestaña de fondo): { sku } → { ok, ready, found, stock, ... }
 };
 
 // Nombre de la alarma de revisión automática (chrome.alarms, lo maneja el SW).
@@ -187,3 +194,92 @@ export const DESTACADOS_POOL = 3;
 export const DESTACADOS_AUTO_DEFAULT = { enabled: false, intervalMinutes: 30 };
 export const DESTACADOS_AUTO_MIN_MINUTES = 5;
 export const DESTACADOS_AUTO_MAX_MINUTES = 1440; // 24 h
+
+// -----------------------------------------------------------------------------
+// Búsqueda (buscar SKUs en el buscador de www.lg.com)
+// -----------------------------------------------------------------------------
+//
+// Buscar un producto en la web es manual y repetitivo: hay que abrir el buscador,
+// escribir el SKU, esperar a que carguen los resultados (AEM los renderiza en el
+// cliente) y revisar si aparece y si es comprable. Esta sección lo automatiza:
+// el service worker arma la URL del buscador para cada SKU, la abre en una
+// pestaña de fondo, deja que renderice y el content script lee el DOM vivo.
+
+// Arma la URL del buscador para un SKU. Ej: 86MRGB95BSA →
+// https://www.lg.com/cl/search/?search=86MRGB95BSA&tab=producto
+export function buildSearchUrl(sku) {
+  return `https://www.lg.com/cl/search/?search=${encodeURIComponent(String(sku || '').trim())}&tab=producto`;
+}
+
+// Selectores para leer los resultados del buscador (página SRP de AEM).
+export const BUSQUEDA_SELECTORS = {
+  results:      '.cs-search-result__all',            // contenedor de resultados (SRP)
+  item:         'li.c-product-list__item',           // una tarjeta de producto
+  skuButton:    '.btn-copy[data-sku]',               // botón "copiar modelo" con el SKU exacto
+  modelNameSpan:'.srp-card--ufn a span',
+  modelNameA:   '.srp-card--ufn a',
+  link:         '.srp-card--ufn a[href]',
+  price:        '.cell-price',
+  stockControl: '[data-shop-stock-status]',
+  noResult:     '.cs-search-no-result, .c-search-no-data, .search-no-result, .cs-search-result__no-data',
+};
+
+// Estado de una búsqueda de SKU. PENDING/CHECKING son transitorios; el resto
+// son terminales. La disponibilidad se determina con el atributo
+// `data-shop-stock-status` de los botones de la tarjeta (ver content/busqueda):
+//   IN_STOCK        → con stock
+//   OUT_OF_STOCK    → sin stock
+//   presente vacío  → descontinuado
+export const SEARCH_STATUS = {
+  PENDING:            'pending',        // en cola
+  CHECKING:           'checking',       // buscándose ahora
+  FOUND_IN_STOCK:     'in-stock',       // aparece y con stock (IN_STOCK)
+  FOUND_OUT_OF_STOCK: 'out-of-stock',   // aparece pero sin stock (OUT_OF_STOCK)
+  FOUND_DISCONTINUED: 'discontinued',   // aparece pero descontinuado (atributo vacío)
+  NOT_FOUND:          'not-found',      // no aparece en los resultados
+  ERROR:              'error',          // no se pudo leer la página
+};
+
+// Etiqueta legible por estado (para la UI y el CSV exportado).
+export const SEARCH_ESTADO_LABEL = {
+  [SEARCH_STATUS.FOUND_IN_STOCK]:     'con stock',
+  [SEARCH_STATUS.FOUND_OUT_OF_STOCK]: 'sin stock',
+  [SEARCH_STATUS.FOUND_DISCONTINUED]: 'descontinuado',
+  [SEARCH_STATUS.NOT_FOUND]:          'no encontrado',
+  [SEARCH_STATUS.ERROR]:              'error',
+};
+
+// Disponibilidad derivada del atributo data-shop-stock-status.
+export const STOCK = {
+  IN_STOCK:     'in-stock',
+  OUT_OF_STOCK: 'out-of-stock',
+  DISCONTINUED: 'discontinued',
+};
+
+// Motivo por el que terminó una corrida de búsqueda.
+export const SEARCH_FINISH = {
+  DONE:    'done',     // recorrió todos los SKUs
+  STOPPED: 'stopped',  // el usuario la detuvo
+  ERROR:   'error',    // falló de forma inesperada
+};
+
+// Máximo de líneas de registro que guarda la corrida (se muestran en el popup).
+export const BUSQUEDA_LOG_CAP = 200;
+
+// La SRP usa AEM y los resultados los inyecta el JS en el cliente. Como en
+// Destacados, NO se hace fetch del HTML: se abre la URL en una pestaña de fondo
+// y se lee el DOM ya renderizado.
+export const BUSQUEDA_RENDER_TIMEOUT = 18000; // ms a esperar a que rendericen los resultados
+export const BUSQUEDA_SETTLE_MS = 1200;       // ms extra tras detectar resultados (precio/stock asíncronos)
+export const BUSQUEDA_TAB_TIMEOUT = 30000;    // ms tope por SKU (carga + render + parseo)
+export const BUSQUEDA_POOL = 3;               // pestañas de fondo en paralelo (por defecto)
+export const BUSQUEDA_POOL_MIN = 1;           // mínimo de pestañas en paralelo
+export const BUSQUEDA_POOL_MAX = 5;           // máximo de pestañas en paralelo
+export const BUSQUEDA_MAX_SKUS = 50;          // tope de SKUs por corrida
+
+// Restringe el tamaño del pool al rango permitido (fallback al valor por defecto).
+export function clampBusquedaPool(value) {
+  const n = Math.round(Number(value));
+  if (!Number.isFinite(n)) return BUSQUEDA_POOL;
+  return Math.max(BUSQUEDA_POOL_MIN, Math.min(BUSQUEDA_POOL_MAX, n));
+}
