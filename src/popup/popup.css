@@ -1932,70 +1932,70 @@ mark {
   line-height: 0;
 }
 .header-accent-bar--cat svg { width: 22px; height: 22px; }
-.header-accent-bar--pop { animation: gato-pop 480ms ease; }
-@keyframes gato-pop {
+.header-accent-bar--pop { animation: bn-pop 480ms ease; }
+@keyframes bn-pop {
   0%   { transform: scale(0.4) rotate(-18deg); opacity: 0.4; }
   60%  { transform: scale(1.25) rotate(8deg); }
   100% { transform: scale(1) rotate(0); opacity: 1; }
 }
 
-.gato-view { display: flex; flex-direction: column; gap: 12px; padding: 4px 2px; }
+.bn-view { display: flex; flex-direction: column; gap: 12px; padding: 4px 2px; }
 
-.gato-hero {
+.bn-hero {
   display: flex; flex-direction: column; align-items: center; gap: 4px;
   padding: 6px 0 2px;
 }
-.gato-hero span {
+.bn-hero span {
   font-size: 13px; font-weight: 800; letter-spacing: 0.16em;
   color: var(--text-muted);
 }
 
-.gato-label { font-size: 11px; font-weight: 600; color: var(--text-muted); }
-.gato-input {
+.bn-label { font-size: 11px; font-weight: 600; color: var(--text-muted); }
+.bn-input {
   width: 100%; padding: 9px 11px; font-size: 13px; font-family: inherit;
   color: var(--text); background: var(--surface);
   border: 1px solid var(--border-strong); border-radius: var(--radius-sm);
   outline: none; transition: border-color var(--transition);
 }
-.gato-input:focus { border-color: var(--accent); }
-.gato-input--error { border-color: var(--danger); }
+.bn-input:focus { border-color: var(--accent); }
+.bn-input--error { border-color: var(--danger); }
 
-.gato-presence {
+.bn-presence {
   font-size: 12px; color: var(--text-muted); text-align: center;
   padding: 4px 0;
 }
-.gato-presence--on { color: var(--success); font-weight: 600; }
+.bn-presence--on { color: var(--success); font-weight: 600; }
 
-.gato-play { padding: 10px 12px; font-size: 13px; }
+.bn-play { padding: 10px 12px; font-size: 13px; }
 
 /* --- Partida --- */
-.gato-game { gap: 10px; }
-.gato-topbar {
+.bn-game { gap: 10px; }
+.bn-topbar {
   display: flex; align-items: center; justify-content: space-between;
   gap: 8px;
 }
-.gato-rival { display: flex; flex-direction: column; min-width: 0; }
-.gato-rival-label {
+.bn-rival { display: flex; flex-direction: column; min-width: 0; }
+.bn-rival-label {
   font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em;
   color: var(--text-subtle); font-weight: 700;
 }
-.gato-rival-name {
+.bn-rival-name {
   font-size: 14px; font-weight: 700; color: var(--text);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.gato-timer {
+.bn-timer {
   font-size: 22px; font-weight: 800; font-variant-numeric: tabular-nums;
   min-width: 44px; text-align: center; padding: 4px 10px;
   border-radius: var(--radius-sm); background: var(--surface-3);
   color: var(--text);
 }
-.gato-timer--low { background: var(--danger-bg); color: var(--danger); }
+.bn-timer--low { background: var(--danger-bg); color: var(--danger); }
 
-.gato-turn {
+.bn-turn {
   text-align: center; font-size: 12px; font-weight: 600;
   color: var(--text-muted); min-height: 16px;
 }
-.gato-turn--you { color: var(--accent); }
+.bn-turn--you { color: var(--accent); }
 
 /* --- Batalla Naval: tablero 16x16 --- */
 .bn-board {
@@ -2122,65 +2122,65 @@ mark {
 .bn-dot { display: inline-block; width: 9px; height: 9px; border-radius: 2px; }
 .bn-dot--ship { background: linear-gradient(135deg, #78909c, #546e7a); }
 
-.gato-score {
+.bn-score {
   display: flex; align-items: center; justify-content: center; gap: 8px;
   font-size: 12px; color: var(--text-muted);
 }
-.gato-score b { color: var(--text); font-size: 14px; font-variant-numeric: tabular-nums; }
-.gato-score-sep { color: var(--text-subtle); }
+.bn-score b { color: var(--text); font-size: 14px; font-variant-numeric: tabular-nums; }
+.bn-score-sep { color: var(--text-subtle); }
 
-.gato-result {
+.bn-result {
   display: flex; flex-direction: column; align-items: center; gap: 10px;
   padding: 12px; border-radius: var(--radius);
   background: var(--surface-3); text-align: center;
 }
-.gato-result-msg { font-size: 16px; font-weight: 800; color: var(--text); }
-.gato-actions { display: flex; gap: 8px; width: 100%; }
+.bn-result-msg { font-size: 16px; font-weight: 800; color: var(--text); }
+.bn-actions { display: flex; gap: 8px; width: 100%; }
 
-.gato-hero--sm { padding: 2px 0; }
-.gato-hero--sm span { font-size: 12px; letter-spacing: 0.1em; }
+.bn-hero--sm { padding: 2px 0; }
+.bn-hero--sm span { font-size: 12px; letter-spacing: 0.1em; }
 
 /* Buscando: lista de jugadores para retar */
-.gato-searching {
+.bn-searching {
   display: flex; align-items: center; justify-content: center; gap: 8px;
   font-size: 12px; color: var(--text-muted); text-align: center;
 }
-.gato-mm-msg {
+.bn-mm-msg {
   font-size: 12px; font-weight: 600; color: var(--accent); text-align: center;
   padding: 6px 8px; background: var(--accent-soft); border-radius: var(--radius-sm);
 }
-.gato-searchers { display: flex; flex-direction: column; gap: 6px; min-height: 40px; }
-.gato-searcher {
+.bn-searchers { display: flex; flex-direction: column; gap: 6px; min-height: 40px; }
+.bn-searcher {
   display: flex; align-items: center; justify-content: space-between; gap: 8px;
   padding: 8px 10px; border: 1px solid var(--border); border-radius: var(--radius-sm);
   background: var(--surface);
 }
-.gato-searcher-name {
+.bn-searcher-name {
   font-size: 13px; font-weight: 600; color: var(--text);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0;
 }
-.gato-challenge-btn { flex: 0 0 auto; padding: 6px 14px; }
-.gato-challenge-btn:disabled { opacity: 0.6; cursor: default; }
+.bn-challenge-btn { flex: 0 0 auto; padding: 6px 14px; }
+.bn-challenge-btn:disabled { opacity: 0.6; cursor: default; }
 
 /* Reto recibido */
-.gato-challenge-msg { font-size: 15px; color: var(--text); }
-.gato-challenge-msg strong { color: var(--accent); }
+.bn-challenge-msg { font-size: 15px; color: var(--text); }
+.bn-challenge-msg strong { color: var(--accent); }
 
 /* Clasificaciones */
-.gato-rank-list { min-height: 60px; }
-.gato-rank { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
-.gato-rank-row {
+.bn-rank-list { min-height: 60px; }
+.bn-rank { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.bn-rank-row {
   display: flex; align-items: center; gap: 10px;
   padding: 8px 10px; border-radius: var(--radius-sm); background: var(--surface-2);
 }
-.gato-rank-row:nth-child(1) { background: var(--accent-soft); }
-.gato-rank-pos {
+.bn-rank-row:nth-child(1) { background: var(--accent-soft); }
+.bn-rank-pos {
   font-size: 13px; font-weight: 800; color: var(--text-muted);
   min-width: 20px; text-align: center; font-variant-numeric: tabular-nums;
 }
-.gato-rank-name {
+.bn-rank-name {
   flex: 1; min-width: 0; font-size: 13px; font-weight: 600; color: var(--text);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.gato-rank-wins { font-size: 13px; font-weight: 700; color: var(--accent); font-variant-numeric: tabular-nums; }
-.gato-rank-wins small { font-size: 10px; font-weight: 500; color: var(--text-subtle); }
+.bn-rank-wins { font-size: 13px; font-weight: 700; color: var(--accent); font-variant-numeric: tabular-nums; }
+.bn-rank-wins small { font-size: 10px; font-weight: 500; color: var(--text-subtle); }

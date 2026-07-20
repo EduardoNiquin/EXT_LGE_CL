@@ -4,7 +4,7 @@ import { installGlobalErrorCapture } from '../shared/diagnostics/index.js';
 import { sendMessageToActiveTab } from '../shared/messaging/messaging.js';
 import { MESSAGES as COLOCAR_TAGS_MSG } from '../features/colocar-tags/constants.js';
 import { initTheme, getThemePref, cycleTheme, subscribeTheme } from '../shared/theme/index.js';
-import { UNLOCK_KEY, UNLOCK_CLICKS, UNLOCK_WINDOW_MS, catSvg } from '../features/gato/constants.js';
+import { UNLOCK_KEY, UNLOCK_CLICKS, UNLOCK_WINDOW_MS, catSvg } from '../features/batalla-naval/constants.js';
 
 // Aplicar el tema lo antes posible para minimizar el "flash".
 initTheme();
@@ -31,10 +31,10 @@ const themeToggle = document.getElementById('theme-toggle');
 const HOME_TITLE = 'LGE CL Tools';
 const accentBar   = document.querySelector('.header-accent-bar');
 
-// --- Secreto "GATO" ----------------------------------------------------------
+// --- Secreto: "BATALLA NAVAL" ------------------------------------------------
 // Se desbloquea al tocar el toggle de tema UNLOCK_CLICKS veces seguidas (clics
 // dentro de UNLOCK_WINDOW_MS entre si). Al desbloquear, el "logo" (barra de
-// acento del header) se convierte en un gatito y aparece la feature GATO.
+// acento del header) se convierte en un gatito y aparece la feature Batalla Naval.
 function isUnlocked() {
   try { return localStorage.getItem(UNLOCK_KEY) === '1'; } catch { return false; }
 }
@@ -70,7 +70,7 @@ function registerUnlockClick() {
       void accentBar.offsetWidth;
       accentBar.classList.add('header-accent-bar--pop');
     }
-    // Si estamos en el home, re-render para que aparezca GATO.
+    // Si estamos en el home, re-render para que aparezca Batalla Naval.
     if (backBtn.classList.contains('hidden')) renderHome();
   }
 }

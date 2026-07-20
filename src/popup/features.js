@@ -8,7 +8,7 @@ import { render as renderSellerCenterFalabella } from '../features/seller-center
 import { render as renderEpromoters }   from '../features/e-promoters/popup/view.js';
 import { render as renderPim }          from '../features/pim/popup/view.js';
 import { render as renderSolotodo }    from '../features/solotodo/popup/view.js';
-import { render as renderGato }        from '../features/gato/popup/view.js';
+import { render as renderBatallaNaval } from '../features/batalla-naval/popup/view.js';
 import { render as renderAjustes }     from '../features/ajustes/popup/view.js';
 
 export const features = [
@@ -93,13 +93,13 @@ export const features = [
     render: renderSolotodo,
   },
   {
-    id: 'gato',
+    id: 'batalla-naval',
     name: 'BATALLA NAVAL',
     description: 'Batalla naval multijugador (¡secreto desbloqueado!)',
-    abbr: '�',
+    abbr: '🚢',
     keywords: ['batalla naval', 'battleship', 'barcos', 'bombas', 'gato', 'juego', 'multijugador'],
     secret: true,
-    render: renderGato,
+    render: renderBatallaNaval,
   },
   {
     id: 'ajustes',

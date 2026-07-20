@@ -1,4 +1,4 @@
-// Constantes del feature "GATO" (Batalla Naval multijugador, secreto).
+// Constantes del feature "BATALLA NAVAL" (multijugador, secreto).
 //
 // Es una feature SOLO de popup (sin content script): el matchmaking y la
 // partida corren mientras el popup/sidepanel esta abierto, contra Firebase
@@ -24,6 +24,9 @@ export const FIREBASE_CONFIG = {
 };
 
 // --- Storage (chrome.storage.local) -----------------------------------------
+// NOTA: las claves conservan a proposito el prefijo legacy "gato" para no
+// invalidar el estado ya guardado de quienes desbloquearon el secreto antes
+// del rename a "Batalla Naval" (mantiene su identidad y desbloqueo).
 export const STORAGE_KEYS = {
   RUN: 'gato:run',          // estado de lo que el usuario esta viendo (persistido)
   DRAFT: 'gato:draft',      // { name } recordado entre sesiones

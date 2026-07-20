@@ -1,7 +1,8 @@
-// Router del feature "GATO". Una sola sub-seccion (Jugar); estructura lista
-// para sumar mas (ranking, historial) si se quisiera.
+// Router del feature "BATALLA NAVAL". Una sola sub-seccion (Jugar); estructura
+// lista para sumar mas (ranking, historial) si se quisiera.
 //
-// Side-effect import: registra los comandos de debug en window.__extLgeCl.gato.
+// Side-effect import: registra los comandos de debug en
+// window.__extLgeCl['batalla-naval'].
 
 import * as play from './sections/play.js';
 import '../debug.js';
@@ -12,7 +13,7 @@ const SECTIONS = [
 
 export function render(container) {
   const host = document.createElement('div');
-  host.id = 'gato-section';
+  host.id = 'bn-section';
   host.className = 'ct-section-host';
   container.innerHTML = '';
   container.appendChild(host);

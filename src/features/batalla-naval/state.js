@@ -1,4 +1,4 @@
-// Estado persistido del feature "GATO".
+// Estado persistido del feature "BATALLA NAVAL".
 //
 // - run (chrome.storage.local["gato:run"]): que esta viendo el usuario, para
 //   poder restaurar la vista al reabrir el popup. La verdad de la partida vive

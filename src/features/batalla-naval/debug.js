@@ -1,4 +1,4 @@
-// Comandos de debug de "GATO" -> window.__extLgeCl.gato.*
+// Comandos de debug de "BATALLA NAVAL" -> window.__extLgeCl['batalla-naval'].*
 // Se registran en el contexto del popup (donde corre la feature).
 
 import { register, cmd } from '../../shared/debug/index.js';
@@ -12,7 +12,7 @@ import {
   clearPresence,
 } from './net.js';
 
-register('gato', {
+register('batalla-naval', {
   uid: cmd(() => getUid(), 'uid estable de este jugador'),
   state: cmd(() => getRun(), 'Estado persistido de la vista (gato:run)'),
   active: cmd(() => countActivePlayers(getUid()), 'Cantidad de otros jugadores activos'),

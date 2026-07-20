@@ -57,7 +57,7 @@ import {
 } from '../../game.js';
 import { logger } from '../../../../shared/utils/logger.js';
 
-const log = logger('gato');
+const log = logger('batalla-naval');
 
 // Controlador activo (uno por montaje de la vista). Permite limpiar timers al
 // re-montar o al navegar fuera del feature.
@@ -169,22 +169,22 @@ async function renderIdle() {
   ctrl.game = null;
   const { container, run } = ctrl;
   container.innerHTML = `
-    <div class="gato-view">
-      <div class="gato-hero">${shipSvg(64)}<span>BATALLA NAVAL</span></div>
-      <label class="gato-label" for="gato-name">Tu nombre</label>
-      <input id="gato-name" class="gato-input" type="text" maxlength="20"
+    <div class="bn-view">
+      <div class="bn-hero">${shipSvg(64)}<span>BATALLA NAVAL</span></div>
+      <label class="bn-label" for="bn-name">Tu nombre</label>
+      <input id="bn-name" class="bn-input" type="text" maxlength="20"
         placeholder="Escribe tu nombre" autocomplete="off" spellcheck="false"
         value="${esc(run.name)}" />
-      <p class="gato-presence" id="gato-presence">Buscando jugadores activos…</p>
-      <button id="gato-play" class="ct-btn ct-btn--primary gato-play">Buscar partida</button>
-      <div class="gato-actions">
-        <button id="gato-rank" class="ct-btn ct-btn--ghost">Clasificaciones</button>
+      <p class="bn-presence" id="bn-presence">Buscando jugadores activos…</p>
+      <button id="bn-play" class="ct-btn ct-btn--primary bn-play">Buscar partida</button>
+      <div class="bn-actions">
+        <button id="bn-rank" class="ct-btn ct-btn--ghost">Clasificaciones</button>
       </div>
     </div>
   `;
 
-  const nameInput = container.querySelector('#gato-name');
-  const presenceEl = container.querySelector('#gato-presence');
+  const nameInput = container.querySelector('#bn-name');
+  const presenceEl = container.querySelector('#bn-presence');
 
   nameInput.addEventListener('input', () => { ctrl.run.name = nameInput.value; });
 
@@ -196,7 +196,7 @@ async function renderIdle() {
       presenceEl.textContent = n > 0
         ? `Hay ${n} jugador${n === 1 ? '' : 'es'} activo${n === 1 ? '' : 's'}`
         : 'No hay jugadores activos por ahora';
-      presenceEl.classList.toggle('gato-presence--on', n > 0);
+      presenceEl.classList.toggle('bn-presence--on', n > 0);
     } catch {
       presenceEl.textContent = 'No se pudo consultar jugadores activos';
     }
@@ -208,13 +208,13 @@ async function renderIdle() {
     const name = (nameInput.value || '').trim();
     if (!name) {
       nameInput.focus();
-      nameInput.classList.add('gato-input--error');
+      nameInput.classList.add('bn-input--error');
       return null;
     }
     return name;
   };
 
-  container.querySelector('#gato-play').addEventListener('click', async () => {
+  container.querySelector('#bn-play').addEventListener('click', async () => {
     const name = requireName();
     if (!name) return;
     await setDraft({ name });
@@ -222,7 +222,7 @@ async function renderIdle() {
     await route();
   });
 
-  container.querySelector('#gato-rank').addEventListener('click', async () => {
+  container.querySelector('#bn-rank').addEventListener('click', async () => {
     await persist({ phase: PHASE.LEADERBOARD });
     await route();
   });
@@ -233,20 +233,20 @@ async function renderIdle() {
 function renderLeaderboard() {
   const { container } = ctrl;
   container.innerHTML = `
-    <div class="gato-view">
-      <div class="gato-hero gato-hero--sm">${shipSvg(40)}<span>Clasificaciones</span></div>
-      <div class="gato-rank-list" id="gato-rank-list">
+    <div class="bn-view">
+      <div class="bn-hero bn-hero--sm">${shipSvg(40)}<span>Clasificaciones</span></div>
+      <div class="bn-rank-list" id="bn-rank-list">
         <div class="ct-state"><span class="ct-spinner"></span><p>Cargando ranking…</p></div>
       </div>
-      <button id="gato-rank-back" class="ct-btn ct-btn--ghost">Volver</button>
+      <button id="bn-rank-back" class="ct-btn ct-btn--ghost">Volver</button>
     </div>
   `;
-  container.querySelector('#gato-rank-back').addEventListener('click', async () => {
+  container.querySelector('#bn-rank-back').addEventListener('click', async () => {
     await persist({ phase: PHASE.IDLE });
     await route();
   });
 
-  const listEl = container.querySelector('#gato-rank-list');
+  const listEl = container.querySelector('#bn-rank-list');
   const refresh = async () => {
     if (!aliveAndAttached()) return teardown();
     try {
@@ -257,12 +257,12 @@ function renderLeaderboard() {
         return;
       }
       listEl.innerHTML = `
-        <ol class="gato-rank">
+        <ol class="bn-rank">
           ${rows.map((r, i) => `
-            <li class="gato-rank-row">
-              <span class="gato-rank-pos">${i + 1}</span>
-              <span class="gato-rank-name">${esc(r.name)}</span>
-              <span class="gato-rank-wins">${r.wins} <small>${r.wins === 1 ? 'victoria' : 'victorias'}</small></span>
+            <li class="bn-rank-row">
+              <span class="bn-rank-pos">${i + 1}</span>
+              <span class="bn-rank-name">${esc(r.name)}</span>
+              <span class="bn-rank-wins">${r.wins} <small>${r.wins === 1 ? 'victoria' : 'victorias'}</small></span>
             </li>`).join('')}
         </ol>
       `;
@@ -280,20 +280,20 @@ function renderLeaderboard() {
 function renderSearching() {
   const { container } = ctrl;
   container.innerHTML = `
-    <div class="gato-view">
-      <div class="gato-hero gato-hero--sm">${shipSvg(40)}<span>Buscando partida</span></div>
-      <div class="gato-searching">
+    <div class="bn-view">
+      <div class="bn-hero bn-hero--sm">${shipSvg(40)}<span>Buscando partida</span></div>
+      <div class="bn-searching">
         <span class="ct-spinner ct-spinner--inline"></span>
         <span>Buscando rivales… reta a alguien o espera a que te reten</span>
       </div>
-      <p class="gato-mm-msg" id="gato-mm-msg" hidden></p>
-      <div class="gato-searchers" id="gato-searchers">
+      <p class="bn-mm-msg" id="bn-mm-msg" hidden></p>
+      <div class="bn-searchers" id="bn-searchers">
         <p class="ct-state-hint">Cargando jugadores…</p>
       </div>
-      <button id="gato-cancel" class="ct-btn ct-btn--ghost">Cancelar</button>
+      <button id="bn-cancel" class="ct-btn ct-btn--ghost">Cancelar</button>
     </div>
   `;
-  container.querySelector('#gato-cancel').addEventListener('click', async () => {
+  container.querySelector('#bn-cancel').addEventListener('click', async () => {
     await dequeue(ctrl.uid);
     await persist({ phase: PHASE.IDLE });
     await route();
@@ -301,8 +301,8 @@ function renderSearching() {
 
   enqueue(ctrl.uid, ctrl.run.name).catch((err) => log.warn('enqueue fallo', err));
 
-  const listEl = container.querySelector('#gato-searchers');
-  const msgEl = container.querySelector('#gato-mm-msg');
+  const listEl = container.querySelector('#bn-searchers');
+  const msgEl = container.querySelector('#bn-mm-msg');
 
   const showMsg = (text) => {
     if (!msgEl.isConnected) return;
@@ -318,12 +318,12 @@ function renderSearching() {
       return;
     }
     listEl.innerHTML = players.map((p) => `
-      <div class="gato-searcher">
-        <span class="gato-searcher-name">${esc(p.name)}</span>
-        <button class="ct-btn ct-btn--primary gato-challenge-btn" data-uid="${esc(p.uid)}" data-name="${esc(p.name)}">Retar</button>
+      <div class="bn-searcher">
+        <span class="bn-searcher-name">${esc(p.name)}</span>
+        <button class="ct-btn ct-btn--primary bn-challenge-btn" data-uid="${esc(p.uid)}" data-name="${esc(p.name)}">Retar</button>
       </div>
     `).join('');
-    listEl.querySelectorAll('.gato-challenge-btn').forEach((btn) => {
+    listEl.querySelectorAll('.bn-challenge-btn').forEach((btn) => {
       btn.addEventListener('click', () => onChallenge(btn, showMsg));
     });
   };
@@ -375,7 +375,7 @@ function renderSearching() {
 async function onChallenge(btn, showMsg) {
   const target = { uid: btn.dataset.uid, name: btn.dataset.name };
   // Evitar dobles clics / retos en paralelo desde esta UI.
-  ctrl.container.querySelectorAll('.gato-challenge-btn').forEach((b) => { b.disabled = true; });
+  ctrl.container.querySelectorAll('.bn-challenge-btn').forEach((b) => { b.disabled = true; });
   btn.textContent = 'Retando…';
   try {
     const res = await challengePlayer(ctrl.uid, ctrl.run.name, target);
@@ -398,7 +398,7 @@ async function onChallenge(btn, showMsg) {
     showMsg('No se pudo retar. Intenta de nuevo.');
   } finally {
     // Re-habilitar (si seguimos en la lista).
-    ctrl.container.querySelectorAll('.gato-challenge-btn').forEach((b) => { b.disabled = false; });
+    ctrl.container.querySelectorAll('.bn-challenge-btn').forEach((b) => { b.disabled = false; });
     if (btn.isConnected) btn.textContent = 'Retar';
   }
 }
@@ -409,16 +409,16 @@ function renderChallenged() {
   const { container, run } = ctrl;
   const who = esc(run.challengedBy || run.opponentName || 'Alguien');
   container.innerHTML = `
-    <div class="gato-view">
-      <div class="gato-hero">${shipSvg(64)}<span>¡Reto!</span></div>
+    <div class="bn-view">
+      <div class="bn-hero">${shipSvg(64)}<span>¡Reto!</span></div>
       <div class="ct-state">
-        <p class="gato-challenge-msg"><strong>${who}</strong> te ha retado</p>
+        <p class="bn-challenge-msg"><strong>${who}</strong> te ha retado</p>
         <p class="ct-state-hint">Estas obligado a jugar ⚓</p>
       </div>
-      <button id="gato-accept" class="ct-btn ct-btn--primary gato-play">¡A jugar!</button>
+      <button id="bn-accept" class="ct-btn ct-btn--primary bn-play">¡A jugar!</button>
     </div>
   `;
-  container.querySelector('#gato-accept').addEventListener('click', async () => {
+  container.querySelector('#bn-accept').addEventListener('click', async () => {
     await persist({ phase: PHASE.PLAYING });
     await route();
   });
@@ -537,18 +537,18 @@ function renderPlacementShell() {
   initPlaceState();
   const { container } = ctrl;
   container.innerHTML = `
-    <div class="gato-view gato-game">
-      <div class="gato-topbar">
-        <div class="gato-rival">
-          <span class="gato-rival-label">Rival</span>
-          <span class="gato-rival-name">${esc(ctrl.run.opponentName || 'Rival')}</span>
+    <div class="bn-view bn-game">
+      <div class="bn-topbar">
+        <div class="bn-rival">
+          <span class="bn-rival-label">Rival</span>
+          <span class="bn-rival-name">${esc(ctrl.run.opponentName || 'Rival')}</span>
         </div>
         <span class="bn-phase-tag">Despliegue</span>
       </div>
-      <p class="gato-turn" id="bn-place-hint"></p>
+      <p class="bn-turn" id="bn-place-hint"></p>
       <div class="bn-tray" id="bn-tray"></div>
       <div class="bn-board" id="bn-board">${boardCellsHtml()}</div>
-      <div class="gato-actions">
+      <div class="bn-actions">
         <button id="bn-ready" class="ct-btn ct-btn--primary" disabled>¡Listo!</button>
         <button id="bn-exit" class="ct-btn ct-btn--ghost">Salir</button>
       </div>
@@ -786,15 +786,15 @@ function renderBattleShell() {
   ctrl.seenSeq = 0; // re-mostrar el ultimo evento al (re)entrar a la batalla
   const { container } = ctrl;
   container.innerHTML = `
-    <div class="gato-view gato-game">
-      <div class="gato-topbar">
-        <div class="gato-rival">
-          <span class="gato-rival-label">Rival</span>
-          <span class="gato-rival-name" id="gato-rival-name">—</span>
+    <div class="bn-view bn-game">
+      <div class="bn-topbar">
+        <div class="bn-rival">
+          <span class="bn-rival-label">Rival</span>
+          <span class="bn-rival-name" id="bn-rival-name">—</span>
         </div>
-        <div class="gato-timer" id="gato-timer">30</div>
+        <div class="bn-timer" id="bn-timer">30</div>
       </div>
-      <p class="gato-turn" id="gato-turn"></p>
+      <p class="bn-turn" id="bn-turn"></p>
       <p class="bn-event" id="bn-event" hidden></p>
       <div class="bn-board" id="bn-board">${boardCellsHtml()}</div>
       <div class="bn-legend">
@@ -803,8 +803,8 @@ function renderBattleShell() {
         <span>💣 Tu bomba</span>
         <span>• Agua</span>
       </div>
-      <div class="gato-score" id="gato-score"></div>
-      <div class="gato-result" id="gato-result" hidden></div>
+      <div class="bn-score" id="bn-score"></div>
+      <div class="bn-result" id="bn-result" hidden></div>
     </div>
   `;
 
@@ -830,7 +830,7 @@ async function onFireClick(r, c) {
 function tickClock() {
   if (!ctrl.game || ctrl.shell !== 'battle') return;
   const snap = snapshot();
-  const timerEl = ctrl.container.querySelector('#gato-timer');
+  const timerEl = ctrl.container.querySelector('#bn-timer');
   if (!timerEl) return;
   if (snap.status !== GAME_STATUS.PLAYING) {
     timerEl.textContent = '—';
@@ -838,7 +838,7 @@ function tickClock() {
   }
   const remaining = Math.max(0, Math.ceil(((snap.moveDeadline || 0) - Date.now()) / 1000));
   timerEl.textContent = String(remaining);
-  timerEl.classList.toggle('gato-timer--low', remaining <= 5);
+  timerEl.classList.toggle('bn-timer--low', remaining <= 5);
 
   if (remaining > 0 || !snap.isMyTurn) return;
   if (snap.moveDeadline === ctrl.lastPassDeadline) return; // ya lo pasamos
@@ -861,7 +861,7 @@ function applyBattleState() {
   // Persistir datos para restaurar al reabrir.
   if (run.opponentName !== snap.oppName) persist({ opponentName: snap.oppName });
 
-  const rivalEl = container.querySelector('#gato-rival-name');
+  const rivalEl = container.querySelector('#bn-rival-name');
   if (rivalEl) rivalEl.textContent = snap.oppName;
 
   // Mapas por celda.
@@ -949,17 +949,17 @@ function applyBattleState() {
     }
   }
 
-  const scoreEl = container.querySelector('#gato-score');
+  const scoreEl = container.querySelector('#bn-score');
   if (scoreEl) {
     scoreEl.innerHTML = `
-      <span class="gato-score-me">${esc(snap.myName)} <b>${snap.myScore}</b></span>
-      <span class="gato-score-sep">–</span>
-      <span class="gato-score-opp"><b>${snap.oppScore}</b> ${esc(snap.oppName)}</span>
+      <span class="bn-score-me">${esc(snap.myName)} <b>${snap.myScore}</b></span>
+      <span class="bn-score-sep">–</span>
+      <span class="bn-score-opp"><b>${snap.oppScore}</b> ${esc(snap.oppName)}</span>
     `;
   }
 
-  const turnEl = container.querySelector('#gato-turn');
-  const resultEl = container.querySelector('#gato-result');
+  const turnEl = container.querySelector('#bn-turn');
+  const resultEl = container.querySelector('#bn-result');
 
   // El rival abandono.
   if (snap.leaver && snap.leaver === snap.oppRole) {
@@ -973,7 +973,7 @@ function applyBattleState() {
     ctrl.rematchPending = false;
     if (turnEl) {
       turnEl.textContent = snap.isMyTurn ? 'Tu turno: dispara a una casilla' : `Turno de ${snap.oppName}…`;
-      turnEl.classList.toggle('gato-turn--you', snap.isMyTurn);
+      turnEl.classList.toggle('bn-turn--you', snap.isMyTurn);
     }
     if (run.phase !== PHASE.PLAYING) persist({ phase: PHASE.PLAYING });
     return;
@@ -1027,18 +1027,18 @@ function showResult(resultEl, message, leaver) {
   const waiting = ctrl.rematchPending && !leaver;
   resultEl.hidden = false;
   resultEl.innerHTML = `
-    <p class="gato-result-msg">${message}</p>
+    <p class="bn-result-msg">${message}</p>
     ${waiting
       ? '<p class="ct-state-hint">Esperando al rival…</p>'
-      : `<div class="gato-actions">
-           ${leaver ? '' : '<button id="gato-again" class="ct-btn ct-btn--primary">Nueva partida</button>'}
-           <button id="gato-exit" class="ct-btn ct-btn--ghost">Salir</button>
+      : `<div class="bn-actions">
+           ${leaver ? '' : '<button id="bn-again" class="ct-btn ct-btn--primary">Nueva partida</button>'}
+           <button id="bn-exit" class="ct-btn ct-btn--ghost">Salir</button>
          </div>`}
   `;
 
-  const again = resultEl.querySelector('#gato-again');
+  const again = resultEl.querySelector('#bn-again');
   if (again) again.addEventListener('click', onRematch);
-  const exit = resultEl.querySelector('#gato-exit');
+  const exit = resultEl.querySelector('#bn-exit');
   if (exit) exit.addEventListener('click', leaveGame);
 }
 
