@@ -200,10 +200,12 @@ async function onClear(container) {
   const startBtn = container.querySelector('#lg-bus-start');
   const stopBtn = container.querySelector('#lg-bus-stop');
   const exportBtn = container.querySelector('#lg-bus-export');
+  const poolSel = container.querySelector('#lg-bus-pool');
   if (startBtn) startBtn.disabled = false;
   if (stopBtn) { stopBtn.disabled = true; stopBtn.textContent = 'Detener'; }
   if (exportBtn) exportBtn.disabled = true;
   if (ta) ta.disabled = false;
+  if (poolSel) poolSel.disabled = false;
   log.info('busqueda: limpiada');
 }
 
