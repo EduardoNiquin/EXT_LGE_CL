@@ -1,34 +1,65 @@
 // Content script de la gestion automatica (Falabella).
 //
 // En cada carga de pagina pregunta al service worker que job le toca a ESTA
-// pestana. Si hay uno y la pagina es la que espera su fase, corre el flujo
-// correspondiente y reporta el desenlace. El estado no vive aqui: el flujo
-// cruza navegaciones y este documento muere en cada una.
+// pestana. Si hay uno, espera a ver el anclaje de su fase (el elemento que
+// identifica la pantalla) y solo entonces actua. El estado no vive aqui: el
+// flujo cruza navegaciones y este documento muere en cada una.
 //
 // Recorrido completo cuando la devolucion NO esta en el modulo:
 //   listado --[navbar Ayuda]--> mesa de ayuda --[navbar Soporte]--> soporte
 //           --[pestana Nuevo caso]--> formulario --[Enviar]--> n° de caso
 //
+// Dos cosas que el portal impone y que este archivo tiene que respetar:
+//
+//   · Corre en TODOS los frames. El modulo de devoluciones puede vivir dentro
+//     de un iframe, y ahi el frame superior tiene la URL correcta pero no el
+//     formulario. Cada frame espera su anclaje; el que no lo encuentra se
+//     calla — y sobre todo NO reporta un fallo, o mataria el trabajo del frame
+//     que si lo tiene.
+//
+//   · No todo cambio de pantalla es una carga nueva. El portal es una SPA: a
+//     veces cambia la URL y el contenido sin recargar. Un latido vigila la URL
+//     y vuelve a despachar, abortando lo que estuviera esperando.
+//
 // Nada se automatiza en pestanas que el usuario abrio por su cuenta: el SW solo
 // responde a la pestana de trabajo del run.
 
-import { FASE, GESTION_MESSAGES, RESULTADO } from '../constants.js';
-import { abrirApelacion, buscarOrden, esPaginaListado } from './buscar.js';
-import { apelar, esPaginaApelacion } from './apelar.js';
-import { esPaginaTicket, leerConfirmacion, levantarTicket } from './ticket.js';
 import {
+  ANCLA_TIMEOUT_MS,
+  FASE,
+  GESTION_MESSAGES,
+  NAVEGACION_TICK_MS,
+  RESULTADO,
+} from '../constants.js';
+import { abrirApelacion, anclaListado, buscarOrden } from './buscar.js';
+import { anclaApelacion, apelar } from './apelar.js';
+import { anclaTicket, leerConfirmacion, levantarTicket } from './ticket.js';
+import {
+  anclaMenuAyuda,
+  anclaSoporte,
   esAyudaInicio,
   esAyudaSoporte,
   esSellerCenter,
   irACentroDeAyuda,
   irASoporte,
 } from './navegacion.js';
-import { toMessage } from '../../../../../shared/errors/index.js';
+import { isAbortError, toMessage } from '../../../../../shared/errors/index.js';
+import { waitFor } from '../../../../../shared/dom/wait.js';
 import { logger } from '../../../../../shared/utils/logger.js';
 
 const log = logger('devoluciones-gestion');
 
 let corriendo = false;
+let controlador = null;
+
+// Se fija en init(), no al importar: asi el modulo se puede cargar fuera de un
+// navegador (tests) sin tocar `location`.
+let ultimaUrl = '';
+
+/** Veces que este frame ha mirado sin encontrar su pantalla. */
+let intentosSinAncla = 0;
+const MAX_INTENTOS_SIN_ANCLA = 3;
+const REINTENTO_MS = 10_000;
 
 function enviar(mensaje) {
   return chrome.runtime.sendMessage(mensaje).catch(() => null);
@@ -49,10 +80,37 @@ async function pedirArchivos(id, scope) {
   return res.archivos;
 }
 
-/** ¿Alguna de las paginas que automatizamos? Evita preguntar en cada web. */
+/** ¿Alguno de los portales que automatizamos? Evita preguntar en cada web. */
 function paginaRelevante() {
-  return esPaginaListado() || esPaginaApelacion() || esSellerCenter()
-    || esAyudaInicio() || esAyudaSoporte();
+  return esSellerCenter() || esAyudaInicio() || esAyudaSoporte();
+}
+
+/**
+ * Este frame no tiene la pantalla que toca. No es un fallo de la gestion: puede
+ * estar en otro frame o tardar mas en montar, asi que se sale en silencio y se
+ * reintenta — reportar un error aqui mataria el trabajo del frame correcto.
+ */
+class SinAncla extends Error {
+  constructor() {
+    super('La pantalla de la gestion no esta en este frame');
+    this.name = 'SinAncla';
+  }
+}
+
+/**
+ * Espera a que aparezca el anclaje de una pantalla (el elemento que la
+ * identifica) y lo devuelve. Si no llega, lanza SinAncla.
+ */
+async function ancla(buscarAncla, { signal } = {}) {
+  const el = await waitFor(buscarAncla, {
+    timeout: ANCLA_TIMEOUT_MS,
+    signal,
+    description: 'la pantalla de la gestion',
+  }).catch(() => null);
+
+  if (!el) throw new SinAncla();
+
+  return el;
 }
 
 /**
@@ -70,15 +128,18 @@ function reportarTicket(id, { enviado, ticket, mensaje }) {
 }
 
 async function despachar() {
-  if (corriendo || window !== window.top || !paginaRelevante()) return;
+  if (corriendo || !paginaRelevante()) return;
 
   const res = await enviar({ type: GESTION_MESSAGES.GET_JOB });
   const job = res?.job;
   if (!job) return;
 
   corriendo = true;
+  controlador = new AbortController();
+
   const opciones = {
     prueba: Boolean(res.prueba),
+    signal: controlador.signal,
     pedirArchivos: (scope) => pedirArchivos(job.id, scope),
     onLog: (message) => bitacora(message),
   };
@@ -86,7 +147,7 @@ async function despachar() {
   try {
     switch (job.fase) {
       case FASE.BUSCAR: {
-        if (!esPaginaListado()) break;
+        await ancla(anclaListado, opciones);
 
         const siguiente = await buscarOrden(job, opciones);
 
@@ -100,7 +161,7 @@ async function despachar() {
       }
 
       case FASE.APELAR: {
-        if (!esPaginaApelacion()) break;
+        await ancla(anclaApelacion, opciones);
 
         const { enviado } = await apelar(job, opciones);
         await enviar({
@@ -114,38 +175,21 @@ async function despachar() {
 
       // Camino a la mesa de ayuda. Cada rama cubre tambien el caso de que el
       // clic anterior no llegara a navegar (se reintenta desde donde estemos).
-      case FASE.AYUDA: {
-        if (esAyudaSoporte()) {
-          await avanzar(job.id, FASE.TICKET);
-          await gestionarTicket(job, opciones);
-        } else if (esAyudaInicio()) {
-          await avanzar(job.id, FASE.SOPORTE);
-          await irASoporte(opciones);
-        } else if (esSellerCenter()) {
-          await irACentroDeAyuda(opciones);
-        }
-        break;
-      }
-
+      case FASE.AYUDA:
       case FASE.SOPORTE: {
-        if (esAyudaSoporte()) {
-          await avanzar(job.id, FASE.TICKET);
-          await gestionarTicket(job, opciones);
-        } else if (esAyudaInicio()) {
-          await irASoporte(opciones);
-        }
+        await caminoAlTicket(job, opciones);
         break;
       }
 
       case FASE.TICKET: {
-        if (!esPaginaTicket()) break;
+        await ancla(anclaTicket, opciones);
         await gestionarTicket(job, opciones);
         break;
       }
 
       // El envio recargo la pagina: solo queda leer el numero de caso.
       case FASE.CONFIRMACION: {
-        if (!esPaginaTicket()) break;
+        await ancla(anclaTicket, opciones);
         await reportarTicket(job.id, await leerConfirmacion(opciones));
         break;
       }
@@ -153,7 +197,20 @@ async function despachar() {
       default:
         break;
     }
+
+    intentosSinAncla = 0;
   } catch (err) {
+    // Una navegacion esperada aborta lo que estuvieramos esperando: no es un
+    // fallo de la gestion, la retoma la pantalla siguiente.
+    if (isAbortError(err, controlador?.signal)) return;
+
+    // Esta pantalla no esta aqui (otro frame, o aun montandose): callar y
+    // volver a mirar dentro de un rato.
+    if (err instanceof SinAncla) {
+      programarReintento();
+      return;
+    }
+
     const motivo = toMessage(err);
     log.error('gestion', err instanceof Error ? err : new Error(motivo));
     await enviar({
@@ -165,6 +222,30 @@ async function despachar() {
   } finally {
     corriendo = false;
   }
+}
+
+/**
+ * Fases AYUDA y SOPORTE: se decide por DONDE estamos, no solo por la fase. Si
+ * un clic no llego a navegar, se reintenta desde la pantalla actual en vez de
+ * quedarse encallado.
+ */
+async function caminoAlTicket(job, opciones) {
+  if (esAyudaSoporte()) {
+    await ancla(anclaTicket, opciones);
+    await avanzar(job.id, FASE.TICKET);
+    await gestionarTicket(job, opciones);
+    return;
+  }
+
+  if (esAyudaInicio()) {
+    await ancla(anclaSoporte, opciones);
+    await avanzar(job.id, FASE.SOPORTE);
+    await irASoporte(opciones);
+    return;
+  }
+
+  await ancla(anclaMenuAyuda, opciones);
+  await irACentroDeAyuda(opciones);
 }
 
 /** Rellena, envia y reporta el ticket (la confirmacion puede llegar aqui o tras recargar). */
@@ -180,12 +261,50 @@ async function gestionarTicket(job, opciones) {
   });
 }
 
-export function init() {
-  if (window !== window.top || !paginaRelevante()) return;
+/**
+ * Vuelve a mirar dentro de un rato: la pantalla puede estar aun montandose (el
+ * listado carga tres meses de devoluciones y no es rapido). Acotado, para que
+ * los frames que nunca la tendran dejen de insistir.
+ */
+function programarReintento() {
+  if (++intentosSinAncla > MAX_INTENTOS_SIN_ANCLA) return;
 
-  // Las pantallas de SellerCenter y Salesforce montan su DOM despues del load;
-  // el despacho reintenta una vez antes de rendirse (los flujos tienen sus
-  // propias esperas, esto solo cubre el arranque tardio de la SPA).
+  setTimeout(() => { despachar().catch(() => { /* no-op */ }); }, REINTENTO_MS);
+}
+
+/**
+ * La SPA cambia de pantalla sin recargar. Un content script vive en un mundo
+ * aislado y no ve los pushState de la pagina, asi que la via fiable es mirar la
+ * URL cada tanto (popstate cubre ademas atras/adelante).
+ */
+function vigilarNavegacion() {
+  ultimaUrl = location.href;
+
+  const revisar = () => {
+    if (location.href === ultimaUrl) return;
+
+    ultimaUrl = location.href;
+
+    // Lo que se estuviera esperando pertenece a la pantalla anterior.
+    controlador?.abort();
+    corriendo = false;
+    intentosSinAncla = 0;
+
+    setTimeout(() => { despachar().catch(() => { /* no-op */ }); }, 500);
+  };
+
+  window.addEventListener('popstate', revisar);
+  setInterval(revisar, NAVEGACION_TICK_MS);
+}
+
+export function init() {
+  if (!paginaRelevante()) return;
+
+  vigilarNavegacion();
+
+  // Las pantallas montan su DOM despues del load; el despacho reintenta una vez
+  // antes de rendirse (los flujos tienen sus propias esperas, esto solo cubre
+  // el arranque tardio de la SPA).
   despachar().catch((err) => log.warn?.('despachar', err));
   setTimeout(() => { despachar().catch(() => { /* no-op */ }); }, 2500);
 }

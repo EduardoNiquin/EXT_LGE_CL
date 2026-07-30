@@ -39,6 +39,20 @@ export function normalizar(texto) {
     .trim();
 }
 
+/**
+ * Primer elemento que encaja con alguno de los selectores dados, en orden. Los
+ * portales reordenan su maquetación cada tanto: tener alternativas evita que un
+ * `div` nuevo en medio tumbe todo el flujo.
+ */
+export function primero(selectores, raiz = document) {
+  for (const selector of [].concat(selectores)) {
+    const el = raiz.querySelector(selector);
+    if (el) return el;
+  }
+
+  return null;
+}
+
 /** Primer elemento cuyo texto contiene `texto` (sin distinguir acentos). */
 export function buscarPorTexto(root, selector, texto) {
   const objetivo = normalizar(texto);

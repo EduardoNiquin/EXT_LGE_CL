@@ -5,10 +5,10 @@
 // decision es la bifurcacion de todo el flujo, asi que se toma mirando la tabla
 // ya filtrada por el numero de orden, nunca por un vistazo parcial.
 
-import { FASE, PAGE_TIMEOUT_MS, SEL, STEP_TIMEOUT_MS } from '../constants.js';
-import { normalizar } from './dom.js';
+import { FASE, SEL, STEP_TIMEOUT_MS } from '../constants.js';
+import { normalizar, primero } from './dom.js';
 import { clickEl, setInputValue } from '../../../../../shared/dom/events.js';
-import { sleep, waitFor, waitForElement } from '../../../../../shared/dom/wait.js';
+import { sleep, waitFor } from '../../../../../shared/dom/wait.js';
 
 /** Solo los digitos: los numeros de orden se comparan sin formato. */
 function digitos(valor) {
@@ -27,8 +27,16 @@ export async function buscarOrden(job, { signal, onLog } = {}) {
   const numero = digitos(job.orden);
   if (!numero) throw new Error('La orden no tiene numero utilizable');
 
-  const input = await waitForElement(SEL.buscar.input, { timeout: PAGE_TIMEOUT_MS, signal });
-  await waitForElement(SEL.buscar.tabla, { timeout: PAGE_TIMEOUT_MS, signal });
+  // El anclaje ya lo esperó el despachador: si estamos aquí, esta pantalla es
+  // la del listado y el buscador existe.
+  const input = anclaListado();
+  if (!input) throw new Error('El buscador de ordenes desaparecio de la pantalla');
+
+  await waitFor(() => document.querySelector(SEL.buscar.tabla), {
+    timeout: STEP_TIMEOUT_MS,
+    signal,
+    description: 'la tabla de devoluciones',
+  });
 
   setInputValue(input, numero);
   input.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'Enter', code: 'Enter', keyCode: 13 }));
@@ -94,8 +102,17 @@ function filaDeLaOrden(numero) {
   }) || null;
 }
 
+/**
+ * Anclaje del listado: el buscador de órdenes. Es lo que decide si ESTE
+ * documento es el del módulo de devoluciones — el portal lo monta a veces
+ * dentro de un iframe, así que mirar solo la URL del frame superior no basta.
+ */
+export function anclaListado() {
+  return primero(SEL.buscar.input);
+}
+
 /** ¿Estamos en el listado de devoluciones? */
 export function esPaginaListado() {
   return location.href.includes('/order/return/returns_pending_review')
-    || Boolean(document.querySelector(SEL.buscar.input) && document.querySelector(SEL.buscar.tabla));
+    || Boolean(anclaListado());
 }

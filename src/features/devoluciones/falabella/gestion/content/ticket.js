@@ -231,8 +231,18 @@ export function erroresDeValidacion() {
     .slice(0, 3);
 }
 
+/**
+ * Anclaje de la pantalla de soporte: sus pestañas, el primer desplegable del
+ * formulario o la caja de confirmacion (segun en que momento lleguemos).
+ */
+export function anclaTicket() {
+  return document.querySelector(SEL.navegacion.pestana)
+    || document.querySelector(SEL.ticket.nivel1)
+    || document.querySelector(SEL.confirmacion.cabecera);
+}
+
 /** ¿Estamos en la pantalla de soporte (formulario o confirmacion)? */
 export function esPaginaTicket() {
-  return location.hostname.includes(HELP_HOST)
-    && location.pathname.includes(HELP_SUPPORT_PATH);
+  return (location.hostname.includes(HELP_HOST) && location.pathname.includes(HELP_SUPPORT_PATH))
+    || Boolean(anclaTicket());
 }

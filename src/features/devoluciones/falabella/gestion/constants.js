@@ -66,9 +66,21 @@ export const TICKET_SIN_NUMERO = 'SIN-NUMERO';
 // ticket lo exige, y un 0 es la convencion acordada para "no identificado".
 export const GUIA_NO_IDENTIFICADA = '0';
 
-// Esperas: las paginas de SellerCenter/Salesforce tardan en montar.
-export const PAGE_TIMEOUT_MS = 45_000;
+// Esperas. Las pantallas de SellerCenter/Salesforce tardan en montar: el
+// listado de devoluciones arranca con un rango de tres meses y su consulta no
+// es rapida, asi que el plazo de pagina es generoso.
+export const PAGE_TIMEOUT_MS = 90_000;
 export const STEP_TIMEOUT_MS = 15_000;
+
+// Cuanto espera un frame a ver "su" pantalla antes de concluir que no le toca.
+// El contenido del portal se monta por partes y a veces dentro de un iframe:
+// el frame que no encuentra su anclaje se calla, no reporta un fallo.
+export const ANCLA_TIMEOUT_MS = 60_000;
+
+// Latido para detectar navegaciones de la SPA (cambia la URL sin recargar). Un
+// content script vive en un mundo aislado y no ve los pushState de la pagina,
+// asi que la unica via fiable es mirar la URL cada tanto.
+export const NAVEGACION_TICK_MS = 1000;
 
 // Watchdog del service worker: si un job no avanza en este plazo, se reporta
 // ERROR y se sigue con el siguiente (la pestana pudo quedar colgada). Da margen
@@ -106,9 +118,16 @@ export const TICKET_CASCADA = {
 // un solo sitio (los ids de Salesforce llevan sufijos que cambian por render:
 // siempre por prefijo, nunca por el id completo).
 export const SEL = {
-  // Modulo de devoluciones (listado + busqueda).
+  // Modulo de devoluciones (listado + busqueda). El buscador se intenta por
+  // varias vias: el portal reordena sus contenedores (apareció un
+  // `.export-search-content` envolviendo al `.search-content`), asi que el
+  // placeholder — que es lo que el usuario ve — es el ancla mas estable.
   buscar: {
-    input: '.search-content .container-searchbar input',
+    input: [
+      '.search-content .container-searchbar input',
+      '.container-searchbar input',
+      'input[placeholder^="Buscar por"]',
+    ],
     tabla: 'table.ui-list-table',
     filas: 'table.ui-list-table tbody tr',
     celdaOrden: 'td.details',

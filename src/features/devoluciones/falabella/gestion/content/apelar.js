@@ -140,7 +140,17 @@ export async function apelar(job, { prueba, pedirArchivos, signal, onLog } = {})
   return { enviado: true };
 }
 
+/**
+ * Anclaje del formulario de apelacion: su campo de archivos, que no existe en
+ * ninguna otra pantalla del portal. Vale tanto en el frame superior como dentro
+ * de un iframe, donde la URL no sirve para reconocer nada.
+ */
+export function anclaApelacion() {
+  return document.querySelector(SEL.apelar.archivos)
+    || buscarPorTexto(document, SEL.apelar.cajaTitulo, 'Motivo de apelacion');
+}
+
 /** ¿Estamos en el formulario de apelacion? */
 export function esPaginaApelacion() {
-  return location.href.includes('/order/return/rejectAppeals');
+  return location.href.includes('/order/return/rejectAppeals') || Boolean(anclaApelacion());
 }

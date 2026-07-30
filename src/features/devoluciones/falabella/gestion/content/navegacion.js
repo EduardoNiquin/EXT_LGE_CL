@@ -39,6 +39,17 @@ export function esAyudaSoporte() {
   return location.hostname.includes(HELP_HOST) && location.pathname.includes(HELP_SUPPORT_PATH);
 }
 
+/** Anclaje para saltar al centro de ayuda: el menu "Ayuda" de la navbar. */
+export function anclaMenuAyuda() {
+  return menuAyuda();
+}
+
+/** Anclaje de la mesa de ayuda: el enlace "Soporte" de su navbar. */
+export function anclaSoporte() {
+  return document.querySelector(SEL.navegacion.soporte)
+    || buscarPorTexto(document, 'nav a', 'Soporte');
+}
+
 /**
  * Menu "Ayuda" de la navbar de SellerCenter. Se localiza por su clase propia y,
  * si el portal la cambia, por el texto del propio menu.

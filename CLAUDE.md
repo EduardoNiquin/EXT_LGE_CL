@@ -437,6 +437,12 @@ Las ramas de `AYUDA`/`SOPORTE` miran **dónde estamos**, no solo la fase: si un 
 
 **Por qué el estado vive en el service worker:** el flujo cruza navegaciones (listado → formulario) y el content script muere en cada una. En cada carga pregunta `GET_JOB` y el SW le responde con el job y su fase — y **solo** a la pestaña de trabajo del run, para no automatizar pestañas que el usuario abrió por su cuenta.
 
+**Dos cosas que el portal impone al content script** (`gestion/content/index.js`):
+- **Corre en todos los frames.** El módulo de devoluciones puede vivir dentro de un iframe: el frame superior tiene la URL correcta pero no el formulario. Cada frame espera el **anclaje** de su fase (`anclaListado` / `anclaApelacion` / `anclaTicket` / `anclaMenuAyuda` — el elemento que identifica esa pantalla) y el que no lo encuentra sale en silencio lanzando `SinAncla`. Es clave que **no reporte error**: mataría el trabajo del frame que sí la tiene. Reintenta 3 veces cada 10 s por si la pantalla solo iba lenta.
+- **No todo cambio de pantalla es una carga nueva.** El portal es una SPA. Un latido de 1 s vigila `location.href` (un content script vive en un mundo aislado y no ve los `pushState` de la página) y vuelve a despachar, abortando con `AbortController` lo que estuviera esperando; ese abort **no** se reporta como fallo (`isAbortError`).
+
+**Selectores tolerantes:** los anclajes prueban varias vías en orden (`primero()`), porque el portal reordena su maquetación — apareció un `.export-search-content` envolviendo al `.search-content` y el selector estructural dejó de ser fiable. El **placeholder** ("Buscar por N° de orden") es lo más estable, porque es lo que el usuario ve.
+
 **Archivos:** los PDF se bajan de la API en el momento de subirlos y viajan al content en **base64** (`chrome.runtime` no serializa `File`/`Blob`); se reconstruyen con `base64ToFile` y se meten al `<input type=file>` vía `DataTransfer` (`setFiles`). No tocan storage ni disco: son evidencias de devoluciones.
 
 **Decisiones que toma la IA-menos:** el motivo de apelación y el sub-motivo salen de la observación de posventa por palabras clave (`MOTIVO_KEYWORDS`); sin match se cae a "Producto dañado" / "Daños severos", que es la postura que conviene al seller. Está en `apelar.js` y cubierto por `tests/unit/devoluciones-gestion.test.js`.
