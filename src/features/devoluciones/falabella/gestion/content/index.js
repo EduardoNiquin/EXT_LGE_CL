@@ -33,6 +33,7 @@ import {
 } from '../constants.js';
 import { abrirApelacion, anclaListado, buscarOrden } from './buscar.js';
 import { anclaApelacion, apelar } from './apelar.js';
+import { contarShadowRoots } from './dom.js';
 import { anclaTicket, leerConfirmacion, levantarTicket } from './ticket.js';
 import {
   anclaMenuAyuda,
@@ -112,6 +113,9 @@ function queHayEnEsteDocumento() {
       .map((c) => c.placeholder || c.name || c.type || '(sin rotulo)')
       .slice(0, 15),
     tablas: document.querySelectorAll('table').length,
+    // Distingue "la pantalla esta en un iframe" de "esta encapsulada en un web
+    // component": con campos vacios y shadowRoots > 0, es lo segundo.
+    shadowRoots: contarShadowRoots(),
   };
 }
 

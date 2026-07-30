@@ -96,14 +96,60 @@ export function normalizar(texto) {
  * Primer elemento que encaja con alguno de los selectores dados, en orden. Los
  * portales reordenan su maquetación cada tanto: tener alternativas evita que un
  * `div` nuevo en medio tumbe todo el flujo.
+ *
+ * Si no aparece nada, hace una segunda pasada por los **shadow DOM abiertos**:
+ * `querySelector` no los atraviesa, así que una pantalla encapsulada en un web
+ * component sería invisible desde fuera.
  */
 export function primero(selectores, raiz = document) {
-  for (const selector of [].concat(selectores)) {
+  const lista = [].concat(selectores);
+
+  for (const selector of lista) {
     const el = raiz.querySelector(selector);
     if (el) return el;
   }
 
+  return dentroDeShadow(lista, raiz);
+}
+
+/** Recorre los shadow roots abiertos buscando alguno de los selectores. */
+function dentroDeShadow(selectores, raiz) {
+  const porVisitar = [raiz];
+
+  while (porVisitar.length) {
+    const nodo = porVisitar.shift();
+
+    for (const el of nodo.querySelectorAll('*')) {
+      if (!el.shadowRoot) continue;
+
+      for (const selector of selectores) {
+        const encontrado = el.shadowRoot.querySelector(selector);
+        if (encontrado) return encontrado;
+      }
+
+      porVisitar.push(el.shadowRoot);
+    }
+  }
+
   return null;
+}
+
+/** Cuántos shadow roots abiertos hay (para el diagnóstico). */
+export function contarShadowRoots(raiz = document) {
+  let total = 0;
+  const porVisitar = [raiz];
+
+  while (porVisitar.length) {
+    const nodo = porVisitar.shift();
+
+    for (const el of nodo.querySelectorAll('*')) {
+      if (!el.shadowRoot) continue;
+      total++;
+      porVisitar.push(el.shadowRoot);
+    }
+  }
+
+  return total;
 }
 
 /** Primer elemento cuyo texto contiene `texto` (sin distinguir acentos). */
