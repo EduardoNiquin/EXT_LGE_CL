@@ -93,42 +93,85 @@ export function normalizar(texto) {
 }
 
 /**
+ * Todas las raices en las que puede vivir la pantalla: el documento y los
+ * **shadow roots abiertos** que cuelgan de el, en anchura.
+ *
+ * No es un adorno defensivo: el modulo de devoluciones de SellerCenter monta
+ * TODA su interfaz (buscador, tabla y formulario de apelacion) dentro del shadow
+ * root de `#return-app-container`. En el documento de arriba no hay ni un
+ * `<input>` ni una `<table>`, asi que un `document.querySelector` plano no
+ * encuentra nada y la espera se agota sin explicacion.
+ */
+function raices(raiz = document) {
+  const encontradas = [raiz];
+
+  // Si la raiz es ELLA MISMA un host, hay que entrar en su shadow root: si no,
+  // `raices(combo)` se queda fuera de su propio contenido. Pasa de verdad en la
+  // mesa de ayuda (Salesforce LWC con shadow nativo): el
+  // `button.slds-combobox__input` de un `lightning-combobox` vive dentro de su
+  // shadow root, y buscarlo con `combo.querySelector(...)` devuelve null.
+  if (raiz.shadowRoot) encontradas.push(raiz.shadowRoot);
+
+  // Recorrido en anchura sobre el propio array: lo que se anade se visita luego.
+  for (let i = 0; i < encontradas.length; i++) {
+    for (const el of encontradas[i].querySelectorAll('*')) {
+      if (el.shadowRoot) encontradas.push(el.shadowRoot);
+    }
+  }
+
+  return encontradas;
+}
+
+/**
  * Primer elemento que encaja con alguno de los selectores dados, en orden. Los
  * portales reordenan su maquetación cada tanto: tener alternativas evita que un
  * `div` nuevo en medio tumbe todo el flujo.
  *
- * Si no aparece nada, hace una segunda pasada por los **shadow DOM abiertos**:
- * `querySelector` no los atraviesa, así que una pantalla encapsulada en un web
- * component sería invisible desde fuera.
+ * Busca primero en el documento y despues en los shadow roots, para que una
+ * pantalla encapsulada en un web component no quede invisible desde fuera.
  */
 export function primero(selectores, raiz = document) {
   const lista = [].concat(selectores);
 
-  for (const selector of lista) {
-    const el = raiz.querySelector(selector);
-    if (el) return el;
+  for (const r of raices(raiz)) {
+    for (const selector of lista) {
+      const el = r.querySelector(selector);
+      if (el) return el;
+    }
   }
 
-  return dentroDeShadow(lista, raiz);
+  return null;
 }
 
-/** Recorre los shadow roots abiertos buscando alguno de los selectores. */
-function dentroDeShadow(selectores, raiz) {
-  const porVisitar = [raiz];
+/**
+ * Todos los elementos que encajan, cruzando shadow roots. Hace falta para lo que
+ * no es "el primero que aparezca": las filas de la tabla o los acordeones del
+ * formulario, que son justo donde el modulo guarda lo que hay que leer.
+ */
+export function todos(selectores, raiz = document) {
+  const lista = [].concat(selectores);
+  const vistos = new Set();
 
-  while (porVisitar.length) {
-    const nodo = porVisitar.shift();
-
-    for (const el of nodo.querySelectorAll('*')) {
-      if (!el.shadowRoot) continue;
-
-      for (const selector of selectores) {
-        const encontrado = el.shadowRoot.querySelector(selector);
-        if (encontrado) return encontrado;
-      }
-
-      porVisitar.push(el.shadowRoot);
+  for (const r of raices(raiz)) {
+    for (const selector of lista) {
+      for (const el of r.querySelectorAll(selector)) vistos.add(el);
     }
+  }
+
+  return Array.from(vistos);
+}
+
+/**
+ * La raiz (documento o shadow root) que contiene la pantalla. Se resuelve UNA
+ * vez al empezar una fase y se reutiliza para todas las consultas: asi no se
+ * recorre el arbol entero en cada vuelta de una espera, y sobre todo se evita
+ * mezclar elementos de dos raices distintas.
+ */
+export function raizDe(selectores, raiz = document) {
+  const lista = [].concat(selectores);
+
+  for (const r of raices(raiz)) {
+    if (lista.some((selector) => r.querySelector(selector))) return r;
   }
 
   return null;
@@ -136,26 +179,13 @@ function dentroDeShadow(selectores, raiz) {
 
 /** Cuántos shadow roots abiertos hay (para el diagnóstico). */
 export function contarShadowRoots(raiz = document) {
-  let total = 0;
-  const porVisitar = [raiz];
-
-  while (porVisitar.length) {
-    const nodo = porVisitar.shift();
-
-    for (const el of nodo.querySelectorAll('*')) {
-      if (!el.shadowRoot) continue;
-      total++;
-      porVisitar.push(el.shadowRoot);
-    }
-  }
-
-  return total;
+  return raices(raiz).length - 1;
 }
 
 /** Primer elemento cuyo texto contiene `texto` (sin distinguir acentos). */
 export function buscarPorTexto(root, selector, texto) {
   const objetivo = normalizar(texto);
-  return Array.from((root || document).querySelectorAll(selector))
+  return todos(selector, root || document)
     .find((el) => normalizar(el.textContent).includes(objetivo)) || null;
 }
 
@@ -192,8 +222,8 @@ export async function elegirCombobox(combo, valor, { signal } = {}) {
  * Abre un acordeon del formulario de apelacion por el titulo de su caja. Los
  * paneles arrancan colapsados (`class="off"`) y se abren pulsando la cabecera.
  */
-export async function abrirAcordeon(titulo, { signal } = {}) {
-  const caja = Array.from(document.querySelectorAll(SEL.apelar.caja))
+export async function abrirAcordeon(titulo, { signal, raiz = document } = {}) {
+  const caja = todos(SEL.apelar.caja, raiz)
     .find((box) => normalizar(box.querySelector(SEL.apelar.cajaTitulo)?.textContent).includes(normalizar(titulo)));
 
   if (!caja) throw new Error(`No se encontro la seccion "${titulo}"`);

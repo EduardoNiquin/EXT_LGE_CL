@@ -118,15 +118,27 @@ export const TICKET_CASCADA = {
 // un solo sitio (los ids de Salesforce llevan sufijos que cambian por render:
 // siempre por prefijo, nunca por el id completo).
 export const SEL = {
-  // Modulo de devoluciones (listado + busqueda). El buscador se intenta por
-  // varias vias: el portal reordena sus contenedores (apareció un
-  // `.export-search-content` envolviendo al `.search-content`), asi que el
-  // placeholder — que es lo que el usuario ve — es el ancla mas estable.
+  // Modulo de devoluciones (listado + busqueda). OJO: toda esta pantalla vive
+  // dentro del shadow root de `#return-app-container`, asi que estos selectores
+  // solo encajan si se consultan con los helpers que lo atraviesan (ver dom.js),
+  // nunca con `document.querySelector`.
+  //
+  // El buscador se intenta por varias vias: el portal reordena sus contenedores
+  // (apareció un `.export-search-content` envolviendo al `.search-content`), asi
+  // que el placeholder — que es lo que el usuario ve — es el ancla mas estable.
   buscar: {
     input: [
       '.search-content .container-searchbar input',
       '.container-searchbar input',
       'input[placeholder^="Buscar por"]',
+    ],
+    // La lupa a la derecha del campo. Es el UNICO disparador de la busqueda: el
+    // input no esta dentro de un <form> y su unico manejador de teclado es
+    // `onKeyPress`, asi que ni "Enter" por keydown ni `requestSubmit` filtran
+    // nada. Sin este clic la tabla sigue mostrando la primera pagina entera.
+    lupa: [
+      '.search-content .container-searchbar i',
+      '.container-searchbar i',
     ],
     tabla: 'table.ui-list-table',
     filas: 'table.ui-list-table tbody tr',

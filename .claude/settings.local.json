@@ -31,7 +31,16 @@
       "PowerShell(npm test *)",
       "Bash(git --no-pager diff -- \"src/features/pim/content/flows/run.js\" \"src/features/pim/content/flows/search.js\" \"src/features/pim/content/parser.js\")",
       "Bash(git --no-pager log --oneline -3)",
-      "Bash(git --no-pager diff 5a5027a 1461522 -- \"src/features/pim/content/parser.js\" \"src/features/pim/content/flows/search.js\")"
+      "Bash(git --no-pager diff 5a5027a 1461522 -- \"src/features/pim/content/parser.js\" \"src/features/pim/content/flows/search.js\")",
+      "mcp__chrome-devtools__list_pages",
+      "mcp__chrome-devtools__navigate_page",
+      "mcp__chrome-devtools__take_snapshot",
+      "mcp__chrome-devtools__fill",
+      "mcp__chrome-devtools__click",
+      "mcp__chrome-devtools__evaluate_script",
+      "mcp__chrome-devtools__take_screenshot",
+      "mcp__chrome-devtools__select_page",
+      "mcp__chrome-devtools__close_page"
     ]
   }
 }

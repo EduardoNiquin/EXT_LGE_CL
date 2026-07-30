@@ -33,7 +33,7 @@ import {
 } from '../constants.js';
 import { abrirApelacion, anclaListado, buscarOrden } from './buscar.js';
 import { anclaApelacion, apelar } from './apelar.js';
-import { contarShadowRoots } from './dom.js';
+import { contarShadowRoots, todos } from './dom.js';
 import { anclaTicket, leerConfirmacion, levantarTicket } from './ticket.js';
 import {
   anclaMenuAyuda,
@@ -104,17 +104,24 @@ function paginaRelevante() {
 function queHayEnEsteDocumento() {
   const iframes = Array.from(document.querySelectorAll('iframe'));
 
+  // Los campos y las tablas se cuentan CRUZANDO los shadow roots. Mirar solo el
+  // documento decia "aqui no hay nada" justo en la pantalla que si tenia el
+  // formulario — el modulo de devoluciones lo monta entero dentro de un shadow
+  // root, asi que ese cero era la pista equivocada.
+  const campos = todos('input, textarea');
+
   return {
     titulo: document.title,
     esTop: window === window.top,
     iframes: iframes.length,
     iframesSrc: iframes.map((f) => f.src || '(sin src)').slice(0, 6),
-    campos: Array.from(document.querySelectorAll('input, textarea'))
+    campos: campos
       .map((c) => c.placeholder || c.name || c.type || '(sin rotulo)')
       .slice(0, 15),
-    tablas: document.querySelectorAll('table').length,
+    tablas: todos('table').length,
     // Distingue "la pantalla esta en un iframe" de "esta encapsulada en un web
-    // component": con campos vacios y shadowRoots > 0, es lo segundo.
+    // component": si hay campos pero ninguno cuelga del documento, es lo segundo.
+    camposEnElDocumento: document.querySelectorAll('input, textarea').length,
     shadowRoots: contarShadowRoots(),
   };
 }

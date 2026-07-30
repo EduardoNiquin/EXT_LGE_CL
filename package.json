@@ -1,6 +1,6 @@
 {
   "name": "ext-lge-cl",
-  "version": "5.0",
+  "version": "5.1",
   "description": "Browser extension for Chrome and Edge",
   "private": true,
   "type": "module",

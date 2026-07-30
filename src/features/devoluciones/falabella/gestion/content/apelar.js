@@ -20,7 +20,7 @@ import {
   SUBSTATUS_DANO_SEVERO,
   SUBSTATUS_INCOMPLETO,
 } from '../constants.js';
-import { abrirAcordeon, base64ToFile, buscarPorTexto, elegirOpcion, escribirEn, normalizar, setFiles } from './dom.js';
+import { abrirAcordeon, base64ToFile, buscarPorTexto, elegirOpcion, escribirEn, normalizar, primero, raizDe, setFiles } from './dom.js';
 import { clickEl } from '../../../../../shared/dom/events.js';
 import { waitFor, waitForElement } from '../../../../../shared/dom/wait.js';
 
@@ -75,13 +75,16 @@ export function armarComentario(job) {
  * @param {{ prueba: boolean, pedirArchivos: () => Promise<Array>, signal?: AbortSignal, onLog?: Function }} opts
  */
 export async function apelar(job, { prueba, pedirArchivos, signal, onLog } = {}) {
-  await waitForElement(SEL.apelar.caja, { timeout: PAGE_TIMEOUT_MS, signal });
+  // El formulario vive dentro del shadow root de la micro-app, igual que el
+  // listado: se resuelve la raiz una vez y se consulta siempre contra ella.
+  const raiz = raizApelacion();
+  await waitForElement(SEL.apelar.caja, { timeout: PAGE_TIMEOUT_MS, signal, root: raiz });
 
   const observacion = job.reembolso?.observacion || '';
   const comentario = armarComentario(job);
 
   // 1. Motivo de apelacion.
-  const cajaMotivo = await abrirAcordeon('Motivo de apelacion', { signal });
+  const cajaMotivo = await abrirAcordeon('Motivo de apelacion', { signal, raiz });
   const motivo = elegirMotivo(observacion);
 
   const header = await waitForElement(SEL.apelar.dropdownHeader, { timeout: STEP_TIMEOUT_MS, signal, root: cajaMotivo });
@@ -98,7 +101,7 @@ export async function apelar(job, { prueba, pedirArchivos, signal, onLog } = {})
   if (textarea) escribirEn(textarea, comentario);
 
   // 2. Evidencias: el PDF que armo el modulo con las fotos ordenadas.
-  const cajaEvidencias = await abrirAcordeon('Evidencias del producto', { signal });
+  const cajaEvidencias = await abrirAcordeon('Evidencias del producto', { signal, raiz });
   const inputArchivos = await waitForElement(SEL.apelar.archivos, { timeout: STEP_TIMEOUT_MS, signal, root: cajaEvidencias });
 
   const archivos = await pedirArchivos('apelacion');
@@ -106,7 +109,7 @@ export async function apelar(job, { prueba, pedirArchivos, signal, onLog } = {})
   onLog?.(`Evidencias adjuntas: ${archivos.map((a) => a.nombre).join(', ')}.`);
 
   // 3. Informe tecnico: estado, sub-motivo y detalle.
-  const cajaInforme = await abrirAcordeon('Informe tecnico', { signal });
+  const cajaInforme = await abrirAcordeon('Informe tecnico', { signal, raiz });
 
   const radio = Array.from(cajaInforme.querySelectorAll(SEL.apelar.radioEstado))
     .find((r) => normalizar(r.id) === normalizar(INFORME_STATUS));
@@ -126,7 +129,7 @@ export async function apelar(job, { prueba, pedirArchivos, signal, onLog } = {})
   if (subComentario) escribirEn(subComentario, comentario);
 
   // 4. Enviar.
-  const enviar = document.querySelector(SEL.apelar.enviar);
+  const enviar = primero(SEL.apelar.enviar, raiz);
   if (!enviar) throw new Error('No se encontro el boton "Enviar apelacion"');
 
   if (prueba) {
@@ -146,8 +149,16 @@ export async function apelar(job, { prueba, pedirArchivos, signal, onLog } = {})
  * de un iframe, donde la URL no sirve para reconocer nada.
  */
 export function anclaApelacion() {
-  return document.querySelector(SEL.apelar.archivos)
+  return primero(SEL.apelar.archivos)
     || buscarPorTexto(document, SEL.apelar.cajaTitulo, 'Motivo de apelacion');
+}
+
+/**
+ * Raiz donde el portal monta el formulario de apelacion: el shadow root de la
+ * micro-app de devoluciones, o el documento si deja de encapsularla.
+ */
+function raizApelacion() {
+  return raizDe(SEL.apelar.caja) || raizDe(SEL.apelar.archivos) || document;
 }
 
 /** ¿Estamos en el formulario de apelacion? */
