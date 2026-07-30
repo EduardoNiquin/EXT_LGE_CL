@@ -19,10 +19,25 @@ import {
   TICKET_CASCADA,
   TICKET_SIN_NUMERO,
 } from '../constants.js';
-import { base64ToFile, elegirCombobox, escribirEn, setFiles } from './dom.js';
+import { base64ToFile, elegirCombobox, escribirEn, primero, setFiles, textoDeOpcion, todos } from './dom.js';
 import { abrirNuevoCaso } from './navegacion.js';
 import { clickEl } from '../../../../../shared/dom/events.js';
-import { waitFor, waitForElement } from '../../../../../shared/dom/wait.js';
+import { waitFor } from '../../../../../shared/dom/wait.js';
+
+/**
+ * Espera a que aparezca un campo del formulario, cruzando shadow DOM.
+ *
+ * En la mesa de ayuda (Salesforce LWC con shadow **nativo**) NADA del formulario
+ * cuelga del documento: `document.querySelector` devuelve null para todos los
+ * campos, asi que las esperas normales se agotan con el formulario a la vista.
+ */
+function esperarCampo(selector, { timeout = STEP_TIMEOUT_MS, signal } = {}) {
+  return waitFor(() => primero(selector), {
+    timeout,
+    signal,
+    description: `el campo "${selector}"`,
+  });
+}
 
 /** Detalle de la consulta: la observacion mas los datos de la devolucion. */
 export function armarDetalle(job) {
@@ -58,27 +73,27 @@ export async function levantarTicket(job, { prueba, pedirArchivos, antesDeEnviar
   // El formulario no existe hasta abrir la pestana "Nuevo caso".
   await abrirNuevoCaso({ signal, onLog });
 
-  await waitForElement(SEL.ticket.nivel1, { timeout: PAGE_TIMEOUT_MS, signal });
+  await esperarCampo(SEL.ticket.nivel1, { timeout: PAGE_TIMEOUT_MS, signal });
 
   // 1. Contacto: hay una sola opcion, se elige esa sin adivinar el nombre.
-  const contacto = document.querySelector(SEL.ticket.contacto);
+  const contacto = primero(SEL.ticket.contacto);
   if (contacto) {
-    const boton = contacto.querySelector(SEL.ticket.comboBoton);
+    const boton = primero(SEL.ticket.comboBoton, contacto);
     if (boton) {
       clickEl(boton);
       const opcion = await waitFor(
-        () => contacto.querySelector(SEL.ticket.comboOpcion),
+        () => primero(SEL.ticket.comboOpcion, contacto),
         { timeout: STEP_TIMEOUT_MS, signal, description: 'el contacto del formulario' },
       );
       clickEl(opcion);
-      onLog?.(`Contacto: ${opcion.textContent.trim()}.`);
+      onLog?.(`Contacto: ${textoDeOpcion(opcion)}.`);
     }
   }
 
   // 2. Correo en copia: los CC marcados en la web del modulo.
   const cc = Array.isArray(job.cc) ? job.cc.filter(Boolean) : [];
   if (cc.length) {
-    const correo = document.querySelector(SEL.ticket.correo);
+    const correo = primero(SEL.ticket.correo);
     if (correo) {
       escribirEn(correo, cc.join(','));
       onLog?.(`Correo en copia: ${cc.join(', ')}.`);
@@ -86,31 +101,31 @@ export async function levantarTicket(job, { prueba, pedirArchivos, antesDeEnviar
   }
 
   // 3. Cascada de la consulta (un nivel habilita al siguiente).
-  await elegirCombobox(document.querySelector(SEL.ticket.nivel1), TICKET_CASCADA.nivel1, { signal });
+  await elegirCombobox(primero(SEL.ticket.nivel1), TICKET_CASCADA.nivel1, { signal });
   await elegirCombobox(
-    await waitForElement(SEL.ticket.nivel2, { timeout: STEP_TIMEOUT_MS, signal }),
+    await esperarCampo(SEL.ticket.nivel2, { signal }),
     TICKET_CASCADA.nivel2,
     { signal },
   );
   await elegirCombobox(
-    await waitForElement(SEL.ticket.nivel3, { timeout: STEP_TIMEOUT_MS, signal }),
+    await esperarCampo(SEL.ticket.nivel3, { signal }),
     TICKET_CASCADA.nivel3,
     { signal },
   );
   onLog?.(`Consulta: ${TICKET_CASCADA.nivel1} / ${TICKET_CASCADA.nivel2} / ${TICKET_CASCADA.nivel3}.`);
 
   // 4. Detalle.
-  const detalle = document.querySelector(SEL.ticket.detalle);
+  const detalle = primero(SEL.ticket.detalle);
   if (!detalle) throw new Error('No se encontro el campo "Detalle" del ticket');
   escribirEn(detalle, armarDetalle(job));
 
-  // 5. Orden y guia.
-  const orden = await waitForElement(SEL.ticket.numeroOrden, { timeout: STEP_TIMEOUT_MS, signal });
+  // 5. Orden y guia. Los campos de orden/guia solo montan despues de la cascada.
+  const orden = await esperarCampo(SEL.ticket.numeroOrden, { signal });
   escribirEn(orden, String(job.orden || ''));
 
   // El campo de guia es obligatorio. Si no se pudo leer de las imagenes va un
   // "0", que es la convencion acordada para "no identificada".
-  const guia = document.querySelector(SEL.ticket.numeroGuia);
+  const guia = primero(SEL.ticket.numeroGuia);
   if (guia) {
     const valor = job.numero_guia ? String(job.numero_guia) : GUIA_NO_IDENTIFICADA;
     escribirEn(guia, valor);
@@ -118,16 +133,19 @@ export async function levantarTicket(job, { prueba, pedirArchivos, antesDeEnviar
   }
 
   // 6. Adjuntos: evidencias + los PDF del comprimido.
-  const inputArchivos = document.querySelector(SEL.ticket.archivos);
+  const inputArchivos = primero(SEL.ticket.archivos);
   if (!inputArchivos) throw new Error('No se encontro el campo de archivos adjuntos');
 
   const archivos = await pedirArchivos('ticket');
   setFiles(inputArchivos, archivos.map(base64ToFile));
   onLog?.(`Adjuntos: ${archivos.map((a) => a.nombre).join(', ')}.`);
 
-  // 7. Enviar.
-  const enviar = document.querySelector(SEL.ticket.enviar);
-  if (!enviar) throw new Error('No se encontro el boton "Enviar" del ticket');
+  // 7. Enviar. El boton solo toma la clase `submit-button` cuando el formulario
+  // se da por completo (antes es un `readonly-button`), asi que encontrarlo es
+  // ademas la senal de que no falta ningun campo obligatorio.
+  const enviar = await esperarCampo(SEL.ticket.enviar, { signal })
+    .catch(() => null);
+  if (!enviar) throw new Error('El formulario del ticket no se dio por completo: el boton "Enviar" sigue inactivo');
 
   if (prueba) {
     onLog?.('Modo prueba: ticket completo, NO se envio.');
@@ -212,7 +230,7 @@ export async function leerConfirmacion({ signal, onLog, erroresPrevios = [] } = 
  * texto que lo precede y se deja en digitos.
  */
 export function numeroDeCaso(raiz = document) {
-  const cabecera = raiz.querySelector(SEL.confirmacion.cabecera);
+  const cabecera = primero(SEL.confirmacion.cabecera, raiz);
   if (!cabecera) return null;
 
   const match = CASO_REGEX.exec(cabecera.parentElement?.textContent || '');
@@ -225,7 +243,7 @@ export function numeroDeCaso(raiz = document) {
 
 /** Mensajes de los campos marcados en error por el formulario. */
 export function erroresDeValidacion() {
-  return Array.from(document.querySelectorAll(SEL.confirmacion.error))
+  return todos(SEL.confirmacion.error)
     .map((el) => el.textContent.trim())
     .filter(Boolean)
     .slice(0, 3);
@@ -236,9 +254,9 @@ export function erroresDeValidacion() {
  * formulario o la caja de confirmacion (segun en que momento lleguemos).
  */
 export function anclaTicket() {
-  return document.querySelector(SEL.navegacion.pestana)
-    || document.querySelector(SEL.ticket.nivel1)
-    || document.querySelector(SEL.confirmacion.cabecera);
+  return primero(SEL.navegacion.pestana)
+    || primero(SEL.ticket.nivel1)
+    || primero(SEL.confirmacion.cabecera);
 }
 
 /** ¿Estamos en la pantalla de soporte (formulario o confirmacion)? */

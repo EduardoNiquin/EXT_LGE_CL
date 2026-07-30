@@ -114,7 +114,12 @@ function raices(raiz = document) {
 
   // Recorrido en anchura sobre el propio array: lo que se anade se visita luego.
   for (let i = 0; i < encontradas.length; i++) {
-    for (const el of encontradas[i].querySelectorAll('*')) {
+    // Una raiz que no sabe enumerar descendientes (un nodo suelto) simplemente
+    // no aporta shadow roots: se la deja consultar y se sigue.
+    const hijos = encontradas[i]?.querySelectorAll?.('*');
+    if (!hijos) continue;
+
+    for (const el of hijos) {
       if (el.shadowRoot) encontradas.push(el.shadowRoot);
     }
   }
@@ -135,7 +140,7 @@ export function primero(selectores, raiz = document) {
 
   for (const r of raices(raiz)) {
     for (const selector of lista) {
-      const el = r.querySelector(selector);
+      const el = r.querySelector?.(selector);
       if (el) return el;
     }
   }
@@ -154,7 +159,7 @@ export function todos(selectores, raiz = document) {
 
   for (const r of raices(raiz)) {
     for (const selector of lista) {
-      for (const el of r.querySelectorAll(selector)) vistos.add(el);
+      for (const el of r.querySelectorAll?.(selector) || []) vistos.add(el);
     }
   }
 
@@ -190,6 +195,42 @@ export function buscarPorTexto(root, selector, texto) {
 }
 
 /**
+ * Texto de un elemento juntando el de TODAS sus raices. Con shadow DOM nativo el
+ * `textContent` de un componente viene vacio, porque lo que se ve esta dentro de
+ * su shadow root y no cuenta como contenido suyo.
+ */
+function textoProfundo(el) {
+  return raices(el)
+    .map((r) => r.textContent || '')
+    .join(' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/**
+ * Texto visible de una opcion de combobox de Salesforce. En la mesa de ayuda
+ * (LWC con shadow nativo) el `textContent` de un `lightning-base-combobox-item`
+ * llega **vacio** —su rotulo vive en otro shadow root anidado—, pero el valor
+ * esta siempre en `data-value`. Se usa ese y solo si falta se baja a leer el
+ * texto de las raices.
+ */
+export function textoDeOpcion(el) {
+  return el?.getAttribute?.('data-value') || textoProfundo(el);
+}
+
+/** Opcion de un combobox por su rotulo: exacta primero, contenida despues. */
+function opcionDeCombobox(combo, valor) {
+  const objetivo = normalizar(valor);
+  const items = todos(SEL.ticket.comboOpcion, combo);
+
+  // La exacta manda: "Devoluciones" no puede ganarla "Informacion sobre una
+  // orden en devolucion" solo por contener la palabra.
+  return items.find((el) => normalizar(textoDeOpcion(el)) === objetivo)
+    || items.find((el) => normalizar(textoDeOpcion(el)).includes(objetivo))
+    || null;
+}
+
+/**
  * Elige una opcion en un combobox de Salesforce: abre la lista con su boton y
  * pulsa la opcion. Espera a que la lista monte — en la cascada del ticket, las
  * opciones de un nivel solo existen despues de elegir el anterior.
@@ -197,13 +238,16 @@ export function buscarPorTexto(root, selector, texto) {
 export async function elegirCombobox(combo, valor, { signal } = {}) {
   if (!combo) throw new Error(`No se encontro el desplegable para "${valor}"`);
 
-  const boton = combo.querySelector(SEL.ticket.comboBoton);
+  // El boton NO cuelga del combo en el light DOM: vive dentro de su propio
+  // shadow root (lightning-combobox -> lightning-base-combobox -> boton), asi
+  // que `combo.querySelector` devuelve null. Hay que cruzar sus raices.
+  const boton = primero(SEL.ticket.comboBoton, combo);
   if (!boton) throw new Error(`El desplegable de "${valor}" no tiene boton`);
 
   clickEl(boton);
 
   const opcion = await waitFor(
-    () => buscarPorTexto(combo, SEL.ticket.comboOpcion, valor),
+    () => opcionDeCombobox(combo, valor),
     { timeout: STEP_TIMEOUT_MS, signal, description: `la opcion "${valor}"` },
   );
 

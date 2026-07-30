@@ -48,9 +48,10 @@ let primero;
 let todos;
 let raizDe;
 let contarShadowRoots;
+let textoDeOpcion;
 
 beforeEach(async () => {
-  ({ primero, todos, raizDe, contarShadowRoots } = await import(
+  ({ primero, todos, raizDe, contarShadowRoots, textoDeOpcion } = await import(
     '../../src/features/devoluciones/falabella/gestion/content/dom.js'
   ));
 });
@@ -216,6 +217,41 @@ describe('raizDe', () => {
     escenarioSellerCenter();
 
     expect(raizDe('.no-existe')).toBeNull();
+  });
+});
+
+describe('textoDeOpcion', () => {
+  /** Opcion de combobox de Salesforce: rotulo en `data-value`, no en el texto. */
+  const opcion = ({ dataValue = null, textContent = '', shadowRoot = null } = {}) => ({
+    textContent,
+    shadowRoot,
+    getAttribute: (n) => (n === 'data-value' ? dataValue : null),
+    querySelector: () => null,
+    querySelectorAll: () => [],
+  });
+
+  it('lee el rotulo de data-value', () => {
+    expect(textoDeOpcion(opcion({ dataValue: 'Pos venta' }))).toBe('Pos venta');
+  });
+
+  it('el fallo que esto evita: con shadow nativo el textContent viene vacio', () => {
+    const el = opcion({ dataValue: 'Pos venta', textContent: '' });
+
+    expect(el.textContent).toBe('');          // por aqui no se podia elegir nada
+    expect(textoDeOpcion(el)).toBe('Pos venta');
+  });
+
+  it('sin data-value baja a leer el texto de sus shadow roots', () => {
+    const el = opcion({
+      textContent: '',
+      shadowRoot: { textContent: '  Devoluciones  ', querySelectorAll: () => [] },
+    });
+
+    expect(textoDeOpcion(el)).toBe('Devoluciones');
+  });
+
+  it('usa el textContent propio cuando no hay ni data-value ni shadow', () => {
+    expect(textoDeOpcion(opcion({ textContent: 'Garantía' }))).toBe('Garantía');
   });
 });
 

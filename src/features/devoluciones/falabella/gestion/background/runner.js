@@ -27,6 +27,7 @@ import {
   FASE,
   GESTION_ALARM,
   GESTION_MESSAGES,
+  HELP_HOST,
   JOB_TIMEOUT_MS,
   RESULTADO,
   RETURNS_URL,
@@ -85,6 +86,50 @@ async function openTab(run, url) {
   const tab = await chrome.tabs.create({ url, active: true });
   await updateRun((r) => (r ? { ...r, tabId: tab.id } : r));
   return tab.id;
+}
+
+/** Tramo del flujo que transcurre en la mesa de ayuda. */
+const FASES_DE_TICKET = [FASE.AYUDA, FASE.SOPORTE, FASE.TICKET, FASE.CONFIRMACION];
+
+/**
+ * Adopta como pestana de trabajo la que abre el enlace "Centro de ayuda".
+ *
+ * Ese enlace NO navega la pestana actual: abre la mesa de ayuda en una **pestana
+ * nueva**. Como el service worker solo da trabajo a `run.tabId`, sin esto el
+ * content script que arranca alli pregunta por su job, se le responde que no le
+ * toca, y la gestion se queda muda hasta que salta el watchdog de 8 minutos.
+ *
+ * Se adopta solo si la abrio nuestra propia pestana y el job va camino del
+ * ticket: cualquier otra pestana que el usuario abra por su cuenta no puede
+ * quedarse con el puesto.
+ */
+async function adoptarPestanaDeAyuda(tab) {
+  if (!tab || tab.id == null) return;
+
+  const run = await getRun();
+  if (!run?.active || run.currentId == null || run.tabId == null) return;
+
+  const job = findJob(run, run.currentId);
+  if (!job || isJobDone(job) || !FASES_DE_TICKET.includes(job.fase)) return;
+
+  // La abrio la pestana de trabajo, o —si el navegador no informa del origen—
+  // va a la mesa de ayuda justo cuando la estabamos buscando.
+  const url = tab.pendingUrl || tab.url || '';
+  const laAbrioLaNuestra = tab.openerTabId === run.tabId;
+  const vaALaMesaDeAyuda = url.includes(HELP_HOST);
+
+  if (!laAbrioLaNuestra && !(tab.openerTabId == null && vaALaMesaDeAyuda)) return;
+
+  await updateRun((r) => (r ? { ...r, tabId: tab.id } : r));
+
+  trazaInfo('runner', 'La mesa de ayuda se abrio en otra pestana: se adopta', {
+    orden: job.orden,
+    fase: job.fase,
+    pestanaAnterior: run.tabId,
+    pestanaNueva: tab.id,
+    porQue: laAbrioLaNuestra ? 'la abrio la pestana de trabajo' : 'va al host de la mesa de ayuda',
+    url,
+  });
 }
 
 // -----------------------------------------------------------------------------
@@ -437,6 +482,11 @@ export function wireGestionBackground() {
       default:
         return false;
     }
+  });
+
+  // El salto a la mesa de ayuda abre pestana nueva; hay que seguirla.
+  chrome.tabs.onCreated.addListener((tab) => {
+    adoptarPestanaDeAyuda(tab).catch((err) => log.warn?.('adoptarPestana', new Error(toMessage(err))));
   });
 
   chrome.alarms.onAlarm.addListener((alarm) => {

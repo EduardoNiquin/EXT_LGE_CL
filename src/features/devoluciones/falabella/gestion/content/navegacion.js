@@ -20,7 +20,7 @@ import {
   STEP_TIMEOUT_MS,
   TEXTOS,
 } from '../constants.js';
-import { buscarPorTexto, normalizar } from './dom.js';
+import { buscarPorTexto, normalizar, primero, todos } from './dom.js';
 import { clickEl } from '../../../../../shared/dom/events.js';
 import { sleep, waitFor } from '../../../../../shared/dom/wait.js';
 
@@ -44,9 +44,14 @@ export function anclaMenuAyuda() {
   return menuAyuda();
 }
 
-/** Anclaje de la mesa de ayuda: el enlace "Soporte" de su navbar. */
+/**
+ * Anclaje de la mesa de ayuda: el enlace "Soporte" de su navbar.
+ *
+ * Salesforce Communities monta la navbar con **shadow DOM nativo**: el `<nav>`
+ * no cuelga del documento, asi que `document.querySelector` no lo ve nunca.
+ */
 export function anclaSoporte() {
-  return document.querySelector(SEL.navegacion.soporte)
+  return primero(SEL.navegacion.soporte)
     || buscarPorTexto(document, 'nav a', 'Soporte');
 }
 
@@ -55,19 +60,30 @@ export function anclaSoporte() {
  * si el portal la cambia, por el texto del propio menu.
  */
 function menuAyuda() {
-  const porClase = document.querySelector(SEL.navegacion.menuAyuda);
+  const porClase = primero(SEL.navegacion.menuAyuda);
   if (porClase) return porClase;
 
-  return Array.from(document.querySelectorAll('nav div, header div')).find((el) => {
+  return todos(['nav div', 'header div']).find((el) => {
     const texto = normalizar(el.textContent);
     return texto === 'ayuda' || texto.startsWith('ayuda centro de ayuda');
   }) || null;
 }
 
+/** El enlace "Centro de ayuda" dentro del menu, si el submenu esta desplegado. */
+function enlaceCentroDeAyuda(menu) {
+  return buscarPorTexto(menu, SEL.navegacion.enlaceAyuda, TEXTOS.centroAyuda);
+}
+
 /**
- * Abre el menu "Ayuda" y pulsa "Centro de ayuda". El submenu se despliega al
- * pasar el raton, asi que hay que simular el hover antes de que el enlace sea
- * pulsable.
+ * Abre el menu "Ayuda" y pulsa "Centro de ayuda".
+ *
+ * El submenu se despliega con un **clic**, no al pasar el raton: el menu lleva
+ * un `onClick` de React y las clases `hover:` de la navbar solo pintan la barra
+ * inferior. Con hover a secas el submenu no llega a existir y la espera del
+ * enlace se agota — era el punto donde la gestion se quedaba parada.
+ *
+ * Ojo: este enlace abre la mesa de ayuda en una **pestana nueva**; adoptarla
+ * como pestana de trabajo es cosa del service worker.
  */
 export async function irACentroDeAyuda({ signal, onLog } = {}) {
   const menu = await waitFor(menuAyuda, {
@@ -76,12 +92,16 @@ export async function irACentroDeAyuda({ signal, onLog } = {}) {
     description: 'el menu "Ayuda" de la navbar',
   });
 
-  for (const tipo of ['pointerover', 'mouseover', 'mouseenter']) {
-    menu.dispatchEvent(new MouseEvent(tipo, { bubbles: true, cancelable: true, view: window }));
+  // Si ya estuviera desplegado, no se toca: un clic de mas lo cerraria.
+  if (!enlaceCentroDeAyuda(menu)) {
+    for (const tipo of ['pointerover', 'mouseover', 'mouseenter']) {
+      menu.dispatchEvent(new MouseEvent(tipo, { bubbles: true, cancelable: true, view: window }));
+    }
+    clickEl(menu);
   }
 
   const enlace = await waitFor(
-    () => buscarPorTexto(menu, SEL.navegacion.enlaceAyuda, TEXTOS.centroAyuda),
+    () => enlaceCentroDeAyuda(menu),
     { timeout: STEP_TIMEOUT_MS, signal, description: `el enlace "${TEXTOS.centroAyuda}"` },
   );
 
@@ -95,8 +115,7 @@ export async function irACentroDeAyuda({ signal, onLog } = {}) {
 /** En la mesa de ayuda, pulsa "Soporte" en su navbar. */
 export async function irASoporte({ signal, onLog } = {}) {
   const enlace = await waitFor(
-    () => document.querySelector(SEL.navegacion.soporte)
-      || buscarPorTexto(document, 'nav a', 'Soporte'),
+    anclaSoporte,
     { timeout: PAGE_TIMEOUT_MS, signal, description: 'el enlace "Soporte" de la mesa de ayuda' },
   );
 
@@ -111,6 +130,8 @@ export async function irASoporte({ signal, onLog } = {}) {
  * navega), y hasta pulsarla el formulario del ticket ni siquiera existe.
  */
 export async function abrirNuevoCaso({ signal, onLog } = {}) {
+  // Las pestanas tambien viven en el shadow DOM de Salesforce; `buscarPorTexto`
+  // ya lo cruza.
   const pestana = await waitFor(
     () => buscarPorTexto(document, SEL.navegacion.pestana, TEXTOS.nuevoCaso),
     { timeout: PAGE_TIMEOUT_MS, signal, description: `la pestana "${TEXTOS.nuevoCaso}"` },
