@@ -1692,7 +1692,19 @@ mark {
 }
 .scs-result-actions { margin-top: 4px; }
 
-/* Devoluciones SellerCenter */
+/* Devoluciones (apartado propio: una pestaña por plataforma) */
+.devo-subtabs { margin-bottom: var(--space-2); }
+.devo-prueba {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  margin: var(--space-2) 0;
+  font-size: 11.5px;
+  color: var(--text-muted);
+  line-height: 1.45;
+}
+.devo-prueba input { margin-top: 2px; flex: none; }
+
 .devo-status { margin: var(--space-2) 0; display: flex; flex-direction: column; gap: 6px; }
 .devo-badge {
   display: inline-flex;

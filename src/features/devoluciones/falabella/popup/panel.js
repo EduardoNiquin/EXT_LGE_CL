@@ -23,7 +23,7 @@ import {
   PING_SAMPLE_BYTES,
   UPLOAD_METHOD,
   WEB_URL,
-} from '../../devoluciones/constants.js';
+} from '../constants.js';
 import {
   clearRun,
   getPairing,
@@ -34,7 +34,7 @@ import {
   setRun,
   setUploadMethod,
   subscribeToRun,
-} from '../../devoluciones/state.js';
+} from '../state.js';
 import {
   abortUpload,
   blobToBase64,
@@ -45,8 +45,8 @@ import {
   pingBase64,
   uploadChunk,
   uploadFile,
-} from '../../devoluciones/api.js';
-import { escapeHtml, formatTime } from '../utils.js';
+} from '../api.js';
+import { escapeHtml, formatTime } from '../../popup/utils.js';
 import { toMessage } from '../../../../shared/errors/index.js';
 import { logger } from '../../../../shared/utils/logger.js';
 import { sendMessage } from '../../../../shared/messaging/messaging.js';

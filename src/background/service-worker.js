@@ -5,7 +5,8 @@ import { onMessage } from '../shared/messaging/messaging.js';
 import { wireDestacadosBackground } from '../features/lgcom/background/destacados.js';
 import { wireBusquedaBackground } from '../features/lgcom/background/busqueda.js';
 import { wireInformeBackground } from '../features/e-promoters/background/informe.js';
-import { wireDevolucionesBackground } from '../features/seller-center-falabella/devoluciones/background/runner.js';
+import { wireDevolucionesBackground } from '../features/devoluciones/falabella/background/runner.js';
+import { wireGestionBackground } from '../features/devoluciones/falabella/gestion/background/runner.js';
 import '../features/e-promoters/debug.js';
 
 const log = logger('service-worker');
@@ -23,8 +24,11 @@ wireBusquedaBackground();
 // E-promoters — Informe ordenes: procesa y descarga el CSV en segundo plano.
 wireInformeBackground();
 
-// Devoluciones SellerCenter: sondea la API, baja los resultados y los guarda.
+// Devoluciones: sondea la API, baja los resultados y los guarda en disco.
 wireDevolucionesBackground();
+
+// Devoluciones — gestión automática: apela o levanta el ticket en la plataforma.
+wireGestionBackground();
 
 chrome.runtime.onInstalled.addListener((details) => {
   log.info('Extensión instalada/actualizada', { reason: details?.reason, version });

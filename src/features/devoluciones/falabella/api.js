@@ -146,6 +146,31 @@ export function cancelOrder(base, token, id, { motivo, mensaje } = {}, signal) {
 }
 
 // -----------------------------------------------------------------------------
+// Gestion automatica: la web deja la orden PENDIENTE y la extension la recoge,
+// la gestiona en la plataforma del seller y reporta como termino.
+// -----------------------------------------------------------------------------
+
+/** Cola de gestiones pendientes/en proceso del dueno (con manifest y data). */
+export function getGestiones(base, token, signal) {
+  return request(base, '/gestiones', { token, signal });
+}
+
+/** Reclama una gestion pendiente (pasa a EN_PROCESO; 409 si alguien se adelanto). */
+export function claimGestion(base, token, id, signal) {
+  return request(base, `/orders/${id}/gestion/claim`, { method: 'POST', token, signal });
+}
+
+/** Reporta el desenlace: OK, TICKET (con su numero) o ERROR (con el motivo). */
+export function reportGestion(base, token, id, { resultado, ticket, mensaje }, signal) {
+  return request(base, `/orders/${id}/gestion/resultado`, {
+    method: 'POST',
+    token,
+    json: { resultado, ...(ticket ? { ticket } : {}), ...(mensaje ? { mensaje } : {}) },
+    signal,
+  });
+}
+
+// -----------------------------------------------------------------------------
 // Plan B (§9): subida troceada en base64. Mismos bytes que multipart, pero para
 // el navegador es un JSON, no una subida de archivo. Más lenta; usar sólo si la
 // Prueba A falla y la B pasa.

@@ -10,6 +10,7 @@ import * as lgcom       from '../features/lgcom/content/index.js';
 import * as sellerCenterFalabella from '../features/seller-center-falabella/content/index.js';
 import * as pim         from '../features/pim/content/index.js';
 import * as solotodo    from '../features/solotodo/content/index.js';
+import * as devoluciones from '../features/devoluciones/content/index.js';
 
 // Importar el debug.js de cada feature auto-registra sus comandos.
 // Para sumar una nueva feature: crear src/features/<feature>/debug.js
@@ -38,6 +39,7 @@ lgcom.init();
 sellerCenterFalabella.init();
 pim.init();
 solotodo.init();
+devoluciones.init();
 
 log.info('content script cargado', {
   url: location.href,

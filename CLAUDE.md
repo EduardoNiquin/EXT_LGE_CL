@@ -116,8 +116,8 @@ Sumar a una feature: crear `features/<feature>/debug.js` → `register('<feature
 
 ## Estado del proyecto
 Scaffolding + CI completos. Pipeline release corporativo (.crx firmado + política + ZIP). Debug API modular + logger persistente. Manejo de errores centralizado (`shared/errors`) + Modo Dev + ring buffer de errores con captura global (`shared/diagnostics`, visible en Ajustes). Content multi-frame con resolución de carrera. Capa `shared/dom`. Driver GP1 L-* (modal/messagebox/combobox).
-Features: **Colocar TAGs** (Lectura | Tag Delivery | Quitar Delivery | Tag Producto | Tag Oferta), **Lead Times** (Magento), **Cupones** (Quitar Regla de Cupón), **Información de Orden** (Magento), **Starkoms** (Verificar órdenes y stock), **LG.com** (Info de Producto), **SellerCenter Falabella** (SoporteSeller — Detalle Orden), **E-promoters** (Informe ordenes — CSV/API → filtrado → CSV), **PIM** (Creación de producto — verificar si un SKU existe en PIM/STG), **SoloTodo** (Generar reportes de export en el backoffice — SPA React/MUI), **GATO** (tic-tac-toe multijugador secreto vía Firebase).
-⏳ Pendiente: tests en `tests/unit/*.test.js`.
+Features: **Colocar TAGs** (Lectura | Tag Delivery | Quitar Delivery | Tag Producto | Tag Oferta), **Lead Times** (Magento), **Cupones** (Quitar Regla de Cupón), **Información de Orden** (Magento), **Starkoms** (Verificar órdenes y stock), **LG.com** (Info de Producto), **SellerCenter Falabella** (SoporteSeller — Detalle Orden), **Devoluciones** (Falabella: cargar/guardar evidencias + gestión automática; Walmart/Paris pendientes), **E-promoters** (Informe ordenes — CSV/API → filtrado → CSV), **PIM** (Creación de producto — verificar si un SKU existe en PIM/STG), **SoloTodo** (Generar reportes de export en el backoffice — SPA React/MUI), **GATO** (tic-tac-toe multijugador secreto vía Firebase).
+⏳ Pendiente: más tests en `tests/unit/*.test.js` (hoy solo `devoluciones-gestion.test.js`).
 
 ---
 
@@ -362,7 +362,8 @@ Vigila el recuadro de **destacados** (`.c-result-area__spotlight`, 3 productos p
 ---
 
 ## Feature: SellerCenter Falabella
-Sitio **Salesforce (LWC)** — página de Soporte del Seller Center. Sub-sección: **SoporteSeller — Detalle Orden** (estructura tabbed lista para más). Completa automáticamente el acordeón "Detalle Orden" desde un CSV.
+Sitio **Salesforce (LWC)** — página de Soporte del Seller Center. Sub-secciones: **SoporteSeller — Detalle Orden** y **Buscar caso**. Completa automáticamente el acordeón "Detalle Orden" desde un CSV.
+(Las **devoluciones** salieron de aquí a su propio apartado: ver *Feature: Devoluciones*.)
 
 **A diferencia de Magento (tick-por-reload):** el acordeón se llena sin recargas → usa el **patrón storage-driven + flujo async continuo** de starkoms (`run` en storage, el frame que detecta el form lo reclama y ejecuta con `AbortController`). LWC usa **synthetic shadow DOM** (nodos en el light DOM), así que `querySelector` global funciona. Content matchea `<all_urls>`; la detección es por DOM (no por host, que puede variar entre orgs).
 
@@ -388,6 +389,59 @@ src/features/seller-center-falabella/
 **UI popup (`sections/soporte-seller.js`):** toggle **Subir archivo CSV** / **Pegar texto** (con los nombres de columna explícitos), previsualización (primeras 4 filas + total de "Detalle Orden" a crear + warnings en `<details>`), Iniciar (muestra el conteo)/Detener/Limpiar, progreso en vivo + `<details>` 50 logs. Persiste borrador `{mode,text,fileName}` en `seller-center-falabella:draft`. Live vía `storage.onChanged`.
 **Debug `__extLgeCl.sellerCenterFalabella.`:** `diagnose()`, `detected()`, `selectors()`, `sections()`, `count()`, `state()`, `draft()`, `fillOne({index?,ordernumber,guia,cantP})`, `stop()`, `reset()`, `tick()`.
 **Pendientes:** no distingue múltiples tabs; sin reintento por item (corta al primer error de estructura); asume que el form arranca con 1 sección vacía.
+
+---
+
+## Feature: Devoluciones
+Apartado propio (antes era una sub-sección de SellerCenter Falabella) con **una pestaña por plataforma**: hoy solo **Falabella**; Walmart y Paris aparecen deshabilitadas. El flujo de gestión es distinto en cada seller, así que la plataforma es el eje de la carpeta, no un parámetro.
+
+Trabaja con el módulo web `app/Modules/DevolucionesSeller` del proyecto **LG OBS** (repo `obs`), que es la UI real: ahí se suben los comprimidos, se ve el avance y se marca qué órdenes gestionar. La extensión aporta lo que la política de TI no le deja hacer a una web externa (**leer y escribir archivos**) y lo que ninguna web puede hacer (**operar sobre el portal del seller**).
+
+```
+src/features/devoluciones/
+├── constants.js          PLATFORMS (registro para el router del popup)
+├── content/index.js      init(): emparejamiento + gestión (lo llama src/content/index.js)
+├── popup/                view.js (router de plataformas) · utils.js (escapeHtml/formatTime)
+└── falabella/
+    ├── constants.js  state.js  api.js  content.js    ← puente de carga/guardado
+    ├── background/runner.js                          ← sondea /orders, baja PDFs, POST /saved
+    ├── popup/  view.js (sub-router) · panel.js (cargar) · gestion.js (gestión)
+    └── gestion/                                      ← automatización del portal
+        ├── constants.js   FASE, RESULTADO, SEL (selectores por página), MOTIVO_KEYWORDS
+        ├── state.js       run persistido (createRunStore) + makeJob/patchJob/nextPendingJob
+        ├── background/runner.js   máquina de estados (claim → pestaña → reporte)
+        └── content/  index.js (despachador) · buscar.js · apelar.js · navegacion.js · ticket.js · dom.js
+```
+
+**Emparejamiento:** la web publica `<meta name="devoluciones-pairing-token">`; `falabella/content.js` la lee y guarda `{token, base}` en storage. Todas las llamadas van con `X-Pairing-Token`, así lo que hace la extensión aparece en la sesión web del usuario. **Ojo al actualizar desde ≤4.8:** la clave del feature cambió (`seller-center-falabella:devoluciones` → `devoluciones:falabella`), así que hay que reabrir la web una vez para re-emparejar.
+
+**Gestión automática (Falabella).** La web deja la orden con gestión `PENDIENTE`; el popup lee la cola (`GET /gestiones`) y lanza el run. Por cada orden, el service worker: `POST /gestion/claim` (un 409 = otra sesión se la llevó, se salta) → abre **una** pestaña en el listado de devoluciones → el content script busca el número de orden.
+- **Aparece** → pulsa "No, rechazar", navega a `rejectAppeals`, rellena los 3 acordeones (motivo + comentario, `evidencias.pdf`, informe técnico Malo + sub-motivo) y envía → **OK**.
+- **No aparece** → hay que levantar un ticket, y ahí está la trampa: **a la mesa de ayuda no se entra por su URL** (`ayudaseller.falabella.com/s/soporteseller` pide otras credenciales). Se llega saltando por la navbar, ya con la sesión de SellerCenter puesta.
+El resultado se reporta con `POST /gestion/resultado` (eso libera los archivos retenidos en el servidor).
+
+**Fases** (`FASE`, en `gestion/constants.js`) — cada salto es una navegación completa, así que cada uno es una fase persistida:
+```
+BUSCAR ──encontrada──▶ APELAR ─────────────────────────────────▶ OK
+   │
+   └─no encontrada──▶ AYUDA ────▶ SOPORTE ────▶ TICKET ────▶ CONFIRMACIÓN ──▶ TICKET n°
+                   navbar        navbar       pestaña      lee el n° de caso
+              "Ayuda > Centro   "Soporte"    "Nuevo caso"
+               de ayuda"                     (el form no existe antes)
+```
+Las ramas de `AYUDA`/`SOPORTE` miran **dónde estamos**, no solo la fase: si un clic no llegó a navegar, se reintenta desde la página actual en vez de encallar.
+
+**Número de ticket:** sale de la pantalla de confirmación, embebido en una frase ("Tu n° de caso es el 68989843 , con fecha de creación…") → `CASO_REGEX` + solo dígitos. `leerConfirmacion()` distingue tres desenlaces: número leído → `TICKET`; campos en error (`.slds-has-error`) → `ERROR` con el motivo (no se creó nada); ni una cosa ni la otra → `TICKET` con marcador `SIN-NUMERO` y aviso de buscarlo en "Casos creados". **Nunca se inventa un número ni se da por bueno un ticket sin señal de la web.** Si el envío recarga la página, la espera muere con el documento y el número lo lee la carga siguiente (fase `CONFIRMACIÓN`, anotada *antes* de pulsar Enviar).
+
+**Guía no identificada:** el campo del ticket es obligatorio; si no se pudo leer de las imágenes va `0` (`GUIA_NO_IDENTIFICADA`), la convención acordada.
+
+**Por qué el estado vive en el service worker:** el flujo cruza navegaciones (listado → formulario) y el content script muere en cada una. En cada carga pregunta `GET_JOB` y el SW le responde con el job y su fase — y **solo** a la pestaña de trabajo del run, para no automatizar pestañas que el usuario abrió por su cuenta.
+
+**Archivos:** los PDF se bajan de la API en el momento de subirlos y viajan al content en **base64** (`chrome.runtime` no serializa `File`/`Blob`); se reconstruyen con `base64ToFile` y se meten al `<input type=file>` vía `DataTransfer` (`setFiles`). No tocan storage ni disco: son evidencias de devoluciones.
+
+**Decisiones que toma la IA-menos:** el motivo de apelación y el sub-motivo salen de la observación de posventa por palabras clave (`MOTIVO_KEYWORDS`); sin match se cae a "Producto dañado" / "Daños severos", que es la postura que conviene al seller. Está en `apelar.js` y cubierto por `tests/unit/devoluciones-gestion.test.js`.
+
+**Salvaguardas:** requiere sesión ya iniciada en SellerCenter (la extensión no se loguea por nadie; a la mesa de ayuda entra con esa misma sesión vía navbar); **modo prueba** que rellena sin enviar; confirmación antes de un run real; watchdog de 8 min por orden (si no avanza → ERROR y sigue con la siguiente); un timeout buscando la orden **no** se interpreta como "no está" (levantaría un ticket por error).
 
 ---
 

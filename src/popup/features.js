@@ -5,6 +5,7 @@ import { render as renderOrdenInfo }   from '../features/orden-info/popup/view.j
 import { render as renderStarkoms }    from '../features/starkoms/popup/view.js';
 import { render as renderLgcom }       from '../features/lgcom/popup/view.js';
 import { render as renderSellerCenterFalabella } from '../features/seller-center-falabella/popup/view.js';
+import { render as renderDevoluciones }  from '../features/devoluciones/popup/view.js';
 import { render as renderEpromoters }   from '../features/e-promoters/popup/view.js';
 import { render as renderPim }          from '../features/pim/popup/view.js';
 import { render as renderSolotodo }    from '../features/solotodo/popup/view.js';
@@ -65,8 +66,16 @@ export const features = [
     name: 'SellerCenter Falabella',
     description: 'SoporteSeller: cargar "Detalle Orden" y buscar N° de orden en casos',
     abbr: 'SCF',
-    keywords: ['seller', 'sellercenter', 'falabella', 'fallabella', 'soporte', 'soporteseller', 'detalle', 'orden', 'guia', 'guía', 'paquetes', 'csv', 'caso', 'casos', 'ticket', 'buscar', 'devolucion', 'devolución', 'reclamo'],
+    keywords: ['seller', 'sellercenter', 'falabella', 'fallabella', 'soporte', 'soporteseller', 'detalle', 'orden', 'guia', 'guía', 'paquetes', 'csv', 'caso', 'casos', 'ticket', 'buscar', 'reclamo'],
     render: renderSellerCenterFalabella,
+  },
+  {
+    id: 'devoluciones',
+    name: 'Devoluciones',
+    description: 'Subir evidencias, guardar los PDF y gestionar la devolución en la plataforma',
+    abbr: 'DEV',
+    keywords: ['devolucion', 'devolución', 'devoluciones', 'reembolso', 'apelacion', 'apelación', 'rechazar', 'evidencia', 'evidencias', 'falabella', 'walmart', 'paris', 'sellercenter', 'ticket'],
+    render: renderDevoluciones,
   },
   {
     id: 'e-promoters',

@@ -1,13 +1,13 @@
-// Constantes de "Devoluciones SellerCenter".
+// Constantes de "Devoluciones" — plataforma Falabella.
 //
-// La extensión hace de puente para el módulo de Devoluciones de la web
+// La extension hace de puente para el modulo de Devoluciones de la web
 // https://147.93.176.66/web/sellercenter/devoluciones : selecciona los
-// comprimidos (que la política de TI del PC bloquea en la web), los sube a la
+// comprimidos (que la politica de TI del PC bloquea en la web), los sube a la
 // API y baja los resultados con chrome.downloads. La UI real sigue siendo la web;
-// esta sección sólo aporta lo que el navegador no le deja hacer a la web (leer y
-// escribir archivos en disco).
+// esta seccion solo aporta lo que el navegador no le deja hacer a la web (leer y
+// escribir archivos en disco). La gestion automatica vive en ./gestion/.
 
-export const DEVO_FEATURE = 'seller-center-falabella:devoluciones';
+export const DEVO_FEATURE = 'devoluciones:falabella';
 
 // Base de la API y URL de la web (el content script las puede sobreescribir con
 // las <meta> que publica el servidor — DEFAULT_* es sólo el respaldo).
