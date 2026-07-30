@@ -1694,6 +1694,71 @@ mark {
 
 /* Devoluciones (apartado propio: una pestaña por plataforma) */
 .devo-subtabs { margin-bottom: var(--space-2); }
+
+/* La pestaña de Registro no es una plataforma: se separa del resto. */
+.ct-tab--aparte { margin-left: auto; }
+
+.devo-reg-filtros {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin: var(--space-2) 0;
+}
+.devo-reg-filtros input[type='search'] { grid-column: 1 / -1; }
+.devo-reg-filtros .dt-input { font-size: 11.5px; padding: 5px 7px; }
+
+.devo-reg-lista {
+  list-style: none;
+  margin: var(--space-2) 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.devo-reg-item {
+  padding: 6px 9px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-left-width: 3px;
+  border-radius: var(--radius-sm);
+  font-size: 11.5px;
+  line-height: 1.45;
+}
+.devo-reg-item--debug { border-left-color: var(--border); }
+.devo-reg-item--info  { border-left-color: var(--accent); }
+.devo-reg-item--warn  { border-left-color: var(--warning); }
+.devo-reg-item--error { border-left-color: var(--danger); }
+
+.devo-reg-cabecera {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-2);
+  color: var(--text-muted);
+  font-size: 10.5px;
+}
+.devo-reg-hora { font-variant-numeric: tabular-nums; }
+.devo-reg-evento { margin-top: 2px; }
+
+.devo-reg-datos {
+  margin: 4px 0 0;
+  padding: 5px 7px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 10.5px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 160px;
+  overflow: auto;
+}
+
+.devo-reg-vacio {
+  padding: var(--space-2);
+  color: var(--text-muted);
+  font-size: 11.5px;
+  text-align: center;
+}
 .devo-prueba {
   display: flex;
   align-items: flex-start;

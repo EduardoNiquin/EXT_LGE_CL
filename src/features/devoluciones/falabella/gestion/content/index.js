@@ -43,6 +43,7 @@ import {
   irACentroDeAyuda,
   irASoporte,
 } from './navegacion.js';
+import { CONTEXTOS, fijarContextoDeTraza, traza, trazaAviso, trazaError, trazaInfo } from '../../../trace.js';
 import { isAbortError, toMessage } from '../../../../../shared/errors/index.js';
 import { waitFor } from '../../../../../shared/dom/wait.js';
 import { logger } from '../../../../../shared/utils/logger.js';
@@ -102,13 +103,26 @@ class SinAncla extends Error {
  * identifica) y lo devuelve. Si no llega, lanza SinAncla.
  */
 async function ancla(buscarAncla, { signal } = {}) {
+  const inicio = Date.now();
+
   const el = await waitFor(buscarAncla, {
     timeout: ANCLA_TIMEOUT_MS,
     signal,
     description: 'la pantalla de la gestion',
   }).catch(() => null);
 
-  if (!el) throw new SinAncla();
+  if (!el) {
+    trazaAviso('despachador', 'Este frame NO tiene la pantalla: se calla', {
+      esperado: buscarAncla.name,
+      esperoMs: Date.now() - inicio,
+    });
+    throw new SinAncla();
+  }
+
+  traza('despachador', 'Pantalla localizada en este frame', {
+    esperado: buscarAncla.name,
+    tardoMs: Date.now() - inicio,
+  });
 
   return el;
 }
@@ -132,10 +146,27 @@ async function despachar() {
 
   const res = await enviar({ type: GESTION_MESSAGES.GET_JOB });
   const job = res?.job;
-  if (!job) return;
+
+  if (!job) {
+    // Lo mas comun cuando "no pasa nada": esta pestana no es la del run, o el
+    // service worker ya no tiene trabajo pendiente.
+    traza('despachador', 'Sin trabajo para esta pestana', {
+      respondio: Boolean(res),
+      motivo: res ? 'el service worker no asigno job a esta pestana' : 'el service worker no respondio',
+    });
+    return;
+  }
 
   corriendo = true;
   controlador = new AbortController();
+
+  trazaInfo('despachador', 'Job recibido', {
+    orden: job.orden,
+    fase: job.fase,
+    prueba: Boolean(res.prueba),
+    tieneReembolso: Boolean(job.reembolso),
+    guia: job.numero_guia || null,
+  });
 
   const opciones = {
     prueba: Boolean(res.prueba),
@@ -202,7 +233,10 @@ async function despachar() {
   } catch (err) {
     // Una navegacion esperada aborta lo que estuvieramos esperando: no es un
     // fallo de la gestion, la retoma la pantalla siguiente.
-    if (isAbortError(err, controlador?.signal)) return;
+    if (isAbortError(err, controlador?.signal)) {
+      traza('despachador', 'Flujo abortado por navegacion', { fase: job.fase });
+      return;
+    }
 
     // Esta pantalla no esta aqui (otro frame, o aun montandose): callar y
     // volver a mirar dentro de un rato.
@@ -212,6 +246,7 @@ async function despachar() {
     }
 
     const motivo = toMessage(err);
+    trazaError('despachador', 'La fase fallo', { fase: job.fase, orden: job.orden, motivo });
     log.error('gestion', err instanceof Error ? err : new Error(motivo));
     await enviar({
       type: GESTION_MESSAGES.REPORT,
@@ -267,7 +302,16 @@ async function gestionarTicket(job, opciones) {
  * los frames que nunca la tendran dejen de insistir.
  */
 function programarReintento() {
-  if (++intentosSinAncla > MAX_INTENTOS_SIN_ANCLA) return;
+  if (++intentosSinAncla > MAX_INTENTOS_SIN_ANCLA) {
+    trazaAviso('despachador', 'Este frame deja de intentarlo', { intentos: intentosSinAncla - 1 });
+    return;
+  }
+
+  traza('despachador', 'Se reintentara buscar la pantalla', {
+    intento: intentosSinAncla,
+    de: MAX_INTENTOS_SIN_ANCLA,
+    enMs: REINTENTO_MS,
+  });
 
   setTimeout(() => { despachar().catch(() => { /* no-op */ }); }, REINTENTO_MS);
 }
@@ -282,6 +326,8 @@ function vigilarNavegacion() {
 
   const revisar = () => {
     if (location.href === ultimaUrl) return;
+
+    traza('navegacion', 'La pagina cambio sin recargar', { de: ultimaUrl, a: location.href });
 
     ultimaUrl = location.href;
 
@@ -298,7 +344,16 @@ function vigilarNavegacion() {
 }
 
 export function init() {
+  fijarContextoDeTraza(CONTEXTOS.CONTENT);
+
   if (!paginaRelevante()) return;
+
+  // Una linea por frame: con portales que montan el modulo en un iframe, saber
+  // cuantos frames despertaron y cual es cual es media investigacion.
+  trazaInfo('despachador', 'Content script activo en esta pantalla', {
+    esTop: window === window.top,
+    iframes: document.querySelectorAll('iframe').length,
+  });
 
   vigilarNavegacion();
 

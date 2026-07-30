@@ -42,6 +42,7 @@ import {
 } from '../state.js';
 import { claimGestion, getFile, getManifest, reportGestion } from '../../api.js';
 import { getPairing } from '../../state.js';
+import { CONTEXTOS, fijarContextoDeTraza, traza, trazaError, trazaInfo } from '../../../trace.js';
 import { toMessage } from '../../../../../shared/errors/index.js';
 import { logger } from '../../../../../shared/utils/logger.js';
 
@@ -122,6 +123,8 @@ async function advance() {
     // 1. Reclamar. Un 409 significa que otro cliente ya se la llevo: no es un
     //    fallo de esta orden, se salta sin marcarla como error propio.
     const claim = await claimGestion(base, token, job.id);
+    traza('runner', 'Respuesta del claim', { orden: job.orden, status: claim.status, ok: claim.ok });
+
     if (claim.status === 409) {
       await appendLog({ level: 'warn', message: `Orden ${job.orden}: ya la estaba gestionando otra sesion, se omite.` });
       await updateRun((r) => patchJob(r, job.id, {
@@ -151,7 +154,13 @@ async function advance() {
     await appendLog({ level: 'info', message: `Orden ${job.orden}: buscando en el modulo de devoluciones…` });
 
     const fresh = await getRun();
-    await openTab(fresh, RETURNS_URL);
+    const tabId = await openTab(fresh, RETURNS_URL);
+
+    trazaInfo('runner', 'Orden reclamada y pestana abierta', {
+      orden: job.orden,
+      pestana: tabId,
+      url: RETURNS_URL,
+    });
   } catch (err) {
     log.error('advance', err instanceof Error ? err : new Error(toMessage(err)));
   } finally {
@@ -197,6 +206,8 @@ async function closeJob(id, { resultado, ticket = null, mensaje = null }) {
     }
   }
 
+  trazaInfo('runner', 'Orden cerrada', { orden: job.orden, resultado, ticket, mensaje });
+
   const etiqueta = resultado === RESULTADO.TICKET
     ? `ticket ${ticket || 'levantado'}`
     : resultado === RESULTADO.OK ? 'apelacion enviada' : `error — ${mensaje || 'sin detalle'}`;
@@ -218,10 +229,30 @@ async function closeJob(id, { resultado, ticket = null, mensaje = null }) {
  */
 async function jobForTab(tabId) {
   const run = await getRun();
-  if (!run?.active || run.tabId !== tabId || run.currentId == null) return null;
+
+  // Este es el punto donde un "no pasa nada" se explica: la pestana que
+  // pregunta no es la del run, el run ya termino, o no hay job en curso.
+  if (!run?.active || run.tabId !== tabId || run.currentId == null) {
+    traza('runner', 'GET_JOB sin respuesta', {
+      pestanaQuePregunta: tabId,
+      pestanaDelRun: run?.tabId ?? null,
+      runActivo: Boolean(run?.active),
+      jobEnCurso: run?.currentId ?? null,
+    });
+
+    return null;
+  }
 
   const job = findJob(run, run.currentId);
-  if (!job || isJobDone(job)) return null;
+
+  if (!job || isJobDone(job)) {
+    traza('runner', 'GET_JOB: el job ya no esta vivo', {
+      jobEnCurso: run.currentId,
+      resultado: job?.resultado ?? null,
+    });
+
+    return null;
+  }
 
   return { job, prueba: Boolean(run.prueba) };
 }
@@ -245,6 +276,13 @@ async function filesFor(id, scope) {
     : ['pdf_evidencias', 'pdf_original', 'pdf_adjunto'];
 
   const elegidos = todos.filter((a) => quiero.includes(a.type));
+
+  traza('runner', 'Archivos pedidos por el content', {
+    scope,
+    enElManifiesto: todos.map((a) => a.type),
+    seEnviaran: elegidos.map((a) => a.path),
+  });
+
   if (!elegidos.length) throw new Error('El manifiesto no trae PDFs que subir');
 
   const salida = [];
@@ -268,6 +306,8 @@ async function filesFor(id, scope) {
 async function advancePhase(tabId, id, fase) {
   const run = await getRun();
   if (!run?.active || run.tabId !== tabId) return;
+
+  traza('runner', 'Cambio de fase', { id, fase, pestana: tabId });
 
   await updateRun((r) => patchJob(r, id, { fase }));
 
@@ -296,6 +336,12 @@ async function watchdog() {
   if (!job || isJobDone(job) || !job.startedAt) return;
 
   if (Date.now() - job.startedAt > JOB_TIMEOUT_MS) {
+    trazaError('runner', 'Watchdog: la orden no avanzo a tiempo', {
+      orden: job.orden,
+      fase: job.fase,
+      llevaMs: Date.now() - job.startedAt,
+    });
+
     await closeJob(job.id, {
       resultado: RESULTADO.ERROR,
       mensaje: 'La gestion no avanzo dentro del plazo (¿sesion cerrada en la plataforma?)',
@@ -342,6 +388,8 @@ async function cancel() {
 
 // Se llama una vez desde el service worker.
 export function wireGestionBackground() {
+  fijarContextoDeTraza(CONTEXTOS.SW);
+
   chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     const tabId = sender?.tab?.id;
 

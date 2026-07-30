@@ -14,6 +14,7 @@ import { getGestiones } from '../api.js';
 import { getPairing } from '../state.js';
 import { escapeHtml, formatTime } from '../../popup/utils.js';
 import { sendMessage } from '../../../../shared/messaging/messaging.js';
+import { CONTEXTOS, fijarContextoDeTraza, trazaInfo } from '../../trace.js';
 import { toMessage } from '../../../../shared/errors/index.js';
 import { logger } from '../../../../shared/utils/logger.js';
 
@@ -30,6 +31,8 @@ const ui = {
 let unsub = null;
 
 export async function render(container) {
+  fijarContextoDeTraza(CONTEXTOS.POPUP);
+
   if (unsub) { try { unsub(); } catch { /* no-op */ } unsub = null; }
 
   container.innerHTML = `
@@ -216,6 +219,11 @@ async function onStart(container) {
       message: `Gestion iniciada — ${ui.cola.length} devolucion(es)${ui.prueba ? ' (modo prueba)' : ''}`,
     });
     await setRun(nuevo);
+    trazaInfo('popup', 'Gestion lanzada', {
+      ordenes: ui.cola.map((o) => o.orden),
+      prueba: ui.prueba,
+      base: ui.base,
+    });
     await sendMessage({ type: GESTION_MESSAGES.START });
     log.info('gestion lanzada', { total: ui.cola.length, prueba: ui.prueba });
     renderProgress(container, nuevo);

@@ -7,6 +7,7 @@
 
 import { FASE, SEL, STEP_TIMEOUT_MS } from '../constants.js';
 import { escribirEn, normalizar, primero } from './dom.js';
+import { traza, trazaAviso, trazaInfo } from '../../../trace.js';
 import { clickEl } from '../../../../../shared/dom/events.js';
 import { sleep, waitFor } from '../../../../../shared/dom/wait.js';
 
@@ -32,23 +33,52 @@ export async function buscarOrden(job, { signal, onLog } = {}) {
   const input = anclaListado();
   if (!input) throw new Error('El buscador de ordenes desaparecio de la pantalla');
 
+  trazaInfo('buscar', 'Empieza la busqueda de la orden', {
+    orden: numero,
+    selectorQueEncajo: selectorDelBuscador(),
+    placeholder: input.placeholder || null,
+  });
+
   await waitFor(() => document.querySelector(SEL.buscar.tabla), {
     timeout: STEP_TIMEOUT_MS,
     signal,
     description: 'la tabla de devoluciones',
   });
 
+  traza('buscar', 'Tabla presente antes de escribir', radiografiaDeLaTabla());
+
   escribirEn(input, numero);
+
+  // Lo que de verdad quedo en el campo: si React no se entero, aqui se ve.
+  traza('buscar', 'Numero escrito en el buscador', {
+    pedido: numero,
+    enElCampo: input.value,
+    coincide: input.value === numero,
+  });
+
   input.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'Enter', code: 'Enter', keyCode: 13 }));
   input.dispatchEvent(new KeyboardEvent('keyup', { bubbles: true, key: 'Enter', code: 'Enter', keyCode: 13 }));
   input.form?.requestSubmit?.();
+
+  traza('buscar', 'Enter enviado al buscador', { tieneForm: Boolean(input.form) });
 
   onLog?.(`Buscando la orden ${numero} en el modulo de devoluciones…`);
 
   // La tabla se repinta de forma asincrona. Esperamos a un desenlace claro: o
   // una fila con NUESTRO numero, o el cartel de "sin datos". Un timeout aqui no
   // se interpreta como "no esta" — seria levantar un ticket por error.
+  let ultimaRadiografia = null;
+
   const desenlace = await waitFor(() => {
+    // Se apunta como va cambiando la tabla: es lo unico que explica por que un
+    // desenlace tarda (o por que no llega).
+    const radiografia = radiografiaDeLaTabla();
+
+    if (JSON.stringify(radiografia) !== JSON.stringify(ultimaRadiografia)) {
+      ultimaRadiografia = radiografia;
+      traza('buscar', 'La tabla cambio', radiografia);
+    }
+
     const fila = filaDeLaOrden(numero);
     if (fila) return { fila };
 
@@ -61,9 +91,18 @@ export async function buscarOrden(job, { signal, onLog } = {}) {
     timeout: STEP_TIMEOUT_MS,
     signal,
     description: `el resultado de buscar la orden ${numero}`,
+  }).catch((err) => {
+    // El timeout aqui es informativo de verdad: dice que habia en pantalla.
+    trazaAviso('buscar', 'Sin desenlace claro al buscar', {
+      orden: numero,
+      enElCampo: input.value,
+      ...radiografiaDeLaTabla(),
+    });
+    throw err;
   });
 
   if (desenlace.vacia) {
+    trazaInfo('buscar', 'La orden NO esta en el modulo: se ira a ticket', { orden: numero });
     onLog?.(`La orden ${numero} no esta en el modulo de devoluciones: se levantara un ticket.`);
     return FASE.AYUDA;
   }
@@ -71,12 +110,44 @@ export async function buscarOrden(job, { signal, onLog } = {}) {
   const boton = Array.from(desenlace.fila.querySelectorAll(SEL.buscar.acciones))
     .find((b) => normalizar(b.textContent).includes('rechazar'));
 
-  if (!boton) throw new Error('La fila no ofrece el boton "No, rechazar"');
+  if (!boton) {
+    trazaAviso('buscar', 'Fila encontrada pero sin boton de rechazo', {
+      orden: numero,
+      botones: Array.from(desenlace.fila.querySelectorAll(SEL.buscar.acciones)).map((b) => b.textContent.trim()),
+    });
+    throw new Error('La fila no ofrece el boton "No, rechazar"');
+  }
 
+  trazaInfo('buscar', 'La orden SI esta en el modulo: se apelara', { orden: numero });
   onLog?.(`La orden ${numero} esta en el modulo: se abre la apelacion.`);
 
   // El aviso de fase va ANTES del clic: el clic navega y este documento muere.
   return FASE.APELAR;
+}
+
+/** Cual de los selectores alternativos encontro el buscador. */
+function selectorDelBuscador() {
+  return [].concat(SEL.buscar.input).find((s) => document.querySelector(s)) || null;
+}
+
+/**
+ * Foto del estado de la tabla: cuantas filas, que ordenes se ven y si esta el
+ * cartel de "sin datos". Es lo que permite distinguir "la busqueda no filtro"
+ * de "filtro y no hay resultados".
+ */
+function radiografiaDeLaTabla() {
+  const filas = Array.from(document.querySelectorAll(SEL.buscar.filas));
+
+  return {
+    filas: filas.length,
+    ordenesVisibles: filas
+      .map((fila) => Array.from(fila.querySelectorAll(SEL.buscar.celdaOrden))
+        .map((c) => digitos(c.textContent))
+        .find(Boolean) || null)
+      .filter(Boolean)
+      .slice(0, 10),
+    carteldeVacio: document.querySelector(SEL.buscar.vacio)?.textContent?.trim() || null,
+  };
 }
 
 /** Pulsa "No, rechazar" en la fila de la orden (provoca la navegacion). */

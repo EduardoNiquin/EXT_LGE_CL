@@ -400,8 +400,9 @@ Trabaja con el módulo web `app/Modules/DevolucionesSeller` del proyecto **LG OB
 ```
 src/features/devoluciones/
 ├── constants.js          PLATFORMS (registro para el router del popup)
+├── trace.js              ring buffer de diagnóstico (graba solo con Modo Dev)
 ├── content/index.js      init(): emparejamiento + gestión (lo llama src/content/index.js)
-├── popup/                view.js (router de plataformas) · utils.js (escapeHtml/formatTime)
+├── popup/                view.js (router) · registro.js (pestaña Registro) · utils.js
 └── falabella/
     ├── constants.js  state.js  api.js  content.js    ← puente de carga/guardado
     ├── background/runner.js                          ← sondea /orders, baja PDFs, POST /saved
@@ -450,6 +451,11 @@ Las ramas de `AYUDA`/`SOPORTE` miran **dónde estamos**, no solo la fase: si un 
 **Decisiones que toma la IA-menos:** el motivo de apelación y el sub-motivo salen de la observación de posventa por palabras clave (`MOTIVO_KEYWORDS`); sin match se cae a "Producto dañado" / "Daños severos", que es la postura que conviene al seller. Está en `apelar.js` y cubierto por `tests/unit/devoluciones-gestion.test.js`.
 
 **Salvaguardas:** requiere sesión ya iniciada en SellerCenter (la extensión no se loguea por nadie; a la mesa de ayuda entra con esa misma sesión vía navbar); **modo prueba** que rellena sin enviar; confirmación antes de un run real; watchdog de 8 min por orden (si no avanza → ERROR y sigue con la siguiente); un timeout buscando la orden **no** se interpreta como "no está" (levantaría un ticket por error).
+
+### Registro / diagnóstico (`trace.js` + pestaña "Registro")
+La gestión corre repartida entre **popup, service worker y el content script de cada frame** del portal, así que cuando algo se queda a medias no hay una sola consola donde mirar — y la bitácora del run solo cuenta los hitos, no qué selector encontró qué. `trace.js` es un ring buffer (400 entradas, `devoluciones:trace`) que junta el paso a paso de los tres contextos y lo publica en la pestaña **Registro** del apartado (filtro por texto/nivel/ámbito/contexto, orden, copiar y limpiar; el interruptor de Modo Dev está ahí mismo).
+
+**Graba solo con el Modo Dev activo** (`shared/dev-mode`): en uso normal no cuesta nada. Cada entrada lleva `{contexto, ambito, evento, datos, url, frame}` — el `frame` es clave con portales que montan el módulo en un iframe. Lo instrumentado responde a las preguntas que de verdad se hacen al depurar: cuántos frames despertaron y cuál tenía la pantalla, qué selector de la lista encajó, **qué quedó realmente en el campo tras escribir** (delata el problema del `value` de React), cómo fue cambiando la tabla mientras se esperaba el resultado, y por qué el service worker no dio trabajo a una pestaña. Cubierto por `tests/unit/devoluciones-trace.test.js`.
 
 ---
 
