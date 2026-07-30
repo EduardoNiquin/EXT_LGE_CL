@@ -24,6 +24,23 @@
 
 import { isDevMode, whenDevModeReady } from '../../shared/dev-mode/index.js';
 
+// El flag del Modo Dev se lee de storage, asi que al arrancar un contexto aun
+// no se sabe si esta activo. Sin esto, TODA traza emitida en ese instante — las
+// de arranque, justo las que dicen que frames despertaron — se perdia en
+// silencio. Se guardan aparte y se sueltan (o se tiran) al resolverse el flag.
+let devResuelto = false;
+const enEspera = [];
+
+whenDevModeReady().then(() => {
+  devResuelto = true;
+
+  if (isDevMode()) {
+    for (const entrada of enEspera) anotar(entrada);
+  }
+
+  enEspera.length = 0;
+});
+
 export const TRACE_STORAGE_KEY = 'devoluciones:trace';
 export const TRACE_CAP = 400;
 
@@ -128,7 +145,9 @@ function ubicacion() {
  * @param {'debug'|'info'|'warn'|'error'} [nivel]
  */
 export function traza(ambito, evento, datos = null, nivel = 'debug') {
-  if (!isDevMode()) return;
+  // Con el flag ya resuelto y apagado no hay nada que hacer; si aun no se sabe,
+  // la entrada espera (ver `enEspera` arriba).
+  if (devResuelto && !isDevMode()) return;
 
   const entrada = {
     ts: Date.now(),
@@ -140,6 +159,16 @@ export function traza(ambito, evento, datos = null, nivel = 'debug') {
     ...ubicacion(),
   };
 
+  if (!devResuelto) {
+    enEspera.push(entrada);
+    return;
+  }
+
+  anotar(entrada);
+}
+
+/** Mete una entrada en el buffer (o la deja pendiente si aun no cargo). */
+function anotar(entrada) {
   if (buffer === null) {
     pendientes.push(entrada);
     return;

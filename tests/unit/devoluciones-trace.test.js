@@ -123,6 +123,22 @@ describe('traza', () => {
     expect(trazas.at(-1).evento).toBe(`entrada ${trace.TRACE_CAP + 24}`);
   });
 
+  it('no pierde las trazas emitidas antes de saber si el Modo Dev esta activo', async () => {
+    // El flag se lee de storage: al arrancar un contexto aun no se sabe. Las
+    // trazas de arranque — las que dicen que frames despertaron — se emiten
+    // justo en ese hueco, y son las mas valiosas para depurar.
+    vi.resetModules();
+    instalarChromeFalso();
+    await globalThis.chrome.storage.local.set({ 'dev-mode:enabled': true });
+
+    const fresco = await import('../../src/features/devoluciones/trace.js');
+    fresco.trazaInfo('despachador', 'Content script activo en esta pantalla', { esTop: true });
+
+    await asentar();
+
+    expect(fresco.getTrazas().map((t) => t.evento)).toContain('Content script activo en esta pantalla');
+  });
+
   it('avisa a los suscriptores para que la pestana se refresque sola', async () => {
     await dev.setDevMode(true);
 

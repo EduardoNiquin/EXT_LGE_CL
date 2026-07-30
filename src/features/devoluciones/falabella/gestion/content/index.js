@@ -81,9 +81,38 @@ async function pedirArchivos(id, scope) {
   return res.archivos;
 }
 
-/** ¿Alguno de los portales que automatizamos? Evita preguntar en cada web. */
+/**
+ * ¿Este documento nos interesa? Evita preguntar por trabajo en cada web que
+ * abra el usuario.
+ *
+ * No basta con mirar el host: el portal monta sus pantallas en **iframes que no
+ * siempre estan en el mismo dominio**, y ese frame es justo el que tiene el
+ * formulario. Por eso tambien vale con que el documento contenga alguna de las
+ * pantallas, venga del host que venga.
+ */
 function paginaRelevante() {
-  return esSellerCenter() || esAyudaInicio() || esAyudaSoporte();
+  return esSellerCenter() || esAyudaInicio() || esAyudaSoporte()
+    || Boolean(anclaListado() || anclaApelacion() || anclaTicket());
+}
+
+/**
+ * Radiografia del documento para cuando NO se encuentra la pantalla. Es lo que
+ * convierte un "no aparecio" en un diagnostico: dice si hay iframes (y de
+ * donde), y que campos hay de verdad en este documento.
+ */
+function queHayEnEsteDocumento() {
+  const iframes = Array.from(document.querySelectorAll('iframe'));
+
+  return {
+    titulo: document.title,
+    esTop: window === window.top,
+    iframes: iframes.length,
+    iframesSrc: iframes.map((f) => f.src || '(sin src)').slice(0, 6),
+    campos: Array.from(document.querySelectorAll('input, textarea'))
+      .map((c) => c.placeholder || c.name || c.type || '(sin rotulo)')
+      .slice(0, 15),
+    tablas: document.querySelectorAll('table').length,
+  };
 }
 
 /**
@@ -102,25 +131,29 @@ class SinAncla extends Error {
  * Espera a que aparezca el anclaje de una pantalla (el elemento que la
  * identifica) y lo devuelve. Si no llega, lanza SinAncla.
  */
-async function ancla(buscarAncla, { signal } = {}) {
+async function ancla(buscarAncla, etiqueta, { signal } = {}) {
   const inicio = Date.now();
 
   const el = await waitFor(buscarAncla, {
     timeout: ANCLA_TIMEOUT_MS,
     signal,
-    description: 'la pantalla de la gestion',
+    description: `la pantalla "${etiqueta}"`,
   }).catch(() => null);
 
   if (!el) {
+    // Con la radiografia del documento no hace falta otra ronda de preguntas:
+    // se ve si el formulario esta en un iframe y que hay en este frame.
     trazaAviso('despachador', 'Este frame NO tiene la pantalla: se calla', {
-      esperado: buscarAncla.name,
+      esperaba: etiqueta,
       esperoMs: Date.now() - inicio,
+      ...queHayEnEsteDocumento(),
     });
+
     throw new SinAncla();
   }
 
   traza('despachador', 'Pantalla localizada en este frame', {
-    esperado: buscarAncla.name,
+    pantalla: etiqueta,
     tardoMs: Date.now() - inicio,
   });
 
@@ -178,7 +211,7 @@ async function despachar() {
   try {
     switch (job.fase) {
       case FASE.BUSCAR: {
-        await ancla(anclaListado, opciones);
+        await ancla(anclaListado, 'listado de devoluciones', opciones);
 
         const siguiente = await buscarOrden(job, opciones);
 
@@ -192,7 +225,7 @@ async function despachar() {
       }
 
       case FASE.APELAR: {
-        await ancla(anclaApelacion, opciones);
+        await ancla(anclaApelacion, 'formulario de apelacion', opciones);
 
         const { enviado } = await apelar(job, opciones);
         await enviar({
@@ -213,14 +246,14 @@ async function despachar() {
       }
 
       case FASE.TICKET: {
-        await ancla(anclaTicket, opciones);
+        await ancla(anclaTicket, 'pantalla de soporte', opciones);
         await gestionarTicket(job, opciones);
         break;
       }
 
       // El envio recargo la pagina: solo queda leer el numero de caso.
       case FASE.CONFIRMACION: {
-        await ancla(anclaTicket, opciones);
+        await ancla(anclaTicket, 'confirmacion del ticket', opciones);
         await reportarTicket(job.id, await leerConfirmacion(opciones));
         break;
       }
@@ -266,20 +299,20 @@ async function despachar() {
  */
 async function caminoAlTicket(job, opciones) {
   if (esAyudaSoporte()) {
-    await ancla(anclaTicket, opciones);
+    await ancla(anclaTicket, 'pantalla de soporte', opciones);
     await avanzar(job.id, FASE.TICKET);
     await gestionarTicket(job, opciones);
     return;
   }
 
   if (esAyudaInicio()) {
-    await ancla(anclaSoporte, opciones);
+    await ancla(anclaSoporte, 'navbar de la mesa de ayuda', opciones);
     await avanzar(job.id, FASE.SOPORTE);
     await irASoporte(opciones);
     return;
   }
 
-  await ancla(anclaMenuAyuda, opciones);
+  await ancla(anclaMenuAyuda, 'menu Ayuda de SellerCenter', opciones);
   await irACentroDeAyuda(opciones);
 }
 
@@ -346,20 +379,27 @@ function vigilarNavegacion() {
 export function init() {
   fijarContextoDeTraza(CONTEXTOS.CONTENT);
 
-  if (!paginaRelevante()) return;
+  let arrancado = false;
 
-  // Una linea por frame: con portales que montan el modulo en un iframe, saber
-  // cuantos frames despertaron y cual es cual es media investigacion.
-  trazaInfo('despachador', 'Content script activo en esta pantalla', {
-    esTop: window === window.top,
-    iframes: document.querySelectorAll('iframe').length,
-  });
+  // Un frame puede volverse relevante DESPUES del load: el portal monta sus
+  // pantallas (y sus iframes) cuando le viene bien, asi que se comprueba varias
+  // veces en vez de decidirlo de una y para siempre en el `document_idle`.
+  const intentar = () => {
+    if (arrancado || !paginaRelevante()) return;
 
-  vigilarNavegacion();
+    arrancado = true;
 
-  // Las pantallas montan su DOM despues del load; el despacho reintenta una vez
-  // antes de rendirse (los flujos tienen sus propias esperas, esto solo cubre
-  // el arranque tardio de la SPA).
-  despachar().catch((err) => log.warn?.('despachar', err));
-  setTimeout(() => { despachar().catch(() => { /* no-op */ }); }, 2500);
+    // Una linea por frame: con portales que montan el modulo en un iframe,
+    // saber cuantos frames despertaron y cual es cual es media investigacion.
+    trazaInfo('despachador', 'Content script activo en esta pantalla', queHayEnEsteDocumento());
+
+    vigilarNavegacion();
+    despachar().catch((err) => log.warn?.('despachar', err));
+  };
+
+  intentar();
+
+  for (const ms of [1500, 4000, 10_000]) {
+    setTimeout(intentar, ms);
+  }
 }
