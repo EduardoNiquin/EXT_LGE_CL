@@ -19,9 +19,9 @@ import {
   TICKET_CASCADA,
   TICKET_SIN_NUMERO,
 } from '../constants.js';
-import { base64ToFile, elegirCombobox, setFiles } from './dom.js';
+import { base64ToFile, elegirCombobox, escribirEn, setFiles } from './dom.js';
 import { abrirNuevoCaso } from './navegacion.js';
-import { clickEl, setInputValue } from '../../../../../shared/dom/events.js';
+import { clickEl } from '../../../../../shared/dom/events.js';
 import { waitFor, waitForElement } from '../../../../../shared/dom/wait.js';
 
 /** Detalle de la consulta: la observacion mas los datos de la devolucion. */
@@ -80,7 +80,7 @@ export async function levantarTicket(job, { prueba, pedirArchivos, antesDeEnviar
   if (cc.length) {
     const correo = document.querySelector(SEL.ticket.correo);
     if (correo) {
-      setInputValue(correo, cc.join(','));
+      escribirEn(correo, cc.join(','));
       onLog?.(`Correo en copia: ${cc.join(', ')}.`);
     }
   }
@@ -102,18 +102,18 @@ export async function levantarTicket(job, { prueba, pedirArchivos, antesDeEnviar
   // 4. Detalle.
   const detalle = document.querySelector(SEL.ticket.detalle);
   if (!detalle) throw new Error('No se encontro el campo "Detalle" del ticket');
-  setInputValue(detalle, armarDetalle(job));
+  escribirEn(detalle, armarDetalle(job));
 
   // 5. Orden y guia.
   const orden = await waitForElement(SEL.ticket.numeroOrden, { timeout: STEP_TIMEOUT_MS, signal });
-  setInputValue(orden, String(job.orden || ''));
+  escribirEn(orden, String(job.orden || ''));
 
   // El campo de guia es obligatorio. Si no se pudo leer de las imagenes va un
   // "0", que es la convencion acordada para "no identificada".
   const guia = document.querySelector(SEL.ticket.numeroGuia);
   if (guia) {
     const valor = job.numero_guia ? String(job.numero_guia) : GUIA_NO_IDENTIFICADA;
-    setInputValue(guia, valor);
+    escribirEn(guia, valor);
     if (!job.numero_guia) onLog?.(`Sin numero de guia leido: se envia "${GUIA_NO_IDENTIFICADA}".`);
   }
 

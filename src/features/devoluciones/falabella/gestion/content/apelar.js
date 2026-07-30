@@ -20,8 +20,8 @@ import {
   SUBSTATUS_DANO_SEVERO,
   SUBSTATUS_INCOMPLETO,
 } from '../constants.js';
-import { abrirAcordeon, base64ToFile, buscarPorTexto, normalizar, setFiles } from './dom.js';
-import { clickEl, setInputValue, setSelectValue } from '../../../../../shared/dom/events.js';
+import { abrirAcordeon, base64ToFile, buscarPorTexto, elegirOpcion, escribirEn, normalizar, setFiles } from './dom.js';
+import { clickEl } from '../../../../../shared/dom/events.js';
 import { waitFor, waitForElement } from '../../../../../shared/dom/wait.js';
 
 /**
@@ -95,7 +95,7 @@ export async function apelar(job, { prueba, pedirArchivos, signal, onLog } = {})
   onLog?.(`Motivo de apelacion: ${motivo}.`);
 
   const textarea = cajaMotivo.querySelector(SEL.apelar.comentario);
-  if (textarea) setInputValue(textarea, comentario);
+  if (textarea) escribirEn(textarea, comentario);
 
   // 2. Evidencias: el PDF que armo el modulo con las fotos ordenadas.
   const cajaEvidencias = await abrirAcordeon('Evidencias del producto', { signal });
@@ -118,12 +118,12 @@ export async function apelar(job, { prueba, pedirArchivos, signal, onLog } = {})
     .catch(() => null);
   if (subEstado) {
     const valor = elegirSubEstado(observacion);
-    setSelectValue(subEstado, valor);
+    elegirOpcion(subEstado, valor);
     onLog?.(`Informe tecnico: ${INFORME_STATUS} / ${valor}.`);
   }
 
   const subComentario = cajaInforme.querySelector(SEL.apelar.subComentario);
-  if (subComentario) setInputValue(subComentario, comentario);
+  if (subComentario) escribirEn(subComentario, comentario);
 
   // 4. Enviar.
   const enviar = document.querySelector(SEL.apelar.enviar);

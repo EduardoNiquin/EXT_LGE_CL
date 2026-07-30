@@ -6,8 +6,8 @@
 // ya filtrada por el numero de orden, nunca por un vistazo parcial.
 
 import { FASE, SEL, STEP_TIMEOUT_MS } from '../constants.js';
-import { normalizar, primero } from './dom.js';
-import { clickEl, setInputValue } from '../../../../../shared/dom/events.js';
+import { escribirEn, normalizar, primero } from './dom.js';
+import { clickEl } from '../../../../../shared/dom/events.js';
 import { sleep, waitFor } from '../../../../../shared/dom/wait.js';
 
 /** Solo los digitos: los numeros de orden se comparan sin formato. */
@@ -38,7 +38,7 @@ export async function buscarOrden(job, { signal, onLog } = {}) {
     description: 'la tabla de devoluciones',
   });
 
-  setInputValue(input, numero);
+  escribirEn(input, numero);
   input.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'Enter', code: 'Enter', keyCode: 13 }));
   input.dispatchEvent(new KeyboardEvent('keyup', { bubbles: true, key: 'Enter', code: 'Enter', keyCode: 13 }));
   input.form?.requestSubmit?.();

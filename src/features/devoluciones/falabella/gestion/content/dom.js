@@ -30,6 +30,59 @@ export function setFiles(input, files) {
   return input;
 }
 
+/**
+ * Escribe en un campo de texto de forma que el framework de la pagina se entere.
+ *
+ * El modulo de devoluciones de SellerCenter es **React** (Ant Design), y ahi
+ * `el.value = x` no basta: React intercepta el setter `value` del prototipo para
+ * llevar su propio registro del valor, asi que una asignacion directa cambia lo
+ * que se ve en pantalla pero deja a React creyendo que el campo sigue vacio —
+ * su `onChange` no se dispara y la busqueda se hace sobre el valor anterior.
+ * Llamando al setter NATIVO del prototipo, React lo ve como si lo hubiera
+ * tecleado una persona. En una web sin React es exactamente lo mismo que la
+ * asignacion de siempre, asi que sirve igual para los campos de Salesforce.
+ */
+export function escribirEn(el, valor, { blur = false } = {}) {
+  if (!el) throw new Error('escribirEn: elemento nulo');
+
+  const prototipo = el instanceof HTMLTextAreaElement
+    ? HTMLTextAreaElement.prototype
+    : HTMLInputElement.prototype;
+
+  const setter = Object.getOwnPropertyDescriptor(prototipo, 'value')?.set;
+
+  el.focus();
+
+  if (setter) setter.call(el, valor);
+  else el.value = valor;
+
+  el.dispatchEvent(new Event('input', { bubbles: true }));
+  el.dispatchEvent(new Event('change', { bubbles: true }));
+
+  if (blur) el.dispatchEvent(new Event('blur', { bubbles: true }));
+
+  return el;
+}
+
+/**
+ * Elige una opcion en un <select>. Mismo motivo que {@link escribirEn}: React
+ * rastrea tambien el valor de los <select>, asi que hay que pasar por el setter
+ * nativo para que su `onChange` se entere.
+ */
+export function elegirOpcion(select, valor) {
+  if (!select) throw new Error('elegirOpcion: elemento nulo');
+
+  const setter = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value')?.set;
+
+  if (setter) setter.call(select, valor);
+  else select.value = valor;
+
+  select.dispatchEvent(new Event('input', { bubbles: true }));
+  select.dispatchEvent(new Event('change', { bubbles: true }));
+
+  return select;
+}
+
 /** Texto normalizado (sin acentos, minusculas) para comparar rotulos. */
 export function normalizar(texto) {
   return String(texto ?? '')
