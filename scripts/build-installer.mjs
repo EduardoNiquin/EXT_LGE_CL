@@ -13,11 +13,57 @@ import { fileURLToPath } from 'node:url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const projectRoot = path.resolve(__dirname, '..');
 const buildDir = path.resolve(projectRoot, 'build');
-const outDir = path.resolve(buildDir, 'installer');
 
-const infoPath = path.join(buildDir, 'pack-info.json');
+const args = Object.fromEntries(
+  process.argv.slice(2).map((a) => {
+    const [k, v] = a.replace(/^--/, '').split('=');
+    return [k, v ?? true];
+  }),
+);
+
+const browser = args.browser ?? 'edge';
+
+const BROWSERS = {
+  edge: {
+    displayName: 'Edge',
+    exeName: 'msedge.exe',
+    policyRootPs: 'HKLM:\\SOFTWARE\\Policies\\Microsoft\\Edge',
+    processName: 'msedge',
+    userDataExpr: "Join-Path $env:LOCALAPPDATA 'Microsoft\\Edge\\User Data'",
+    extUrl: 'edge://extensions/',
+    policyUrl: 'edge://policy/',
+    exeCandidatesPs: [
+      '"$env:ProgramFiles\\Microsoft\\Edge\\Application\\msedge.exe"',
+      '"${env:ProgramFiles(x86)}\\Microsoft\\Edge\\Application\\msedge.exe"',
+    ],
+  },
+  chrome: {
+    displayName: 'Chrome',
+    exeName: 'chrome.exe',
+    policyRootPs: 'HKLM:\\SOFTWARE\\Policies\\Google\\Chrome',
+    processName: 'chrome',
+    userDataExpr: "Join-Path $env:LOCALAPPDATA 'Google\\Chrome\\User Data'",
+    extUrl: 'chrome://extensions/',
+    policyUrl: 'chrome://policy/',
+    exeCandidatesPs: [
+      '"$env:ProgramFiles\\Google\\Chrome\\Application\\chrome.exe"',
+      '"${env:ProgramFiles(x86)}\\Google\\Chrome\\Application\\chrome.exe"',
+      '"$env:LOCALAPPDATA\\Google\\Chrome\\Application\\chrome.exe"',
+    ],
+  },
+};
+
+const bcfg = BROWSERS[browser];
+if (!bcfg) {
+  console.error(`[installer] unknown browser: ${browser} (expected "edge" or "chrome")`);
+  process.exit(1);
+}
+
+const outDir = path.resolve(buildDir, `installer-${browser}`);
+
+const infoPath = path.join(buildDir, `pack-info.${browser}.json`);
 if (!fs.existsSync(infoPath)) {
-  console.error('[installer] build/pack-info.json missing — run "npm run release:ext" first.');
+  console.error(`[installer] build/pack-info.${browser}.json missing — run "npm run release:ext${browser === 'edge' ? '' : ':chrome'}" first.`);
   process.exit(1);
 }
 const info = JSON.parse(fs.readFileSync(infoPath, 'utf8'));
@@ -57,10 +103,10 @@ if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administra
     exit $LASTEXITCODE
 }
 
-$EdgePolicyRoot = 'HKLM:\\SOFTWARE\\Policies\\Microsoft\\Edge'
-$ForceList      = "$EdgePolicyRoot\\ExtensionInstallForcelist"
-$Sources        = "$EdgePolicyRoot\\ExtensionInstallSources"
-$AllowList      = "$EdgePolicyRoot\\ExtensionInstallAllowlist"
+$PolicyRoot = '${bcfg.policyRootPs}'
+$ForceList  = "$PolicyRoot\\ExtensionInstallForcelist"
+$Sources    = "$PolicyRoot\\ExtensionInstallSources"
+$AllowList  = "$PolicyRoot\\ExtensionInstallAllowlist"
 
 if ($Uninstall) {
     Write-Host "Desinstalando extensión $ExtensionId ..."
@@ -75,8 +121,8 @@ if ($Uninstall) {
         Write-Host "  borrado: $InstallDir"
     }
     Write-Host ""
-    Write-Host "Reiniciando Edge..."
-    Get-Process -Name msedge -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+    Write-Host "Reiniciando ${bcfg.displayName}..."
+    Get-Process -Name ${bcfg.processName} -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
     Write-Host ""
     Write-Host "Listo. Cierra esta ventana."
     Read-Host "Presiona ENTER para salir"
@@ -112,26 +158,26 @@ $updateXml = @"
 $updateXmlUrl = 'file:///' + ($updateXmlPath -replace '\\\\', '/' -replace ' ', '%20')
 Write-Host "Generado $updateXmlPath"
 
-# Política de Edge
+# Política del navegador
 foreach ($k in @($ForceList, $Sources, $AllowList)) {
     New-Item -Path $k -Force | Out-Null
 }
 New-ItemProperty -Path $ForceList  -Name '1' -PropertyType String -Value "$ExtensionId;$updateXmlUrl" -Force | Out-Null
 New-ItemProperty -Path $Sources    -Name '1' -PropertyType String -Value 'file:///*' -Force | Out-Null
 New-ItemProperty -Path $AllowList  -Name '1' -PropertyType String -Value $ExtensionId -Force | Out-Null
-Write-Host "Política de Edge aplicada."
+Write-Host "Política de ${bcfg.displayName} aplicada."
 
 Write-Host ""
-Write-Host "Cerrando Edge para limpiar caché de la extensión..."
-Get-Process -Name msedge -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+Write-Host "Cerrando ${bcfg.displayName} para limpiar caché de la extensión..."
+Get-Process -Name ${bcfg.processName} -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
 Start-Sleep -Seconds 2
 
-# Forzar que Edge reinstale la extensión desde la política en vez de usar la
-# versión cacheada del perfil. Sin esto, los updates requieren desinstalar +
-# reinstalar manualmente.
-$edgeUserData = Join-Path $env:LOCALAPPDATA 'Microsoft\\Edge\\User Data'
-if (Test-Path $edgeUserData) {
-    Get-ChildItem -Path $edgeUserData -Directory -ErrorAction SilentlyContinue | ForEach-Object {
+# Forzar que el navegador reinstale la extensión desde la política en vez de
+# usar la versión cacheada del perfil. Sin esto, los updates requieren
+# desinstalar + reinstalar manualmente.
+$browserUserData = ${bcfg.userDataExpr}
+if (Test-Path $browserUserData) {
+    Get-ChildItem -Path $browserUserData -Directory -ErrorAction SilentlyContinue | ForEach-Object {
         $extPath = Join-Path $_.FullName "Extensions\\$ExtensionId"
         if (Test-Path $extPath) {
             try {
@@ -151,22 +197,21 @@ Write-Host " Extensión instalada."
 Write-Host " ID:      $ExtensionId"
 Write-Host " Versión: $Version"
 Write-Host ""
-Write-Host " Abriendo Edge para que verifiques con tus propios ojos..."
-Write-Host "   - Pestaña 1: edge://extensions/  (debe figurar la extensión)"
-Write-Host "   - Pestaña 2: edge://policy/      (debe figurar ExtensionInstallForcelist)"
+Write-Host " Abriendo ${bcfg.displayName} para que verifiques con tus propios ojos..."
+Write-Host "   - Pestaña 1: ${bcfg.extUrl}  (debe figurar la extensión)"
+Write-Host "   - Pestaña 2: ${bcfg.policyUrl}      (debe figurar ExtensionInstallForcelist)"
 Write-Host "==================================================================="
 Write-Host ""
 
-# Lanzar Edge como el usuario interactivo (no como SYSTEM/admin)
-$edgeExe = @(
-    "$env:ProgramFiles\\Microsoft\\Edge\\Application\\msedge.exe",
-    "\${env:ProgramFiles(x86)}\\Microsoft\\Edge\\Application\\msedge.exe"
+# Lanzar el navegador como el usuario interactivo (no como SYSTEM/admin)
+$browserExe = @(
+${bcfg.exeCandidatesPs.map((c) => `    ${c}`).join(',\n')}
 ) | Where-Object { Test-Path $_ } | Select-Object -First 1
 
-if ($edgeExe) {
-    Start-Process -FilePath $edgeExe -ArgumentList @('edge://extensions/', 'edge://policy/')
+if ($browserExe) {
+    Start-Process -FilePath $browserExe -ArgumentList @('${bcfg.extUrl}', '${bcfg.policyUrl}')
 } else {
-    Write-Warning "No se encontró msedge.exe. Abre Edge manualmente y entra a edge://extensions/"
+    Write-Warning "No se encontró ${bcfg.exeName}. Abre ${bcfg.displayName} manualmente y entra a ${bcfg.extUrl}"
 }
 
 Read-Host "Presiona ENTER para cerrar esta ventana"
@@ -190,7 +235,7 @@ const readme = `EXT LGE CL — Instalación
 
 Requisitos:
   - Windows 10 u 11
-  - Microsoft Edge instalado
+  - ${bcfg.displayName} instalado
   - Permisos de administrador local (te lo pedira el UAC)
 
 Instalar:
@@ -198,8 +243,8 @@ Instalar:
   2. Doble-click en  Install.cmd
   3. Acepta el UAC.
   4. La ventana negra te avisa cuando termine.
-  5. Abre Edge y verifica en edge://extensions/  -> debe aparecer la extension
-     con la etiqueta "Instalada por su organizacion".
+  5. Abre ${bcfg.displayName} y verifica en ${bcfg.extUrl}  -> debe aparecer
+     la extension con la etiqueta "Instalada por su organizacion".
 
 Desinstalar:
   1. Doble-click en  Uninstall.cmd
@@ -208,9 +253,9 @@ Desinstalar:
 Detalles tecnicos:
   - La extension se copia a:  C:\\ProgramData\\EXT_LGE_CL\\
   - Se registran tres claves de politica en:
-      HKLM\\SOFTWARE\\Policies\\Microsoft\\Edge\\ExtensionInstallForcelist
-      HKLM\\SOFTWARE\\Policies\\Microsoft\\Edge\\ExtensionInstallSources
-      HKLM\\SOFTWARE\\Policies\\Microsoft\\Edge\\ExtensionInstallAllowlist
+      ${bcfg.policyRootPs}\\ExtensionInstallForcelist
+      ${bcfg.policyRootPs}\\ExtensionInstallSources
+      ${bcfg.policyRootPs}\\ExtensionInstallAllowlist
   - ID de la extension:  ${extensionId}
   - Version:             ${version}
 
@@ -225,7 +270,7 @@ fs.writeFileSync(path.join(outDir, 'README.txt'), readme);
 //   1. .NET System.IO.Compression.ZipFile (no depende de ningún módulo de PS).
 //   2. tar.exe (libarchive, incluido en Windows 10 1803+; .zip por extensión).
 //   3. Compress-Archive importando el módulo explícitamente (último recurso).
-const zipPath = path.join(buildDir, `EXT_LGE_CL-installer-${version}.zip`);
+const zipPath = path.join(buildDir, `EXT_LGE_CL-installer-${browser}-${version}.zip`);
 fs.rmSync(zipPath, { force: true });
 
 // Comillas simples de PowerShell: escapar ' → ''.

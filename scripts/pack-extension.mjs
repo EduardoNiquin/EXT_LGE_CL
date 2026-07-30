@@ -20,14 +20,33 @@ const sourceDir = path.resolve(projectRoot, args.source ?? `dist/${browser}`);
 const keysDir = path.resolve(projectRoot, 'keys');
 const buildDir = path.resolve(projectRoot, 'build');
 const pemPath = path.resolve(keysDir, args.pem ?? 'extension.pem');
-const edgeExe =
-  args.edge ??
-  process.env.MSEDGE_PATH ??
-  'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe';
+
+const PACKERS = {
+  edge: {
+    env: 'MSEDGE_PATH',
+    candidates: [
+      'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe',
+      'C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe',
+    ],
+  },
+  chrome: {
+    env: 'CHROME_PATH',
+    candidates: [
+      'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+      'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
+      path.join(process.env.LOCALAPPDATA ?? '', 'Google\\Chrome\\Application\\chrome.exe'),
+    ],
+  },
+};
+
+if (!PACKERS[browser]) {
+  console.error(`[pack] unknown browser: ${browser} (expected "edge" or "chrome")`);
+  process.exit(1);
+}
 
 if (!fs.existsSync(sourceDir)) {
   console.error(`[pack] source dir not found: ${sourceDir}`);
-  console.error('[pack] run "npm run build:ext" first.');
+  console.error(`[pack] run "npm run build:${browser}" first.`);
   process.exit(1);
 }
 
@@ -71,21 +90,29 @@ if (manifest.key !== keyB64) {
 }
 const version = manifest.version;
 
-if (!fs.existsSync(edgeExe)) {
-  console.error(`[pack] msedge.exe not found at: ${edgeExe}`);
-  console.error('[pack] pass --edge="C:\\path\\to\\msedge.exe" or set MSEDGE_PATH.');
+const packer = PACKERS[browser];
+const packerExe = [args[browser], process.env[packer.env], ...packer.candidates]
+  .filter(Boolean)
+  .find((p) => fs.existsSync(p));
+
+if (!packerExe) {
+  console.error(`[pack] ${browser} executable not found. Tried:`);
+  for (const c of [args[browser], process.env[packer.env], ...packer.candidates]) {
+    if (c) console.error(`  - ${c}`);
+  }
+  console.error(`[pack] pass --${browser}="C:\\path\\to\\${browser === 'edge' ? 'msedge' : 'chrome'}.exe" or set ${packer.env}.`);
   process.exit(1);
 }
 
-console.log(`[pack] packing ${sourceDir} with Edge...`);
+console.log(`[pack] packing ${sourceDir} with ${browser}...`);
 try {
   execFileSync(
-    edgeExe,
+    packerExe,
     [`--pack-extension=${sourceDir}`, `--pack-extension-key=${pemPath}`],
     { stdio: 'inherit' },
   );
 } catch (err) {
-  console.error('[pack] msedge --pack-extension failed:', err.message);
+  console.error(`[pack] ${browser} --pack-extension failed:`, err.message);
   process.exit(1);
 }
 
@@ -100,7 +127,7 @@ const finalCrx = path.join(buildDir, `${browser}-${version}.crx`);
 fs.copyFileSync(generatedCrx, finalCrx);
 fs.writeFileSync(path.join(buildDir, 'extension-id.txt'), extensionId);
 fs.writeFileSync(
-  path.join(buildDir, 'pack-info.json'),
+  path.join(buildDir, `pack-info.${browser}.json`),
   JSON.stringify(
     { browser, version, extensionId, crxPath: finalCrx, keyB64 },
     null,

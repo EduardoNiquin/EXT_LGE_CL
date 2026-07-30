@@ -1,6 +1,8 @@
 #Requires -Version 5.1
 [CmdletBinding()]
 param(
+    [ValidateSet('edge', 'chrome')]
+    [string]$Browser = 'edge',
     [string]$RegFile,
     [switch]$Uninstall
 )
@@ -11,11 +13,31 @@ $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $projectRoot = Split-Path -Parent $scriptDir
 $buildDir = Join-Path $projectRoot 'build'
 
+$browserConfig = @{
+    edge = @{
+        PolicyRoot    = 'HKLM:\SOFTWARE\Policies\Microsoft\Edge'
+        ProcessName   = 'msedge'
+        DisplayName   = 'Edge'
+        UserData      = Join-Path $env:LOCALAPPDATA 'Microsoft\Edge\User Data'
+        PolicyUrl     = 'edge://policy/'
+        ExtensionsUrl = 'edge://extensions/'
+    }
+    chrome = @{
+        PolicyRoot    = 'HKLM:\SOFTWARE\Policies\Google\Chrome'
+        ProcessName   = 'chrome'
+        DisplayName   = 'Chrome'
+        UserData      = Join-Path $env:LOCALAPPDATA 'Google\Chrome\User Data'
+        PolicyUrl     = 'chrome://policy/'
+        ExtensionsUrl = 'chrome://extensions/'
+    }
+}
+$cfg = $browserConfig[$Browser]
+
 if (-not $RegFile) {
     $RegFile = if ($Uninstall) {
-        Join-Path $buildDir 'uninstall-policy.reg'
+        Join-Path $buildDir "uninstall-policy.$Browser.reg"
     } else {
-        Join-Path $buildDir 'install-policy.reg'
+        Join-Path $buildDir "install-policy.$Browser.reg"
     }
 }
 
@@ -31,7 +53,7 @@ $isAdmin = $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administ
 
 if (-not $isAdmin) {
     Write-Host "Elevating to administrator..."
-    $argList = @('-ExecutionPolicy', 'Bypass', '-File', "`"$($MyInvocation.MyCommand.Path)`"", '-RegFile', "`"$RegFile`"")
+    $argList = @('-ExecutionPolicy', 'Bypass', '-File', "`"$($MyInvocation.MyCommand.Path)`"", '-Browser', $Browser, '-RegFile', "`"$RegFile`"")
     if ($Uninstall) { $argList += '-Uninstall' }
     Start-Process -FilePath 'powershell.exe' -ArgumentList $argList -Verb RunAs -Wait
     exit $LASTEXITCODE
@@ -45,9 +67,9 @@ if ($proc.ExitCode -ne 0) {
 }
 
 $keys = @(
-    'HKLM:\SOFTWARE\Policies\Microsoft\Edge\ExtensionInstallForcelist',
-    'HKLM:\SOFTWARE\Policies\Microsoft\Edge\ExtensionInstallSources',
-    'HKLM:\SOFTWARE\Policies\Microsoft\Edge\ExtensionInstallAllowlist'
+    "$($cfg.PolicyRoot)\ExtensionInstallForcelist",
+    "$($cfg.PolicyRoot)\ExtensionInstallSources",
+    "$($cfg.PolicyRoot)\ExtensionInstallAllowlist"
 )
 
 if ($Uninstall) {
@@ -71,18 +93,18 @@ if ($Uninstall) {
     }
 }
 
-Write-Host "Restarting Edge to load policy..."
-Get-Process -Name 'msedge' -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+Write-Host "Restarting $($cfg.DisplayName) to load policy..."
+Get-Process -Name $cfg.ProcessName -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
 Start-Sleep -Seconds 2
 
 if (-not $Uninstall) {
-    # Borrar cache de la extensión en cada perfil de Edge para forzar
-    # reinstalación desde la política. Sin esto Edge usa la versión cacheada.
-    $infoPath = Join-Path $buildDir 'pack-info.json'
+    # Borrar cache de la extensión en cada perfil del navegador para forzar
+    # reinstalación desde la política. Sin esto usa la versión cacheada.
+    $infoPath = Join-Path $buildDir "pack-info.$Browser.json"
     if (Test-Path $infoPath) {
         $info = Get-Content $infoPath -Raw | ConvertFrom-Json
         $extId = $info.extensionId
-        $userData = Join-Path $env:LOCALAPPDATA 'Microsoft\Edge\User Data'
+        $userData = $cfg.UserData
         if (Test-Path $userData) {
             Get-ChildItem -Path $userData -Directory -ErrorAction SilentlyContinue | ForEach-Object {
                 $extPath = Join-Path $_.FullName "Extensions\$extId"
@@ -100,4 +122,4 @@ if (-not $Uninstall) {
     }
 }
 
-Write-Host "`nDone. Open edge://policy/ and edge://extensions/ to verify."
+Write-Host "`nDone. Open $($cfg.PolicyUrl) and $($cfg.ExtensionsUrl) to verify."
