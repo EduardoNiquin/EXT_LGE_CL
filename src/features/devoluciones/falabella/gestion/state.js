@@ -18,7 +18,7 @@
 //     prueba: boolean,                // modo prueba: rellena pero NO envia
 //     currentId: number|null,         // job en curso
 //     jobs: [{
-//       id, orden, numero_guia,
+//       id, orden, numero_guia, numero_guia_origen,   // IMAGENES|PDF|MANUAL|null
 //       reembolso: { producto, modelo, serie, observacion } | null,
 //       cc: string[],
 //       fase, resultado, ticket, mensaje,
@@ -34,12 +34,19 @@ import { createRunStore } from '../../../../shared/run-store/index.js';
 const store = createRunStore({ key: GESTION_STORAGE_KEYS.RUN, logCap: LOG_CAP });
 export const { getRun, setRun, clearRun, updateRun, appendLog, subscribeToRun } = store;
 
-/** Job nuevo a partir de una orden de la cola `/gestiones`. */
+/**
+ * Job nuevo a partir de una orden de la cola `/gestiones`.
+ *
+ * El `numero_guia` de aqui es una foto del momento en que se armo la cola: el
+ * usuario puede escribirlo despues (en la web o en el panel) mientras la orden
+ * espera turno, asi que el runner lo refresca con el que devuelve el claim.
+ */
 export function makeJob(orden) {
   return {
     id: orden.id,
     orden: orden.orden ?? '',
     numero_guia: orden.numero_guia ?? '',
+    numero_guia_origen: orden.numero_guia_origen ?? null,
     reembolso: orden.reembolso ?? null,
     cc: Array.isArray(orden.gestion?.cc) ? orden.gestion.cc : [],
     fase: FASE.PENDIENTE,

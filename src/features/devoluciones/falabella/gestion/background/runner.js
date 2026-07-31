@@ -9,13 +9,15 @@
 // Ciclo de un job:
 //   1. claim contra la API del modulo (PENDIENTE -> EN_PROCESO). Si otra
 //      instancia se adelanto, la API devuelve 409 y lo saltamos.
-//   2. Abrimos/reutilizamos UNA pestana en el listado de devoluciones (fase
+//   2. Refrescamos el numero de guia con el que devuelve el claim: el usuario
+//      pudo escribirlo mientras la orden esperaba turno en la cola.
+//   3. Abrimos/reutilizamos UNA pestana en el listado de devoluciones (fase
 //      BUSCAR). El content busca la orden.
-//   3. Si aparece: pulsa "No, rechazar" -> fase APELAR -> rellena y envia la
+//   4. Si aparece: pulsa "No, rechazar" -> fase APELAR -> rellena y envia la
 //      apelacion -> resultado OK.
 //      Si no aparece: fase TICKET -> llevamos la pestana a ayudaseller -> el
 //      content levanta el ticket -> resultado TICKET.
-//   4. Reportamos el resultado a la API (ahi la web del usuario lo muestra y
+//   5. Reportamos el resultado a la API (ahi la web del usuario lo muestra y
 //      libera los archivos del servidor) y pasamos al siguiente job.
 //
 // Los PDF se descargan de la API en el momento de subirlos y viajan al content
@@ -27,6 +29,7 @@ import {
   FASE,
   GESTION_ALARM,
   GESTION_MESSAGES,
+  GUIA_NO_IDENTIFICADA,
   HELP_HOST,
   JOB_TIMEOUT_MS,
   RESULTADO,
@@ -191,7 +194,35 @@ async function advance() {
       return advance();
     }
 
-    // 2. A buscar la orden en el modulo de devoluciones.
+    // 2. El folio de la guia lo manda el claim, no la copia que se hizo al
+    //    armar la cola: el usuario puede haberlo escrito mientras la orden
+    //    esperaba turno (en la web o en el panel de gestion). Sin folio no se
+    //    bloquea nada —el ticket va con GUIA_NO_IDENTIFICADA— pero tiene que
+    //    quedar dicho en la bitacora, que es donde se mira despues.
+    const guia = claim.data?.numero_guia || '';
+
+    await updateRun((r) => patchJob(r, job.id, {
+      numero_guia: guia,
+      numero_guia_origen: claim.data?.numero_guia_origen ?? null,
+    }));
+
+    if (guia !== job.numero_guia) {
+      trazaInfo('runner', 'El folio de la guia cambio desde que se armo la cola', {
+        orden: job.orden,
+        antes: job.numero_guia || null,
+        ahora: guia || null,
+        origen: claim.data?.numero_guia_origen ?? null,
+      });
+    }
+
+    if (!guia) {
+      await appendLog({
+        level: 'warn',
+        message: `Orden ${job.orden}: sin numero de guia, si hay que levantar ticket ira con "${GUIA_NO_IDENTIFICADA}".`,
+      });
+    }
+
+    // 3. A buscar la orden en el modulo de devoluciones.
     await updateRun((r) => ({
       ...patchJob(r, job.id, { fase: FASE.BUSCAR, startedAt: Date.now() }),
       currentId: job.id,

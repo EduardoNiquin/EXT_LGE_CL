@@ -145,6 +145,29 @@ export function cancelOrder(base, token, id, { motivo, mensaje } = {}, signal) {
   return request(base, `/orders/${id}/cancel`, { method: 'POST', token, body, signal });
 }
 
+/**
+ * Escribe a mano el numero de guia de despacho de una orden (o lo borra, con
+ * cadena vacia).
+ *
+ * Es la salida cuando el servidor no lo encontro ni en las fotos ni en los PDF
+ * del comprimido: el campo del ticket es obligatorio y sin folio va `0`
+ * (GUIA_NO_IDENTIFICADA), que despues alguien tiene que corregir a mano.
+ *
+ * Se manda tal cual lo escribio el usuario: el servidor limpia los adornos con
+ * los que se copia de un documento ("N° 123.456" -> "123456") y responde 422 si
+ * no llega ni un digito. NO valides aqui la forma del numero — el filtro de
+ * "exactamente 6 digitos" es para lo que lee el modelo, no para una persona que
+ * tiene el documento delante. Devuelve la orden ya actualizada.
+ */
+export function setGuia(base, token, id, numeroGuia, signal) {
+  return request(base, `/orders/${id}/guia`, {
+    method: 'POST',
+    token,
+    json: { numero_guia: numeroGuia ?? '' },
+    signal,
+  });
+}
+
 // -----------------------------------------------------------------------------
 // Gestion automatica: la web deja la orden PENDIENTE y la extension la recoge,
 // la gestiona en la plataforma del seller y reporta como termino.

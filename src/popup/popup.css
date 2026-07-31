@@ -1773,6 +1773,32 @@ mark {
 /* Boton "Copiar" de cada orden gestionada (orden + n° de ticket). */
 .lt-region-head .lg-copy-group { flex: none; align-self: center; }
 
+/* Numero de guia editable en la cola de gestion: el servidor lo lee de las
+   fotos o de los PDF, y cuando no aparece se escribe aqui (el campo del ticket
+   es obligatorio). Por eso el input va siempre, no solo cuando falta. */
+.devo-guia-row { flex-wrap: wrap; align-items: center; }
+.devo-guia {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex: none;
+}
+.devo-guia-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  color: var(--text-subtle);
+}
+.devo-guia-input {
+  width: 9ch;
+  padding: 3px 6px;
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+}
+.devo-guia-input::placeholder { font-variant-numeric: normal; letter-spacing: 0; }
+.devo-guia-error { flex: 1 0 100%; margin-top: 4px; }
+
 .devo-status { margin: var(--space-2) 0; display: flex; flex-direction: column; gap: 6px; }
 .devo-badge {
   display: inline-flex;

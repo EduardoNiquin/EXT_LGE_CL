@@ -117,7 +117,7 @@ Sumar a una feature: crear `features/<feature>/debug.js` → `register('<feature
 ## Estado del proyecto
 Scaffolding + CI completos. Pipeline release corporativo (.crx firmado + política + ZIP). Debug API modular + logger persistente. Manejo de errores centralizado (`shared/errors`) + Modo Dev + ring buffer de errores con captura global (`shared/diagnostics`, visible en Ajustes). Content multi-frame con resolución de carrera. Capa `shared/dom`. Driver GP1 L-* (modal/messagebox/combobox).
 Features: **Colocar TAGs** (Lectura | Tag Delivery | Quitar Delivery | Tag Producto | Tag Oferta), **Lead Times** (Magento), **Cupones** (Quitar Regla de Cupón), **Información de Orden** (Magento), **Starkoms** (Verificar órdenes y stock), **LG.com** (Info de Producto), **SellerCenter Falabella** (SoporteSeller — Detalle Orden), **Devoluciones** (Falabella: cargar/guardar evidencias + gestión automática; Walmart/Paris pendientes), **E-promoters** (Informe ordenes — CSV/API → filtrado → CSV), **PIM** (Creación de producto — verificar si un SKU existe en PIM/STG), **SoloTodo** (Generar reportes de export en el backoffice — SPA React/MUI), **GATO** (tic-tac-toe multijugador secreto vía Firebase).
-⏳ Pendiente: más tests en `tests/unit/*.test.js` (hoy solo `devoluciones-gestion.test.js`).
+⏳ Pendiente: más tests en `tests/unit/*.test.js` (hoy solo los `devoluciones-*.test.js`).
 
 ---
 
@@ -436,7 +436,10 @@ Las ramas de `AYUDA`/`SOPORTE` miran **dónde estamos**, no solo la fase: si un 
 
 **Número de ticket:** sale de la pantalla de confirmación, embebido en una frase ("Tu n° de caso es el 68989843 , con fecha de creación…") → `CASO_REGEX` + solo dígitos. `leerConfirmacion()` distingue tres desenlaces: número leído → `TICKET`; campos en error (`.slds-has-error`) → `ERROR` con el motivo (no se creó nada); ni una cosa ni la otra → `TICKET` con marcador `SIN-NUMERO` y aviso de buscarlo en "Casos creados". **Nunca se inventa un número ni se da por bueno un ticket sin señal de la web.** Si el envío recarga la página, la espera muere con el documento y el número lo lee la carga siguiente (fase `CONFIRMACIÓN`, anotada *antes* de pulsar Enviar).
 
-**Guía no identificada:** el campo del ticket es obligatorio; si no se pudo leer de las imágenes va `0` (`GUIA_NO_IDENTIFICADA`), la convención acordada.
+**Número de guía.** El campo del ticket es obligatorio y sin folio va `0` (`GUIA_NO_IDENTIFICADA`), la convención acordada — pero eso es el último recurso, no el plan. El servidor lo busca en las **fotos** y, si no aparece, en los **PDF** del comprimido (la guía no siempre se fotografía), y dice de dónde salió en `numero_guia_origen` (`IMAGENES` / `PDF` / `MANUAL`). Lo que aporta la extensión son las dos puntas que le faltaban:
+- **Se puede escribir a mano** desde la cola del panel de gestión: cada fila lleva su campo (editable **siempre**, también para corregir un folio mal leído) y lo guarda con `POST /orders/{id}/guia` (`setGuia` en `falabella/api.js`). Se manda lo tecleado **tal cual** —el servidor limpia los adornos ("N° 123.456" → `123456`) y responde 422 si no hay ni un dígito—; no valides aquí la forma: el filtro de "exactamente 6 dígitos" es para lo que lee el modelo, no para quien tiene el documento delante. El campo vacío borra el dato. Cubierto por `tests/unit/devoluciones-guia.test.js`.
+- **El folio se lee fresco en el `claim`**, no de la copia que se hizo al armar la cola: el usuario puede haberlo escrito (en la web o aquí) mientras la orden esperaba turno. El runner repara el job con el `numero_guia` de la respuesta del claim y, si sigue vacío, lo avisa en la bitácora antes de empezar.
+Nada de esto bloquea: se avisa en el `confirm` de "Gestionar" cuántas van sin folio y la gestión sigue con `0` si el usuario no lo tiene a mano.
 
 **Por qué el estado vive en el service worker:** el flujo cruza navegaciones (listado → formulario) y el content script muere en cada una. En cada carga pregunta `GET_JOB` y el SW le responde con el job y su fase — y **solo** a la pestaña de trabajo del run, para no automatizar pestañas que el usuario abrió por su cuenta.
 
