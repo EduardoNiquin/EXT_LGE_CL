@@ -4,7 +4,6 @@
 
 import { PAGE_TIMEOUT_MS, SEL, STEP_TIMEOUT_MS } from '../constants.js';
 import { traza, trazaAviso } from '../../../trace.js';
-import { clickEl } from '../../../../../shared/dom/events.js';
 import { sleep, waitFor } from '../../../../../shared/dom/wait.js';
 
 /** Reconstruye un File a partir del base64 que manda el service worker. */
@@ -26,8 +25,12 @@ export function setFiles(input, files) {
   const dt = new DataTransfer();
   for (const file of files) dt.items.add(file);
   input.files = dt.files;
-  input.dispatchEvent(new Event('input', { bubbles: true }));
-  input.dispatchEvent(new Event('change', { bubbles: true }));
+
+  // `composed`, como todos los eventos sinteticos de aqui: el campo de
+  // evidencias vive dentro del shadow root del modulo y un evento que no sale de
+  // esa raiz no llega al manejador que sube el archivo.
+  input.dispatchEvent(new Event('input', { bubbles: true, composed: true }));
+  input.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
   return input;
 }
 
@@ -57,10 +60,10 @@ export function escribirEn(el, valor, { blur = false } = {}) {
   if (setter) setter.call(el, valor);
   else el.value = valor;
 
-  el.dispatchEvent(new Event('input', { bubbles: true }));
-  el.dispatchEvent(new Event('change', { bubbles: true }));
+  el.dispatchEvent(new Event('input', { bubbles: true, composed: true }));
+  el.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
 
-  if (blur) el.dispatchEvent(new Event('blur', { bubbles: true }));
+  if (blur) el.dispatchEvent(new Event('blur', { bubbles: true, composed: true }));
 
   return el;
 }
@@ -303,8 +306,8 @@ export function pasarElRaton(el, { ancestros = 3 } = {}) {
 }
 
 /**
- * Clic completo: el raton se posa, baja y sube. Frente a {@link clickEl} añade
- * los eventos de puntero, las coordenadas, el foco y —lo importante— el
+ * Clic completo: el raton se posa, baja y sube. Frente al `clickEl` compartido
+ * añade los eventos de puntero, las coordenadas, el foco y —lo importante— el
  * `composed: true` que deja salir el evento del shadow root.
  */
 export function clickReal(el) {
@@ -495,19 +498,40 @@ export function elegirCombobox(combo, valor, opciones = {}) {
 /**
  * Abre un acordeon del formulario de apelacion por el titulo de su caja. Los
  * paneles arrancan colapsados (`class="off"`) y se abren pulsando la cabecera.
+ *
+ * El titulo admite varias formas: el portal ha cambiado alguna ("Evidencias del
+ * producto" / "Evidencia"), y no encontrar la caja tumba la apelacion entera.
+ * La cabecera se pulsa con {@link clickReal} — el formulario vive en el shadow
+ * root del modulo, y ahi un evento sin `composed` no llega a ningun manejador de
+ * fuera.
+ *
+ * @param {string|string[]} titulo Rotulo(s) posibles de la caja.
  */
 export async function abrirAcordeon(titulo, { signal, raiz = document } = {}) {
-  const caja = todos(SEL.apelar.caja, raiz)
-    .find((box) => normalizar(box.querySelector(SEL.apelar.cajaTitulo)?.textContent).includes(normalizar(titulo)));
+  const rotulos = [].concat(titulo).map(normalizar);
 
-  if (!caja) throw new Error(`No se encontro la seccion "${titulo}"`);
+  const caja = todos(SEL.apelar.caja, raiz).find((box) => {
+    const texto = normalizar(box.querySelector(SEL.apelar.cajaTitulo)?.textContent);
+    return rotulos.some((rotulo) => texto.includes(rotulo));
+  });
+
+  if (!caja) {
+    trazaAviso('apelar', 'No se encontro la seccion del formulario', {
+      buscaba: rotulos,
+      secciones: todos(SEL.apelar.caja, raiz)
+        .map((box) => box.querySelector(SEL.apelar.cajaTitulo)?.textContent?.trim())
+        .filter(Boolean),
+    });
+
+    throw new Error(`No se encontro la seccion "${[].concat(titulo)[0]}"`);
+  }
 
   const cuerpo = caja.querySelector(SEL.apelar.cajaCuerpo);
   if (cuerpo && !cuerpo.classList.contains('on')) {
-    clickEl(caja.querySelector('.title-box'));
+    clickReal(caja.querySelector('.title-box'));
     await waitFor(
       () => caja.querySelector('.on'),
-      { timeout: STEP_TIMEOUT_MS, signal, description: `que se abra "${titulo}"` },
+      { timeout: STEP_TIMEOUT_MS, signal, description: `que se abra "${[].concat(titulo)[0]}"` },
     );
   }
 

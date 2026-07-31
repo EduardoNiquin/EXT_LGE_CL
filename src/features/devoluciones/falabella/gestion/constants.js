@@ -123,6 +123,15 @@ export const INFORME_STATUS = 'Malo';
 export const SUBSTATUS_INCOMPLETO = 'Incomplete';
 export const SUBSTATUS_DANO_SEVERO = 'Severe damage';
 
+// Acordeones del formulario de apelacion. Cada uno admite varios rotulos: el
+// portal ya ha cambiado alguno ("Evidencias del producto" / "Evidencia"), y no
+// dar con la caja tumba la apelacion entera.
+export const ACORDEONES = {
+  motivo: ['Motivo de apelacion', 'Motivo'],
+  evidencias: ['Evidencias del producto', 'Evidencia'],
+  informe: ['Informe tecnico', 'Informe'],
+};
+
 // Cascada del formulario de ticket (ayudaseller).
 export const TICKET_CASCADA = {
   nivel1: 'Pos venta',
@@ -175,6 +184,10 @@ export const SEL = {
     subEstado: 'select#subStatus',
     subComentario: 'textarea#subcomment',
     enviar: 'button[type="submit"].submit-button, button[type="submit"].submit-button-active',
+    // El boton solo toma la clase `-active` cuando el formulario se da por
+    // completo: es el guardia de validez de la apelacion, igual que en el
+    // ticket. Pulsar el inactivo no envia nada y la orden se daria por apelada.
+    enviarActivo: 'button[type="submit"].submit-button-active',
   },
   // Navegacion hasta la mesa de ayuda (no se puede entrar por URL directa).
   navegacion: {

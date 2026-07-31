@@ -527,14 +527,63 @@ async function start() {
 
 async function cancel() {
   await stopAlarm();
-  await updateRun((run) => (run ? {
-    ...run,
+
+  // La orden en curso ya esta RECLAMADA en el servidor. Si el run se apaga sin
+  // decir nada, se queda EN_PROCESO para siempre: el siguiente intento recibe un
+  // 409 y la web ni siquiera ofrece reintentarla. Se libera antes de apagar —y
+  // despues de dejar el run inactivo, para que soltarla no arranque la
+  // siguiente orden de la cola.
+  const run = await getRun();
+  const job = run?.currentId != null ? findJob(run, run.currentId) : null;
+
+  await updateRun((r) => (r ? {
+    ...r,
     active: false,
     currentId: null,
     finishedAt: Date.now(),
     finishReason: 'cancelled',
-  } : run));
+  } : r));
+
   await appendLog({ level: 'warn', message: 'Gestion cancelada por el usuario.' });
+
+  if (job && !isJobDone(job)) await liberarReclamo(run, job);
+}
+
+/**
+ * Devuelve al servidor una orden reclamada que no se va a gestionar: se reporta
+ * como ERROR, que es lo que la deja otra vez disponible en la web ("Reintentar
+ * gestion"). Un fallo aqui no puede tumbar la cancelacion, solo se registra.
+ */
+async function liberarReclamo(run, job) {
+  const { base, token } = await credentials(run);
+
+  await updateRun((r) => patchJob(r, job.id, {
+    resultado: RESULTADO.ERROR,
+    mensaje: 'Cancelada por el usuario',
+  }));
+
+  if (!base || !token) return;
+
+  const res = await reportGestion(base, token, job.id, {
+    resultado: RESULTADO.ERROR,
+    mensaje: 'Gestion cancelada por el usuario antes de terminar',
+  });
+
+  await updateRun((r) => patchJob(r, job.id, { reportado: res.ok }));
+
+  trazaInfo('runner', 'Reclamo liberado al cancelar', {
+    orden: job.orden,
+    fase: job.fase,
+    reportado: res.ok,
+    error: res.ok ? null : res.error,
+  });
+
+  if (!res.ok) {
+    await appendLog({
+      level: 'warn',
+      message: `Orden ${job.orden}: no se pudo liberar en el servidor (${res.error}). Quedara pendiente hasta que caduque.`,
+    });
+  }
 }
 
 // Se llama una vez desde el service worker.

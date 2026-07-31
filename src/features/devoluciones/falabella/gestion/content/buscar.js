@@ -70,7 +70,24 @@ export async function buscarOrden(job, { signal, onLog } = {}) {
   // se busca sobre una pantalla a medio montar: el "No data available" que
   // enseña mientras trae los datos se confundia con "la orden no esta" y la
   // devolucion se iba a ticket sin haberla buscado de verdad.
-  const listadoCargado = await esperarListado(raiz, { signal });
+  let listadoCargado = await esperarListado(raiz, { signal });
+
+  // Medido en vivo: el listado puede quedarse en "No data available" para
+  // siempre (pasa al entrar recien logueado) y **una recarga lo cura al
+  // instante**. Se recarga una sola vez por orden: si de verdad no hay ninguna
+  // devolucion pendiente, la segunda vuelta sigue adelante y la busqueda
+  // decidira.
+  if (!listadoCargado && recargarUnaVez(job)) {
+    onLog?.('El listado de devoluciones no cargo: recargo la pagina y lo reintento.');
+    trazaAviso('buscar', 'Listado vacio al cargar: se recarga la pagina', { orden: numero });
+
+    location.reload();
+
+    // Este documento muere con la recarga; la pagina siguiente retoma el job.
+    await new Promise(() => {});
+  }
+
+  listadoCargado = listadoCargado || todos(SEL.buscar.filas, raiz).length > 0;
 
   traza('buscar', 'Tabla lista antes de escribir', {
     ...radiografiaDeLaTabla(raiz),
@@ -145,6 +162,29 @@ export async function buscarOrden(job, { signal, onLog } = {}) {
 
   // El aviso de fase va ANTES del clic: el clic navega y este documento muere.
   return FASE.APELAR;
+}
+
+/**
+ * ¿Se puede gastar la recarga de rescate con esta orden?
+ *
+ * Una sola vez por orden y solo en el documento superior (recargar un iframe
+ * suelto no arregla nada). La marca vive en `sessionStorage` porque tiene que
+ * sobrevivir justo a lo que provoca: la recarga.
+ */
+function recargarUnaVez(job) {
+  if (window !== window.top) return false;
+
+  const clave = `devoluciones:recarga:${job.id}`;
+
+  try {
+    if (sessionStorage.getItem(clave)) return false;
+    sessionStorage.setItem(clave, String(Date.now()));
+    return true;
+  } catch {
+    // Sin sessionStorage no hay forma de acordarse: mejor no recargar que
+    // arriesgarse a un bucle.
+    return false;
+  }
 }
 
 /**

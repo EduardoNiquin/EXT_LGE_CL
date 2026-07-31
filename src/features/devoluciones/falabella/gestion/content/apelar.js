@@ -11,6 +11,7 @@
 // habitual y el que conviene al seller.
 
 import {
+  ACORDEONES,
   DEFAULT_MOTIVO,
   INFORME_STATUS,
   MOTIVO_KEYWORDS,
@@ -20,8 +21,8 @@ import {
   SUBSTATUS_DANO_SEVERO,
   SUBSTATUS_INCOMPLETO,
 } from '../constants.js';
-import { abrirAcordeon, base64ToFile, buscarPorTexto, elegirOpcion, escribirEn, normalizar, primero, raizDe, setFiles } from './dom.js';
-import { clickEl } from '../../../../../shared/dom/events.js';
+import { abrirAcordeon, base64ToFile, buscarPorTexto, clickReal, elegirOpcion, escribirEn, normalizar, primero, raizDe, setFiles } from './dom.js';
+import { traza, trazaAviso } from '../../../trace.js';
 import { waitFor, waitForElement } from '../../../../../shared/dom/wait.js';
 
 /**
@@ -84,37 +85,24 @@ export async function apelar(job, { prueba, pedirArchivos, signal, onLog } = {})
   const comentario = armarComentario(job);
 
   // 1. Motivo de apelacion.
-  const cajaMotivo = await abrirAcordeon('Motivo de apelacion', { signal, raiz });
+  const cajaMotivo = await abrirAcordeon(ACORDEONES.motivo, { signal, raiz });
   const motivo = elegirMotivo(observacion);
 
-  const header = await waitForElement(SEL.apelar.dropdownHeader, { timeout: STEP_TIMEOUT_MS, signal, root: cajaMotivo });
-  clickEl(header);
-
-  const opcion = await waitFor(
-    () => buscarPorTexto(cajaMotivo, SEL.apelar.dropdownOpcion, motivo),
-    { timeout: STEP_TIMEOUT_MS, signal, description: `el motivo "${motivo}"` },
-  );
-  clickEl(opcion);
-  onLog?.(`Motivo de apelacion: ${motivo}.`);
+  await elegirMotivoEnElFormulario(cajaMotivo, motivo, { signal, onLog });
 
   const textarea = cajaMotivo.querySelector(SEL.apelar.comentario);
   if (textarea) escribirEn(textarea, comentario);
 
   // 2. Evidencias: el PDF que armo el modulo con las fotos ordenadas.
-  const cajaEvidencias = await abrirAcordeon('Evidencias del producto', { signal, raiz });
-  const inputArchivos = await waitForElement(SEL.apelar.archivos, { timeout: STEP_TIMEOUT_MS, signal, root: cajaEvidencias });
-
-  const archivos = await pedirArchivos('apelacion');
-  setFiles(inputArchivos, archivos.map(base64ToFile));
-  onLog?.(`Evidencias adjuntas: ${archivos.map((a) => a.nombre).join(', ')}.`);
+  await adjuntarEvidencias({ raiz, pedirArchivos, signal, onLog });
 
   // 3. Informe tecnico: estado, sub-motivo y detalle.
-  const cajaInforme = await abrirAcordeon('Informe tecnico', { signal, raiz });
+  const cajaInforme = await abrirAcordeon(ACORDEONES.informe, { signal, raiz });
 
   const radio = Array.from(cajaInforme.querySelectorAll(SEL.apelar.radioEstado))
     .find((r) => normalizar(r.id) === normalizar(INFORME_STATUS));
   if (!radio) throw new Error(`No se encontro el estado "${INFORME_STATUS}" del informe tecnico`);
-  clickEl(radio);
+  clickReal(radio);
 
   // El sub-motivo solo existe despues de marcar el estado.
   const subEstado = await waitForElement(SEL.apelar.subEstado, { timeout: STEP_TIMEOUT_MS, signal, root: cajaInforme })
@@ -128,19 +116,149 @@ export async function apelar(job, { prueba, pedirArchivos, signal, onLog } = {})
   const subComentario = cajaInforme.querySelector(SEL.apelar.subComentario);
   if (subComentario) escribirEn(subComentario, comentario);
 
-  // 4. Enviar.
-  const enviar = primero(SEL.apelar.enviar, raiz);
-  if (!enviar) throw new Error('No se encontro el boton "Enviar apelacion"');
+  // 4. Enviar. El boton solo toma la clase `submit-button-active` cuando el
+  //    formulario se da por completo, asi que esperarla es la unica forma de
+  //    saber que no falta nada — y, sobre todo, de no reportar "apelada" tras un
+  //    clic sobre un boton inerte. Antes se pulsaba el boton encontrara la clase
+  //    que encontrara: si la evidencia no habia entrado, la orden se daba por
+  //    apelada sin haberse enviado nada.
+  const enviar = await waitFor(
+    () => primero(SEL.apelar.enviarActivo, raiz),
+    { timeout: STEP_TIMEOUT_MS, signal, description: 'que el boton "Enviar" se active' },
+  ).catch(() => null);
+
+  if (!enviar) {
+    trazaAviso('apelar', 'El boton de enviar no se activo', {
+      hayBotonInactivo: Boolean(primero(SEL.apelar.enviar, raiz)),
+      evidenciasEnElCampo: primero(SEL.apelar.archivos, raiz)?.files?.length ?? null,
+    });
+
+    throw new Error(
+      'El formulario de apelacion no se dio por completo: el boton "Enviar" sigue inactivo '
+      + '(lo mas probable es que la evidencia no se adjuntara).',
+    );
+  }
 
   if (prueba) {
-    onLog?.('Modo prueba: formulario completo, NO se envio la apelacion.');
+    onLog?.('Modo prueba: formulario completo y boton activo, NO se envio la apelacion.');
     return { enviado: false };
   }
 
-  clickEl(enviar);
+  clickReal(enviar);
   onLog?.('Apelacion enviada.');
 
   return { enviado: true };
+}
+
+/** Veces que se intenta elegir el motivo antes de rendirse. */
+const INTENTOS_MOTIVO = 2;
+
+/**
+ * Elige el motivo en el desplegable propio del formulario y **comprueba que
+ * quedo elegido**.
+ *
+ * El desplegable no es un `<select>`: es un div con su lista, y un clic que no
+ * prende no deja rastro… hasta el final, cuando el boton "Enviar" no se activa y
+ * el fallo aparece disfrazado de "formulario incompleto". La cabecera del
+ * desplegable pasa a mostrar el motivo elegido (medido en vivo), asi que eso es
+ * lo que se verifica.
+ */
+async function elegirMotivoEnElFormulario(caja, motivo, { signal, onLog } = {}) {
+  const header = await waitForElement(SEL.apelar.dropdownHeader, { timeout: STEP_TIMEOUT_MS, signal, root: caja });
+
+  for (let intento = 1; intento <= INTENTOS_MOTIVO; intento++) {
+    clickReal(header);
+
+    const opcion = await waitFor(
+      () => buscarPorTexto(caja, SEL.apelar.dropdownOpcion, motivo),
+      {
+        timeout: intento === 1 ? STEP_TIMEOUT_MS : 4000,
+        signal,
+        description: `el motivo "${motivo}"`,
+      },
+    ).catch(() => null);
+
+    if (opcion) {
+      clickReal(opcion);
+
+      const elegido = await waitFor(
+        () => normalizar(header.textContent).includes(normalizar(motivo)),
+        { timeout: 3000, signal, description: `que el desplegable muestre "${motivo}"` },
+      ).catch(() => false);
+
+      if (elegido) {
+        onLog?.(`Motivo de apelacion: ${motivo}.`);
+        return;
+      }
+    }
+
+    trazaAviso('apelar', 'El motivo no quedo elegido', {
+      motivo,
+      intento,
+      cabecera: normalizar(header.textContent).slice(0, 60),
+      opciones: [...caja.querySelectorAll(SEL.apelar.dropdownOpcion)].map((o) => o.textContent.trim()),
+    });
+  }
+
+  throw new Error(`No se pudo elegir el motivo "${motivo}" en el formulario de apelacion`);
+}
+
+/**
+ * Adjunta `evidencias.pdf` en la caja de evidencias y comprueba que el
+ * formulario lo acepto.
+ *
+ * Dos cosas que aqui fallan en silencio y por eso se miran una a una:
+ *
+ *   · **Donde esta el campo.** El portal ha movido su maquetacion; buscarlo solo
+ *     dentro de la caja daba un timeout con el campo a la vista dos nodos mas
+ *     arriba. Se prueba primero la caja y despues la raiz entera.
+ *   · **Si de verdad entro.** Muchos uploaders vacian el `input` despues de
+ *     leerlo (para poder elegir el mismo archivo dos veces), asi que
+ *     `input.files.length` no sirve como prueba: lo que se busca es que el
+ *     nombre del archivo aparezca en pantalla. Si no aparece no se aborta —el
+ *     portal podria pintarlo de otra forma—, pero queda avisado, y el guardia
+ *     del boton "Enviar" corta el envio si de verdad no entro.
+ */
+async function adjuntarEvidencias({ raiz, pedirArchivos, signal, onLog }) {
+  const caja = await abrirAcordeon(ACORDEONES.evidencias, { signal, raiz });
+
+  const input = await waitFor(
+    () => primero(SEL.apelar.archivos, caja) || primero(SEL.apelar.archivos, raiz),
+    { timeout: STEP_TIMEOUT_MS, signal, description: 'el campo de evidencias' },
+  );
+
+  const archivos = await pedirArchivos('apelacion');
+
+  traza('apelar', 'Evidencias recibidas para adjuntar', {
+    archivos: archivos.map((a) => a.nombre),
+    enLaCaja: caja.contains(input),
+  });
+
+  setFiles(input, archivos.map(base64ToFile));
+
+  const nombres = archivos.map((a) => a.nombre);
+
+  // El portal pinta "N archivos adjuntos" + el nombre del archivo dentro de la
+  // caja (medido en vivo), y ademas conserva el `input.files` aunque se cierre
+  // el acordeon. Vale cualquiera de las dos señales.
+  const visible = await waitFor(
+    () => nombres.some((nombre) => normalizar(caja.textContent).includes(normalizar(nombre)))
+      || (input.files?.length ?? 0) > 0,
+    { timeout: 5000, signal, description: 'que el formulario acuse las evidencias' },
+  ).catch(() => false);
+
+  if (visible) {
+    onLog?.(`Evidencias adjuntas: ${nombres.join(', ')}.`);
+    return;
+  }
+
+  trazaAviso('apelar', 'El formulario no acuso las evidencias', {
+    archivos: nombres,
+    enElCampo: input.files?.length ?? null,
+    textoDeLaCaja: normalizar(caja.textContent).slice(0, 200),
+  });
+
+  onLog?.(`Adjunte ${nombres.join(', ')}, pero el formulario no lo acuso: se comprobara al enviar.`);
 }
 
 /**
