@@ -29,6 +29,7 @@ import {
   FASE,
   GESTION_MESSAGES,
   NAVEGACION_TICK_MS,
+  PAGE_TIMEOUT_MS,
   RESULTADO,
 } from '../constants.js';
 import { abrirApelacion, anclaListado, buscarOrden } from './buscar.js';
@@ -46,7 +47,7 @@ import {
 } from './navegacion.js';
 import { CONTEXTOS, fijarContextoDeTraza, traza, trazaAviso, trazaError, trazaInfo } from '../../../trace.js';
 import { isAbortError, toMessage } from '../../../../../shared/errors/index.js';
-import { waitFor } from '../../../../../shared/dom/wait.js';
+import { sleep, waitFor } from '../../../../../shared/dom/wait.js';
 import { logger } from '../../../../../shared/utils/logger.js';
 
 const log = logger('devoluciones-gestion');
@@ -171,6 +172,59 @@ async function ancla(buscarAncla, etiqueta, { signal } = {}) {
   return el;
 }
 
+// Cuantas veces se reintenta el salto a la mesa de ayuda y cuanto se espera a
+// que el service worker confirme que la pestana nueva nacio.
+const INTENTOS_SALTO_AYUDA = 3;
+const ESPERA_SALTO_MS = 12_000;
+
+/** ¿El service worker nos sigue dando ESTE job en ESTA pestana? */
+async function seguimosConElJob(id) {
+  const res = await enviar({ type: GESTION_MESSAGES.GET_JOB });
+  return res?.job?.id === id;
+}
+
+/**
+ * Salto al centro de ayuda, con reintentos.
+ *
+ * Es el unico paso del recorrido que no deja rastro en esta pagina: el enlace no
+ * navega, su manejador abre la mesa de ayuda en OTRA pestana (y de fondo). Si el
+ * clic no prende, este documento se queda exactamente igual, ningun content
+ * script nuevo arranca y nadie lo reintenta — ahi era donde la gestion se
+ * quedaba parada hasta que el usuario abria el menu a mano.
+ *
+ * El acuse de recibo lo da el service worker: cuando adopta la pestana nueva,
+ * `run.tabId` cambia y GET_JOB deja de darnos trabajo. Esa es la señal de que
+ * salto; mientras siga contestando, se vuelve a intentar. En el ultimo intento
+ * se pide ayuda al usuario en vez de rendirse con el formulario a medias.
+ */
+async function saltarAlCentroDeAyuda(job, opciones) {
+  for (let intento = 1; intento <= INTENTOS_SALTO_AYUDA; intento++) {
+    const ultimo = intento === INTENTOS_SALTO_AYUDA;
+
+    const pulsado = await irACentroDeAyuda({
+      ...opciones,
+      esperaManualMs: ultimo ? PAGE_TIMEOUT_MS : 0,
+    });
+
+    const hasta = Date.now() + (pulsado ? ESPERA_SALTO_MS : 2000);
+    while (Date.now() < hasta) {
+      await sleep(1000, opciones.signal);
+      if (!await seguimosConElJob(job.id)) {
+        traza('navegacion', 'El salto a la mesa de ayuda prendio', { intento });
+        return;
+      }
+    }
+
+    trazaAviso('navegacion', 'La mesa de ayuda no se abrio: se reintenta', {
+      intento,
+      de: INTENTOS_SALTO_AYUDA,
+      seLlegoAPulsar: pulsado,
+    });
+  }
+
+  throw new Error('No se pudo entrar al centro de ayuda desde la navbar de SellerCenter');
+}
+
 /**
  * Reporta el resultado de un ticket. Se usa tanto si la confirmacion aparecio
  * sin recargar como si llego en una pagina nueva.
@@ -231,7 +285,7 @@ async function despachar() {
         await avanzar(job.id, siguiente);
 
         if (siguiente === FASE.APELAR) await abrirApelacion(job, opciones);
-        else await irACentroDeAyuda(opciones);
+        else await saltarAlCentroDeAyuda(job, opciones);
         break;
       }
 
@@ -290,6 +344,19 @@ async function despachar() {
     }
 
     const motivo = toMessage(err);
+
+    // Si mientras esperabamos el trabajo se mudo a otra pestana (el usuario dio
+    // el salto a mano, o el service worker adopto la de la mesa de ayuda), esto
+    // ya no es un fallo NUESTRO: reportarlo mataria una orden que sigue viva.
+    if (!await seguimosConElJob(job.id)) {
+      trazaAviso('despachador', 'La fase fallo, pero el trabajo ya paso a otra pestana', {
+        fase: job.fase,
+        orden: job.orden,
+        motivo,
+      });
+      return;
+    }
+
     trazaError('despachador', 'La fase fallo', { fase: job.fase, orden: job.orden, motivo });
     log.error('gestion', err instanceof Error ? err : new Error(motivo));
     await enviar({
@@ -324,7 +391,7 @@ async function caminoAlTicket(job, opciones) {
   }
 
   await ancla(anclaMenuAyuda, 'menu Ayuda de SellerCenter', opciones);
-  await irACentroDeAyuda(opciones);
+  await saltarAlCentroDeAyuda(job, opciones);
 }
 
 /** Rellena, envia y reporta el ticket (la confirmacion puede llegar aqui o tras recargar). */

@@ -2,9 +2,10 @@
 // type=file> por codigo y manejar los comboboxes de Salesforce (LWC), que no
 // son <select> sino botones con una lista de <lightning-base-combobox-item>.
 
-import { SEL, STEP_TIMEOUT_MS } from '../constants.js';
+import { PAGE_TIMEOUT_MS, SEL, STEP_TIMEOUT_MS } from '../constants.js';
+import { traza, trazaAviso } from '../../../trace.js';
 import { clickEl } from '../../../../../shared/dom/events.js';
-import { waitFor } from '../../../../../shared/dom/wait.js';
+import { sleep, waitFor } from '../../../../../shared/dom/wait.js';
 
 /** Reconstruye un File a partir del base64 que manda el service worker. */
 export function base64ToFile({ nombre, tipo, contenido }) {
@@ -218,10 +219,119 @@ export function textoDeOpcion(el) {
   return el?.getAttribute?.('data-value') || textoProfundo(el);
 }
 
+/** Texto visible de un elemento, cruzando sus shadow roots. */
+export function textoVisible(el) {
+  return el ? textoProfundo(el) : '';
+}
+
+// -----------------------------------------------------------------------------
+// Interaccion "como un raton de verdad"
+// -----------------------------------------------------------------------------
+
+/** Centro del elemento, para que los eventos lleven coordenadas creibles. */
+function puntoDe(el) {
+  const caja = el?.getBoundingClientRect?.();
+  if (!caja) return { clientX: 0, clientY: 0 };
+
+  return {
+    clientX: Math.round(caja.left + caja.width / 2),
+    clientY: Math.round(caja.top + caja.height / 2),
+  };
+}
+
+/**
+ * Evento de raton/puntero con `composed: true`.
+ *
+ * `composed` no es un adorno: sin el, un evento despachado sobre un elemento que
+ * vive **dentro de un shadow root** no sale de esa raiz, asi que un manejador de
+ * fuera (la delegacion de eventos de React, por ejemplo) no se entera nunca. Los
+ * eventos de un raton real son siempre composed; los de `new MouseEvent` no, y
+ * ese es justo el escenario de los portales de Falabella, que montan media
+ * pantalla dentro de web components.
+ */
+function eventoDeRaton(tipo, el) {
+  const Ctor = tipo.startsWith('pointer') && typeof PointerEvent === 'function'
+    ? PointerEvent
+    : MouseEvent;
+
+  // enter/leave no burbujean nunca (ni siquiera los de verdad).
+  const burbujea = !tipo.endsWith('enter') && !tipo.endsWith('leave');
+
+  return new Ctor(tipo, {
+    bubbles: burbujea,
+    cancelable: true,
+    composed: true,
+    view: window,
+    button: 0,
+    buttons: tipo.endsWith('down') ? 1 : 0,
+    detail: tipo === 'click' ? 1 : 0,
+    pointerId: 1,
+    pointerType: 'mouse',
+    isPrimary: true,
+    ...puntoDe(el),
+  });
+}
+
+/**
+ * Simula que el raton se posa sobre un elemento.
+ *
+ * Se lanza tambien en la cadena de ancestros porque `mouseenter`/`pointerenter`
+ * no burbujean: un menu que se despliega escuchando el enter de su contenedor no
+ * se enteraria si solo tocamos la hoja.
+ *
+ * Aviso: esto NO activa el `:hover` de CSS — eso solo lo mueve un raton real. Si
+ * un menu se despliega por CSS puro, hay que buscar su contenido en el DOM
+ * aunque este oculto, que es lo que hace `enlaceCentroDeAyuda`.
+ */
+export function pasarElRaton(el, { ancestros = 3 } = {}) {
+  if (!el) return null;
+
+  const cadena = [el];
+  let padre = el.parentElement;
+  for (let i = 0; i < ancestros && padre; i++, padre = padre.parentElement) cadena.push(padre);
+
+  el.dispatchEvent(eventoDeRaton('pointerover', el));
+  for (const nodo of cadena) nodo.dispatchEvent(eventoDeRaton('pointerenter', nodo));
+
+  el.dispatchEvent(eventoDeRaton('mouseover', el));
+  for (const nodo of cadena) nodo.dispatchEvent(eventoDeRaton('mouseenter', nodo));
+
+  el.dispatchEvent(eventoDeRaton('pointermove', el));
+  el.dispatchEvent(eventoDeRaton('mousemove', el));
+
+  return el;
+}
+
+/**
+ * Clic completo: el raton se posa, baja y sube. Frente a {@link clickEl} añade
+ * los eventos de puntero, las coordenadas, el foco y —lo importante— el
+ * `composed: true` que deja salir el evento del shadow root.
+ */
+export function clickReal(el) {
+  if (!el) throw new Error('clickReal: elemento nulo');
+
+  pasarElRaton(el);
+
+  for (const tipo of ['pointerdown', 'mousedown']) el.dispatchEvent(eventoDeRaton(tipo, el));
+  try { el.focus?.({ preventScroll: true }); } catch { /* elementos sin foco */ }
+  for (const tipo of ['pointerup', 'mouseup', 'click']) el.dispatchEvent(eventoDeRaton(tipo, el));
+
+  return el;
+}
+
+// -----------------------------------------------------------------------------
+// Comboboxes de Salesforce (LWC)
+// -----------------------------------------------------------------------------
+
+/** Opciones actualmente montadas en el desplegable. */
+function opcionesDeCombobox(combo) {
+  return todos(SEL.ticket.comboOpcion, combo);
+}
+
 /** Opcion de un combobox por su rotulo: exacta primero, contenida despues. */
 function opcionDeCombobox(combo, valor) {
   const objetivo = normalizar(valor);
-  const items = todos(SEL.ticket.comboOpcion, combo);
+  const items = opcionesDeCombobox(combo);
 
   // La exacta manda: "Devoluciones" no puede ganarla "Informacion sobre una
   // orden en devolucion" solo por contener la palabra.
@@ -230,36 +340,156 @@ function opcionDeCombobox(combo, valor) {
     || null;
 }
 
-/**
- * Elige una opcion en un combobox de Salesforce: abre la lista con su boton y
- * pulsa la opcion. Espera a que la lista monte — en la cascada del ticket, las
- * opciones de un nivel solo existen despues de elegir el anterior.
- */
-export async function elegirCombobox(combo, valor, { signal } = {}) {
-  if (!combo) throw new Error(`No se encontro el desplegable para "${valor}"`);
-
+/** Foto del combobox: su boton, lo que muestra y si esta desplegado. */
+function estadoDeCombobox(combo) {
   // El boton NO cuelga del combo en el light DOM: vive dentro de su propio
   // shadow root (lightning-combobox -> lightning-base-combobox -> boton), asi
   // que `combo.querySelector` devuelve null. Hay que cruzar sus raices.
   const boton = primero(SEL.ticket.comboBoton, combo);
-  if (!boton) throw new Error(`El desplegable de "${valor}" no tiene boton`);
+  const opciones = opcionesDeCombobox(combo);
+  const expandido = boton?.getAttribute('aria-expanded');
 
-  clickEl(boton);
+  return {
+    boton,
+    texto: normalizar(textoVisible(boton)),
+    opciones,
+    // Manda `aria-expanded`: las opciones NO se desmontan al cerrar el
+    // desplegable (medido en vivo), asi que contarlas diria "abierto" siempre.
+    abierto: expandido != null ? expandido === 'true' : opciones.length > 0,
+  };
+}
 
-  const opcion = await waitFor(
-    () => opcionDeCombobox(combo, valor),
-    { timeout: STEP_TIMEOUT_MS, signal, description: `la opcion "${valor}"` },
-  );
+/** ¿El combobox quedo con la opcion elegida? */
+function seleccionHecha(combo, esperado, rotuloInicial) {
+  const ahora = estadoDeCombobox(combo);
 
-  clickEl(opcion);
+  // Lo normal: el boton pasa a mostrar lo elegido.
+  if (esperado && ahora.texto.includes(normalizar(esperado))) return ahora.texto;
 
-  // El combobox se cierra y refleja el valor; si no, al menos no bloqueamos.
-  await waitFor(
-    () => normalizar(boton.textContent).includes(normalizar(valor)) || null,
-    { timeout: 3000, signal, description: `que el desplegable muestre "${valor}"` },
-  ).catch(() => { /* algunos combos no repintan el rotulo: seguimos */ });
+  // Algunos combos no repintan el rotulo con el texto exacto; vale como señal
+  // que se hayan cerrado Y que muestren algo distinto de lo que habia antes.
+  if (!ahora.abierto && ahora.texto && ahora.texto !== rotuloInicial) return ahora.texto;
 
-  return opcion;
+  return null;
+}
+
+const INTENTOS_COMBOBOX = 3;
+
+/**
+ * Elige una opcion en un combobox de Salesforce y **comprueba que quedo
+ * elegida**, reintentando si no.
+ *
+ * Por que tanto cuidado: el primer desplegable del ticket (el del contacto)
+ * fallaba de vez en cuando y habia que elegirlo a mano para que la gestion
+ * siguiera. El clic sobre la opcion se daba por bueno sin mirar el resultado, y
+ * como el boton "Enviar" solo se activa con el formulario completo, el sintoma
+ * aparecia mucho despues y disfrazado ("el formulario no se dio por completo").
+ *
+ * Si tras los reintentos sigue sin elegirse, no se aborta de inmediato: se avisa
+ * por la bitacora y se espera a que el usuario lo elija (`esperaManualMs`), que
+ * es exactamente el rescate que se venia haciendo a mano.
+ *
+ * @param {Element} combo
+ * @param {object} opts
+ * @param {string|null} [opts.valor] Rotulo a elegir; `null` = la primera opcion.
+ * @param {string} [opts.descripcion] Como se llama el campo en los mensajes.
+ * @param {number} [opts.esperaManualMs] Cuanto esperar al usuario si falla.
+ * @returns {Promise<{ texto: string, via: 'auto'|'manual' }>}
+ */
+export async function elegirEnCombobox(combo, {
+  valor = null,
+  descripcion = valor || 'el desplegable',
+  esperaManualMs = PAGE_TIMEOUT_MS,
+  signal,
+  onLog,
+} = {}) {
+  if (!combo) throw new Error(`No se encontro el desplegable de ${descripcion}`);
+
+  const inicial = estadoDeCombobox(combo);
+  if (!inicial.boton) throw new Error(`El desplegable de ${descripcion} no tiene boton`);
+
+  for (let intento = 1; intento <= INTENTOS_COMBOBOX; intento++) {
+    // En los reintentos se cierra y se vuelve a abrir: un desplegable que quedo
+    // abierto pero vacio no se arregla mirandolo mas rato.
+    if (intento > 1 && estadoDeCombobox(combo).abierto) {
+      clickReal(inicial.boton);
+      await sleep(200, signal);
+    }
+    if (!estadoDeCombobox(combo).abierto) clickReal(inicial.boton);
+
+    // La primera vuelta espera de verdad (en la cascada del ticket, las opciones
+    // de un nivel solo existen despues de elegir el anterior); las siguientes
+    // solo confirman que el reintento sirvio de algo.
+    const opcion = await waitFor(
+      () => (valor ? opcionDeCombobox(combo, valor) : opcionesDeCombobox(combo)[0]),
+      {
+        timeout: intento === 1 ? STEP_TIMEOUT_MS : 4000,
+        signal,
+        description: `la opcion "${valor ?? 'unica'}" de ${descripcion}`,
+      },
+    ).catch(() => null);
+
+    if (!opcion) {
+      trazaAviso('combobox', 'El desplegable no mostro la opcion', {
+        campo: descripcion,
+        valor,
+        intento,
+        opciones: opcionesDeCombobox(combo).map(textoDeOpcion).slice(0, 8),
+      });
+      continue;
+    }
+
+    const texto = textoDeOpcion(opcion);
+    clickReal(opcion);
+
+    const elegido = await waitFor(
+      () => seleccionHecha(combo, texto, inicial.texto),
+      { timeout: 2500, signal, description: `que el desplegable muestre "${texto}"` },
+    ).catch(() => null);
+
+    if (elegido) {
+      traza('combobox', 'Opcion elegida', {
+        campo: descripcion,
+        elegida: texto,
+        intento,
+        opciones: opcionesDeCombobox(combo).length || inicial.opciones.length,
+      });
+
+      return { texto, via: 'auto' };
+    }
+
+    trazaAviso('combobox', 'El clic no dejo la opcion elegida', {
+      campo: descripcion,
+      intentaba: texto,
+      intento,
+      rotuloAhora: estadoDeCombobox(combo).texto,
+    });
+  }
+
+  // Ultimo recurso: que lo elija el usuario. Se prefiere a fallar porque el
+  // formulario ya esta a medio rellenar y perderlo obliga a repetirlo todo.
+  if (esperaManualMs > 0) {
+    onLog?.(`No pude elegir "${descripcion}" solo. Eligelo tu en el formulario: la gestion sigue en cuanto lo hagas.`);
+
+    const texto = await waitFor(
+      () => seleccionHecha(combo, valor, inicial.texto),
+      { timeout: esperaManualMs, signal, description: `que elijas ${descripcion}` },
+    ).catch(() => null);
+
+    if (texto) {
+      trazaAviso('combobox', 'Lo eligio el usuario a mano', { campo: descripcion, elegido: texto });
+      onLog?.(`Gracias: "${descripcion}" quedo con "${texto}". Sigo.`);
+
+      return { texto, via: 'manual' };
+    }
+  }
+
+  throw new Error(`No se pudo elegir "${valor ?? descripcion}" en el desplegable de ${descripcion}`);
+}
+
+/** Compatibilidad: elegir por rotulo. */
+export function elegirCombobox(combo, valor, opciones = {}) {
+  return elegirEnCombobox(combo, { ...opciones, valor, descripcion: opciones.descripcion || valor });
 }
 
 /**

@@ -9,6 +9,42 @@ export function escapeHtml(value) {
     .replace(/'/g, '&#39;');
 }
 
+/** Copia texto al portapapeles, con respaldo para contextos sin permiso. */
+export async function copyToClipboard(text) {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    try {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      const ok = document.execCommand('copy');
+      ta.remove();
+      return ok;
+    } catch {
+      return false;
+    }
+  }
+}
+
+/** Acuse visual de "copiado" en un boton, sin tocar su texto original. */
+export function marcarCopiado(boton, etiqueta = 'Copiado') {
+  if (!boton) return;
+  const original = boton.dataset.original ?? boton.textContent;
+  boton.dataset.original = original;
+  boton.textContent = etiqueta;
+  boton.classList.add('is-copied');
+  clearTimeout(Number(boton.dataset.timer));
+  boton.dataset.timer = String(setTimeout(() => {
+    boton.textContent = original;
+    boton.classList.remove('is-copied');
+  }, 1200));
+}
+
 export function formatTime(ts) {
   if (!ts) return '';
   const d = new Date(ts);

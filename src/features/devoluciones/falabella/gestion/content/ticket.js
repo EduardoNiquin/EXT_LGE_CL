@@ -19,9 +19,8 @@ import {
   TICKET_CASCADA,
   TICKET_SIN_NUMERO,
 } from '../constants.js';
-import { base64ToFile, elegirCombobox, escribirEn, primero, setFiles, textoDeOpcion, todos } from './dom.js';
+import { base64ToFile, clickReal, elegirEnCombobox, escribirEn, primero, setFiles, todos } from './dom.js';
 import { abrirNuevoCaso } from './navegacion.js';
-import { clickEl } from '../../../../../shared/dom/events.js';
 import { waitFor } from '../../../../../shared/dom/wait.js';
 
 /**
@@ -76,18 +75,20 @@ export async function levantarTicket(job, { prueba, pedirArchivos, antesDeEnviar
   await esperarCampo(SEL.ticket.nivel1, { timeout: PAGE_TIMEOUT_MS, signal });
 
   // 1. Contacto: hay una sola opcion, se elige esa sin adivinar el nombre.
+  //
+  // Es el desplegable que mas falla (la lista la trae el servidor y a veces
+  // llega tarde), asi que va con reintentos, verificacion de que quedo elegido
+  // y, como ultimo recurso, espera a que lo elija el usuario. Sin contacto el
+  // boton "Enviar" nunca se activa, y el fallo aparecia mucho despues y
+  // disfrazado de "el formulario no se dio por completo".
   const contacto = primero(SEL.ticket.contacto);
   if (contacto) {
-    const boton = primero(SEL.ticket.comboBoton, contacto);
-    if (boton) {
-      clickEl(boton);
-      const opcion = await waitFor(
-        () => primero(SEL.ticket.comboOpcion, contacto),
-        { timeout: STEP_TIMEOUT_MS, signal, description: 'el contacto del formulario' },
-      );
-      clickEl(opcion);
-      onLog?.(`Contacto: ${textoDeOpcion(opcion)}.`);
-    }
+    const { texto, via } = await elegirEnCombobox(contacto, {
+      descripcion: 'el contacto del formulario',
+      signal,
+      onLog,
+    });
+    onLog?.(`Contacto: ${texto}${via === 'manual' ? ' (elegido a mano)' : ''}.`);
   }
 
   // 2. Correo en copia: los CC marcados en la web del modulo.
@@ -101,17 +102,15 @@ export async function levantarTicket(job, { prueba, pedirArchivos, antesDeEnviar
   }
 
   // 3. Cascada de la consulta (un nivel habilita al siguiente).
-  await elegirCombobox(primero(SEL.ticket.nivel1), TICKET_CASCADA.nivel1, { signal });
-  await elegirCombobox(
-    await esperarCampo(SEL.ticket.nivel2, { signal }),
-    TICKET_CASCADA.nivel2,
-    { signal },
-  );
-  await elegirCombobox(
-    await esperarCampo(SEL.ticket.nivel3, { signal }),
-    TICKET_CASCADA.nivel3,
-    { signal },
-  );
+  await elegirEnCombobox(primero(SEL.ticket.nivel1), {
+    valor: TICKET_CASCADA.nivel1, descripcion: 'el tipo de consulta', signal, onLog,
+  });
+  await elegirEnCombobox(await esperarCampo(SEL.ticket.nivel2, { signal }), {
+    valor: TICKET_CASCADA.nivel2, descripcion: 'el motivo de la consulta', signal, onLog,
+  });
+  await elegirEnCombobox(await esperarCampo(SEL.ticket.nivel3, { signal }), {
+    valor: TICKET_CASCADA.nivel3, descripcion: 'el detalle de la consulta', signal, onLog,
+  });
   onLog?.(`Consulta: ${TICKET_CASCADA.nivel1} / ${TICKET_CASCADA.nivel2} / ${TICKET_CASCADA.nivel3}.`);
 
   // 4. Detalle.
@@ -161,7 +160,7 @@ export async function levantarTicket(job, { prueba, pedirArchivos, antesDeEnviar
   // cargue despues tiene que saber que ya toca leer el numero de caso.
   await antesDeEnviar?.();
 
-  clickEl(enviar);
+  clickReal(enviar);
   onLog?.('Ticket enviado, esperando el numero de caso…');
 
   // Si el envio destruye este documento, esta espera muere con el y el numero lo

@@ -12,7 +12,7 @@ import { GESTION_MESSAGES, RESULTADO } from '../gestion/constants.js';
 import { clearRun, getRun, makeRun, setRun, subscribeToRun } from '../gestion/state.js';
 import { getGestiones } from '../api.js';
 import { getPairing } from '../state.js';
-import { escapeHtml, formatTime } from '../../popup/utils.js';
+import { copyToClipboard, escapeHtml, formatTime, marcarCopiado } from '../../popup/utils.js';
 import { sendMessage } from '../../../../shared/messaging/messaging.js';
 import { CONTEXTOS, fijarContextoDeTraza, trazaInfo } from '../../trace.js';
 import { toMessage } from '../../../../shared/errors/index.js';
@@ -70,6 +70,7 @@ export async function render(container) {
         <ul id="devo-g-list" class="lt-region-list"></ul>
         <div class="lt-actions">
           <button type="button" id="devo-g-stop" class="ct-btn ct-btn--ghost" disabled>Detener</button>
+          <button type="button" id="devo-g-copy" class="ct-btn ct-btn--ghost hidden">Copiar orden y ticket</button>
         </div>
         <details class="ct-diag lt-log-details">
           <summary>Registro</summary>
@@ -102,6 +103,47 @@ function wireEvents(container) {
   container.querySelector('#devo-g-prueba')?.addEventListener('change', (e) => {
     ui.prueba = Boolean(e.target.checked);
   });
+  container.querySelector('#devo-g-copy')?.addEventListener('click', (e) => onCopiarTodo(e.currentTarget));
+
+  // Delegado: los botones de cada fila se repintan en cada cambio del run.
+  container.querySelector('#devo-g-list')?.addEventListener('click', (e) => {
+    const boton = e.target.closest('[data-copiar]');
+    if (boton) onCopiarFila(boton);
+  });
+}
+
+// -----------------------------------------------------------------------------
+// Copiar resultados
+// -----------------------------------------------------------------------------
+
+/**
+ * Una linea por orden gestionada: `orden <TAB> ticket`. El tabulador es a
+ * proposito — pegado en Excel cae en dos columnas, que es donde termina esto.
+ * Las ordenes que se apelaron no tienen ticket y van con la columna vacia.
+ */
+function lineaDeJob(job) {
+  return `${job.orden}\t${job.ticket || ''}`.trimEnd();
+}
+
+/** Jobs ya resueltos, en el orden en que se gestionaron. */
+function jobsResueltos(run) {
+  return (run?.jobs || []).filter((j) => j.resultado);
+}
+
+async function onCopiarFila(boton) {
+  const run = await getRun();
+  const job = (run?.jobs || []).find((j) => String(j.id) === boton.dataset.copiar);
+  if (!job) return;
+
+  if (await copyToClipboard(lineaDeJob(job))) marcarCopiado(boton, '✓');
+}
+
+async function onCopiarTodo(boton) {
+  const run = await getRun();
+  const lineas = jobsResueltos(run).map(lineaDeJob);
+  if (!lineas.length) return;
+
+  if (await copyToClipboard(lineas.join('\n'))) marcarCopiado(boton);
 }
 
 // -----------------------------------------------------------------------------
@@ -291,6 +333,7 @@ function renderProgress(container, run) {
       <div class="lt-region-head">
         <span class="lt-region-name">orden ${escapeHtml(job.orden)}</span>
         <span class="lt-region-status">${escapeHtml(jobEtiqueta(job, run))}</span>
+        ${job.resultado ? `<button type="button" class="lg-copy-group" data-copiar="${escapeHtml(job.id)}" title="Copiar orden y ticket">Copiar</button>` : ''}
       </div>
       ${job.mensaje ? `<div class="${job.resultado === RESULTADO.ERROR ? 'lt-err' : 'lt-warn'}">${escapeHtml(job.mensaje)}</div>` : ''}
     `;
@@ -299,6 +342,9 @@ function renderProgress(container, run) {
 
   const stopBtn = container.querySelector('#devo-g-stop');
   if (stopBtn) stopBtn.disabled = !run.active;
+
+  const copyBtn = container.querySelector('#devo-g-copy');
+  copyBtn?.classList.toggle('hidden', jobsResueltos(run).length === 0);
 
   const logEl = container.querySelector('#devo-g-log');
   if (logEl) {
