@@ -6,15 +6,32 @@
 // ya filtrada por el numero de orden, nunca por un vistazo parcial.
 
 import { FASE, SEL, STEP_TIMEOUT_MS } from '../constants.js';
-import { escribirEn, normalizar, primero, raizDe, todos } from './dom.js';
+import { clickReal, escribirEn, normalizar, primero, raizDe, todos } from './dom.js';
 import { traza, trazaAviso, trazaInfo } from '../../../trace.js';
-import { clickEl } from '../../../../../shared/dom/events.js';
 import { sleep, waitFor } from '../../../../../shared/dom/wait.js';
 
 /** Solo los digitos: los numeros de orden se comparan sin formato. */
 function digitos(valor) {
   return String(valor ?? '').replace(/\D+/g, '');
 }
+
+// Veces que se reescribe el numero y se vuelve a disparar la busqueda. El clic
+// sobre la lupa se pierde de vez en cuando (el portal repinta la barra mientras
+// se escribe) y el sintoma era un timeout con la pantalla perfectamente bien:
+// reintentar cuesta segundos, y no hacerlo cuesta la orden entera.
+const INTENTOS_BUSQUEDA = 3;
+
+/** Plazo de cada intento. La consulta del modulo no es rapida. */
+const BUSQUEDA_TIMEOUT_MS = 20_000;
+
+/**
+ * Cuanto tiene que sostenerse la tabla vacia para darla por buena.
+ *
+ * Al filtrar, la tabla pasa por un instante SIN filas mientras se repinta. Si
+ * ese instante se toma por "la orden no esta", se levanta un ticket por una
+ * devolucion que si estaba en el modulo — el error mas caro de todo el flujo.
+ */
+const VACIO_ESTABLE_MS = 2500;
 
 /**
  * Busca la orden y devuelve la fase siguiente:
@@ -49,57 +66,62 @@ export async function buscarOrden(job, { signal, onLog } = {}) {
     description: 'la tabla de devoluciones',
   });
 
-  traza('buscar', 'Tabla presente antes de escribir', radiografiaDeLaTabla(raiz));
+  // El listado tiene que haber TERMINADO de cargar antes de escribir nada. Si no,
+  // se busca sobre una pantalla a medio montar: el "No data available" que
+  // enseña mientras trae los datos se confundia con "la orden no esta" y la
+  // devolucion se iba a ticket sin haberla buscado de verdad.
+  const listadoCargado = await esperarListado(raiz, { signal });
 
-  escribirEn(input, numero);
-
-  // Lo que de verdad quedo en el campo: si React no se entero, aqui se ve.
-  traza('buscar', 'Numero escrito en el buscador', {
-    pedido: numero,
-    enElCampo: input.value,
-    coincide: input.value === numero,
+  traza('buscar', 'Tabla lista antes de escribir', {
+    ...radiografiaDeLaTabla(raiz),
+    listadoConDatos: listadoCargado,
   });
-
-  dispararBusqueda(input, raiz);
 
   onLog?.(`Buscando la orden ${numero} en el modulo de devoluciones…`);
 
-  // La tabla se repinta de forma asincrona. Esperamos a un desenlace claro: o
-  // una fila con NUESTRO numero, o el cartel de "sin datos". Un timeout aqui no
-  // se interpreta como "no esta" — seria levantar un ticket por error.
-  let ultimaRadiografia = null;
+  let desenlace = null;
 
-  const desenlace = await waitFor(() => {
-    // Se apunta como va cambiando la tabla: es lo unico que explica por que un
-    // desenlace tarda (o por que no llega).
-    const radiografia = radiografiaDeLaTabla(raiz);
+  for (let intento = 1; intento <= INTENTOS_BUSQUEDA && !desenlace; intento++) {
+    escribirEn(input, numero);
 
-    if (JSON.stringify(radiografia) !== JSON.stringify(ultimaRadiografia)) {
-      ultimaRadiografia = radiografia;
-      traza('buscar', 'La tabla cambio', radiografia);
+    // Lo que de verdad quedo en el campo: si React no se entero, aqui se ve.
+    traza('buscar', 'Numero escrito en el buscador', {
+      pedido: numero,
+      enElCampo: input.value,
+      coincide: input.value === numero,
+      intento,
+    });
+
+    dispararBusqueda(input, raiz, intento);
+
+    desenlace = await esperarDesenlace(numero, raiz, {
+      signal,
+      listadoCargado,
+      descripcion: `el resultado de buscar la orden ${numero}`,
+    });
+
+    if (!desenlace && intento < INTENTOS_BUSQUEDA) {
+      trazaAviso('buscar', 'La busqueda no dio resultado: se reintenta', {
+        orden: numero,
+        intento,
+        de: INTENTOS_BUSQUEDA,
+        enElCampo: input.value,
+        ...radiografiaDeLaTabla(raiz),
+      });
     }
+  }
 
-    const fila = filaDeLaOrden(numero, raiz);
-    if (fila) return { fila };
-
-    const vacio = raiz.querySelector(SEL.buscar.vacio);
-    const sinFilas = todos(SEL.buscar.filas, raiz).length === 0;
-    if (vacio || sinFilas) return { vacia: true };
-
-    return null;
-  }, {
-    timeout: STEP_TIMEOUT_MS,
-    signal,
-    description: `el resultado de buscar la orden ${numero}`,
-  }).catch((err) => {
-    // El timeout aqui es informativo de verdad: dice que habia en pantalla.
+  if (!desenlace) {
+    // Sin desenlace no se concluye nada: decir "no esta" aqui levantaria un
+    // ticket por una devolucion que quiza si estaba.
     trazaAviso('buscar', 'Sin desenlace claro al buscar', {
       orden: numero,
       enElCampo: input.value,
       ...radiografiaDeLaTabla(raiz),
     });
-    throw err;
-  });
+
+    throw new Error(`No se pudo leer el resultado de buscar la orden ${numero} en el modulo`);
+  }
 
   if (desenlace.vacia) {
     trazaInfo('buscar', 'La orden NO esta en el modulo: se ira a ticket', { orden: numero });
@@ -126,29 +148,122 @@ export async function buscarOrden(job, { signal, onLog } = {}) {
 }
 
 /**
+ * Espera a que el listado termine de cargar antes de tocarlo.
+ *
+ * El modulo arranca pidiendo tres meses de devoluciones y, mientras tanto,
+ * enseña su cartel de "No data available" con la tabla vacia — exactamente el
+ * mismo aspecto que "no hay ninguna devolucion". Buscar en ese momento traia dos
+ * problemas: React podia descartar lo tecleado al repintar, y el desenlace se
+ * leia como "la orden no esta" en el mismo milisegundo (visto en un registro
+ * real: cartel de vacio 1 ms despues de pulsar la lupa).
+ *
+ * @returns {Promise<boolean>} si el listado llego con filas.
+ */
+async function esperarListado(raiz, { signal } = {}) {
+  const conFilas = await waitFor(
+    () => todos(SEL.buscar.filas, raiz).length > 0,
+    { timeout: STEP_TIMEOUT_MS, signal, description: 'que el listado de devoluciones cargue' },
+  ).catch(() => false);
+
+  if (conFilas) return true;
+
+  // Puede que de verdad no haya ninguna devolucion pendiente. No es un fallo:
+  // se sigue adelante, pero el desenlace de la busqueda se exigira mas despacio.
+  trazaAviso('buscar', 'El listado no llego a mostrar filas', radiografiaDeLaTabla(raiz));
+
+  return false;
+}
+
+/**
+ * Espera el resultado de la busqueda: la fila de NUESTRA orden, o la tabla
+ * vacia de forma sostenida.
+ *
+ * Lo delicado es el vacio. Al filtrar, la tabla pasa por un instante sin filas
+ * mientras se repinta, y el cartel de "No data available" tambien esta ahi
+ * mientras el modulo consulta. Por eso el vacio solo cuenta si **se sostiene**, y
+ * si el listado nunca llego a tener filas se le exige ademas un margen mayor: es
+ * la unica forma de distinguir "no esta" de "todavia esta cargando", y
+ * equivocarse ahi levanta un ticket de una devolucion que si estaba.
+ *
+ * @returns {Promise<{fila: Element}|{vacia: true}|null>} null si no hubo desenlace.
+ */
+function esperarDesenlace(numero, raiz, { signal, listadoCargado, descripcion } = {}) {
+  const gracia = listadoCargado ? VACIO_ESTABLE_MS : VACIO_ESTABLE_MS * 4;
+
+  let ultimaRadiografia = null;
+  let vacioDesde = null;
+
+  return waitFor(() => {
+    // Se apunta como va cambiando la tabla: es lo unico que explica por que un
+    // desenlace tarda (o por que no llega).
+    const radiografia = radiografiaDeLaTabla(raiz);
+
+    if (JSON.stringify(radiografia) !== JSON.stringify(ultimaRadiografia)) {
+      ultimaRadiografia = radiografia;
+      traza('buscar', 'La tabla cambio', radiografia);
+    }
+
+    const fila = filaDeLaOrden(numero, raiz);
+    if (fila) return { fila };
+
+    const vacia = Boolean(raiz.querySelector(SEL.buscar.vacio)) || radiografia.filas === 0;
+
+    if (!vacia) {
+      // Hay filas, pero ninguna es la nuestra: la tabla aun esta con el
+      // resultado anterior. Se sigue esperando.
+      vacioDesde = null;
+      return null;
+    }
+
+    vacioDesde ??= Date.now();
+
+    if (Date.now() - vacioDesde < gracia) return null;
+
+    traza('buscar', 'Vacio sostenido: la orden no esta', {
+      sostenidoMs: Date.now() - vacioDesde,
+      exigido: gracia,
+      ...radiografia,
+    });
+
+    return { vacia: true };
+  }, {
+    timeout: BUSQUEDA_TIMEOUT_MS,
+    signal,
+    description: descripcion,
+  }).catch(() => null);
+}
+
+/**
  * Lanza la busqueda. El campo NO esta dentro de un `<form>` y su unico manejador
  * de teclado es `onKeyPress`, asi que ni un "Enter" por keydown ni
  * `requestSubmit()` disparan nada: la tabla se queda mostrando la primera pagina
  * y la orden buscada parece no existir. El disparador de verdad es la lupa.
+ *
+ * El clic va con {@link clickReal}: la barra de busqueda vive dentro del shadow
+ * root del modulo, y un evento sin `composed: true` no sale de esa raiz. A
+ * partir del segundo intento se añade el "Enter" por si el portal cambio el
+ * disparador.
  */
-function dispararBusqueda(input, raiz) {
+function dispararBusqueda(input, raiz, intento = 1) {
   const lupa = primero(SEL.buscar.lupa, raiz);
 
   if (lupa) {
-    clickEl(lupa);
-    traza('buscar', 'Busqueda lanzada con la lupa', { via: 'lupa' });
-    return;
+    clickReal(lupa);
+    traza('buscar', 'Busqueda lanzada con la lupa', { via: 'lupa', intento });
+
+    if (intento === 1) return;
   }
 
-  // Respaldo por si el portal se lleva la lupa. `keypress` es el evento que
-  // escucha el campo (no `keydown`), asi que va primero.
+  // `keypress` es el evento que escucha el campo (no `keydown`), asi que va
+  // primero. Es respaldo, no sustituto: sin lupa la tabla no filtra.
   for (const tipo of ['keypress', 'keydown', 'keyup']) {
     input.dispatchEvent(new KeyboardEvent(tipo, {
-      bubbles: true, key: 'Enter', code: 'Enter', keyCode: 13, which: 13,
+      bubbles: true, composed: true, key: 'Enter', code: 'Enter', keyCode: 13, which: 13,
     }));
   }
 
-  trazaAviso('buscar', 'No se encontro la lupa: se probo con Enter', { via: 'teclado' });
+  if (!lupa) trazaAviso('buscar', 'No se encontro la lupa: se probo con Enter', { via: 'teclado', intento });
+  else traza('buscar', 'Se refuerza la busqueda con Enter', { via: 'lupa+teclado', intento });
 }
 
 /** Cual de los selectores alternativos encontro el buscador. */
@@ -187,7 +302,9 @@ export async function abrirApelacion(job, { signal } = {}) {
 
   if (!boton) throw new Error('No se encontro el boton "No, rechazar"');
 
-  clickEl(boton);
+  // Como la lupa: el boton vive en el shadow root del modulo, asi que el evento
+  // tiene que ir `composed` para que el manejador de React lo vea.
+  clickReal(boton);
   await sleep(500, signal);
 }
 

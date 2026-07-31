@@ -23,6 +23,7 @@ export const GESTION_MESSAGES = {
   ADVANCE: `${GESTION_FEATURE}:advance`,   // content -> SW: cambio de fase
   REPORT: `${GESTION_FEATURE}:report`,     // content -> SW: resultado final
   LOG: `${GESTION_FEATURE}:log`,           // content -> SW: linea de bitacora
+  DISPATCH: `${GESTION_FEATURE}:dispatch`, // SW -> content: vuelve a pedir trabajo
 };
 
 // Alarma de respaldo que resucita el service worker en mitad de un run.
@@ -62,9 +63,24 @@ export const RESULTADO = {
 // buscar el numero a mano en "Casos creados".
 export const TICKET_SIN_NUMERO = 'SIN-NUMERO';
 
-// Numero de guia cuando no se pudo leer de las imagenes: el formulario del
-// ticket lo exige, y un 0 es la convencion acordada para "no identificado".
+// Numero de guia cuando no se pudo leer (ni de las fotos, ni de los PDF, ni
+// escrita a mano en la web): SOLO el formulario del ticket lo exige —la
+// apelacion por el modulo no pide guia—, y un 0 es la convencion acordada para
+// "no identificada".
 export const GUIA_NO_IDENTIFICADA = '0';
+
+// Y se dice por que va en cero, para que quien lea el caso no lo tome por un
+// dato mal copiado.
+export const SIN_GUIA_DETALLE = 'No se agrega guia porque fue enviada por currier.';
+
+// Apertura fija del detalle del ticket. La postura del seller es siempre la
+// misma y no se negocia caso a caso: el producto salio bien y volvio mal, y lo
+// que sigue son las observaciones de la devolucion (las que posventa manda en el
+// correo y se cargan en "Data del ticket de reembolso").
+export const DETALLE_APERTURA = 'Se solicita rechazar devolucion porque producto fue enviado en buen estado, sin embargo retorna con';
+
+// Cuando no hay observacion que copiar, la frase tiene que cerrar igual.
+export const DETALLE_SIN_OBSERVACION = 'las observaciones que se aprecian en las evidencias adjuntas';
 
 // Esperas. Las pantallas de SellerCenter/Salesforce tardan en montar: el
 // listado de devoluciones arranca con un rango de tres meses y su consulta no

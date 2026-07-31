@@ -64,6 +64,17 @@ let intentosSinAncla = 0;
 const MAX_INTENTOS_SIN_ANCLA = 3;
 const REINTENTO_MS = 10_000;
 
+/**
+ * Veces que se ha preguntado por trabajo sin que el service worker lo diera.
+ * Existe por el salto a la mesa de ayuda: la pestana nueva pregunta nada mas
+ * cargar, y el service worker puede tardar en darse cuenta de que ESA es ahora
+ * la pestana de trabajo (el SSO hace que al nacer todavia no este en el host de
+ * la ayuda). Sin repreguntar, la pestana correcta se quedaba muda para siempre.
+ */
+let intentosSinTrabajo = 0;
+const MAX_INTENTOS_SIN_TRABAJO = 12;
+const REPREGUNTA_MS = 2500;
+
 function enviar(mensaje) {
   return chrome.runtime.sendMessage(mensaje).catch(() => null);
 }
@@ -247,13 +258,24 @@ async function despachar() {
 
   if (!job) {
     // Lo mas comun cuando "no pasa nada": esta pestana no es la del run, o el
-    // service worker ya no tiene trabajo pendiente.
+    // service worker ya no tiene trabajo pendiente. El detalle lo manda el
+    // propio service worker (que pestana es la suya, si el run sigue vivo…).
     traza('despachador', 'Sin trabajo para esta pestana', {
       respondio: Boolean(res),
       motivo: res ? 'el service worker no asigno job a esta pestana' : 'el service worker no respondio',
+      ...(res?.motivo || {}),
     });
+
+    // Con un run vivo esta pestana todavia puede ser adoptada (es lo que pasa al
+    // saltar a la mesa de ayuda: el content pregunta antes de que el service
+    // worker se entere de que la pestana nueva es la de trabajo). Se vuelve a
+    // preguntar un rato; sin run activo no hay nada que esperar.
+    if (res?.motivo?.runActivo) programarRepregunta();
+
     return;
   }
+
+  intentosSinTrabajo = 0;
 
   corriendo = true;
   controlador = new AbortController();
@@ -408,6 +430,23 @@ async function gestionarTicket(job, opciones) {
 }
 
 /**
+ * Vuelve a preguntar por trabajo dentro de un rato. Es la red de seguridad del
+ * salto a la mesa de ayuda: si el service worker adopta esta pestana justo
+ * despues de que preguntara, aqui se entera sin esperar a que la pagina navegue.
+ * Acotado: una pestana que el usuario abrio por su cuenta deja de insistir.
+ */
+function programarRepregunta() {
+  if (++intentosSinTrabajo > MAX_INTENTOS_SIN_TRABAJO) {
+    traza('despachador', 'Esta pestana deja de preguntar por trabajo', {
+      intentos: intentosSinTrabajo - 1,
+    });
+    return;
+  }
+
+  setTimeout(() => { despachar().catch(() => { /* no-op */ }); }, REPREGUNTA_MS);
+}
+
+/**
  * Vuelve a mirar dentro de un rato: la pantalla puede estar aun montandose (el
  * listado carga tres meses de devoluciones y no es rapido). Acotado, para que
  * los frames que nunca la tendran dejen de insistir.
@@ -454,8 +493,26 @@ function vigilarNavegacion() {
   setInterval(revisar, NAVEGACION_TICK_MS);
 }
 
+/**
+ * El service worker avisa a una pestana recien adoptada de que ya tiene trabajo.
+ * Es lo que hace que el salto a la mesa de ayuda continue solo en vez de esperar
+ * a la siguiente navegacion.
+ */
+function escucharDespachos() {
+  chrome.runtime.onMessage.addListener((msg) => {
+    if (msg?.type !== GESTION_MESSAGES.DISPATCH) return;
+
+    traza('despachador', 'El service worker pide despachar en esta pestana');
+
+    intentosSinTrabajo = 0;
+    despachar().catch(() => { /* no-op */ });
+  });
+}
+
 export function init() {
   fijarContextoDeTraza(CONTEXTOS.CONTENT);
+
+  escucharDespachos();
 
   let arrancado = false;
 

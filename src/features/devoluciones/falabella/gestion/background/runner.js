@@ -133,6 +133,76 @@ async function adoptarPestanaDeAyuda(tab) {
     porQue: laAbrioLaNuestra ? 'la abrio la pestana de trabajo' : 'va al host de la mesa de ayuda',
     url,
   });
+
+  pedirDespacho(tab.id);
+}
+
+/** URL actual de una pestana (cadena vacia si ya no existe). */
+async function urlDePestana(tabId) {
+  if (tabId == null) return '';
+
+  try {
+    const tab = await chrome.tabs.get(tabId);
+    return tab?.url || tab?.pendingUrl || '';
+  } catch {
+    return '';
+  }
+}
+
+/**
+ * Adopta la pestana que ACABA de llegar a la mesa de ayuda.
+ *
+ * `chrome.tabs.onCreated` no siempre basta: el salto pasa por el SSO del portal,
+ * asi que al nacer la pestana su URL todavia no es la de la mesa de ayuda, y si
+ * el enlace va con `rel="noopener"` tampoco llega el `openerTabId`. Resultado
+ * medido en vivo: la pestana nueva cargaba el centro de ayuda y el service
+ * worker seguia dandole trabajo a la vieja — la gestion se quedaba muda hasta el
+ * watchdog aunque el salto hubiera funcionado.
+ *
+ * Aqui se mira el destino, no el origen: si estamos camino del ticket y una
+ * pestana entra en el host de la mesa de ayuda, esa es la nuestra. La pestana de
+ * trabajo actual solo se cede si ella misma NO esta ya en la mesa de ayuda, para
+ * no robarle el puesto a una que el usuario tuviera abierta por su cuenta.
+ */
+async function adoptarPorNavegacion(tabId, url) {
+  if (tabId == null || !String(url || '').includes(HELP_HOST)) return;
+
+  const run = await getRun();
+  if (!run?.active || run.currentId == null || run.tabId === tabId) return;
+
+  const job = findJob(run, run.currentId);
+  if (!job || isJobDone(job) || !FASES_DE_TICKET.includes(job.fase)) return;
+
+  if ((await urlDePestana(run.tabId)).includes(HELP_HOST)) return;
+
+  await updateRun((r) => (r ? { ...r, tabId } : r));
+
+  trazaInfo('runner', 'Una pestana llego a la mesa de ayuda: se adopta', {
+    orden: job.orden,
+    fase: job.fase,
+    pestanaAnterior: run.tabId,
+    pestanaNueva: tabId,
+    url,
+  });
+
+  pedirDespacho(tabId);
+}
+
+/**
+ * Le pide al content script de esa pestana que vuelva a preguntar por su job.
+ *
+ * Sin esto, una pestana adoptada DESPUES de que su content script preguntara se
+ * quedaba esperando para siempre: nadie vuelve a despachar por su cuenta salvo
+ * que la pagina navegue.
+ */
+function pedirDespacho(tabId) {
+  if (tabId == null) return;
+
+  try {
+    chrome.tabs.sendMessage(tabId, { type: GESTION_MESSAGES.DISPATCH }).catch(() => { /* aun sin content script */ });
+  } catch {
+    /* la pestana pudo cerrarse */
+  }
 }
 
 // -----------------------------------------------------------------------------
@@ -306,17 +376,22 @@ async function closeJob(id, { resultado, ticket = null, mensaje = null }) {
 async function jobForTab(tabId) {
   const run = await getRun();
 
+  // El motivo viaja en la respuesta, no solo al registro del service worker: asi
+  // el "sin trabajo para esta pestana" del content script dice en la misma linea
+  // POR QUE no le toca (que pestana es la del run, si el run sigue vivo…).
+  const motivo = {
+    pestanaQuePregunta: tabId,
+    pestanaDelRun: run?.tabId ?? null,
+    runActivo: Boolean(run?.active),
+    jobEnCurso: run?.currentId ?? null,
+  };
+
   // Este es el punto donde un "no pasa nada" se explica: la pestana que
   // pregunta no es la del run, el run ya termino, o no hay job en curso.
   if (!run?.active || run.tabId !== tabId || run.currentId == null) {
-    traza('runner', 'GET_JOB sin respuesta', {
-      pestanaQuePregunta: tabId,
-      pestanaDelRun: run?.tabId ?? null,
-      runActivo: Boolean(run?.active),
-      jobEnCurso: run?.currentId ?? null,
-    });
+    traza('runner', 'GET_JOB sin respuesta', motivo);
 
-    return null;
+    return { job: null, motivo };
   }
 
   const job = findJob(run, run.currentId);
@@ -327,10 +402,10 @@ async function jobForTab(tabId) {
       resultado: job?.resultado ?? null,
     });
 
-    return null;
+    return { job: null, motivo: { ...motivo, resultado: job?.resultado ?? null } };
   }
 
-  return { job, prueba: Boolean(run.prueba) };
+  return { job, prueba: Boolean(run.prueba), motivo: null };
 }
 
 /**
@@ -515,9 +590,18 @@ export function wireGestionBackground() {
     }
   });
 
-  // El salto a la mesa de ayuda abre pestana nueva; hay que seguirla.
+  // El salto a la mesa de ayuda abre pestana nueva; hay que seguirla. Se mira
+  // tanto al nacer (por quien la abrio) como al navegar (por su destino): con el
+  // SSO por medio, al nacer la URL todavia no es la de la mesa de ayuda.
   chrome.tabs.onCreated.addListener((tab) => {
     adoptarPestanaDeAyuda(tab).catch((err) => log.warn?.('adoptarPestana', new Error(toMessage(err))));
+  });
+
+  chrome.tabs.onUpdated.addListener((tabId, cambios, tab) => {
+    const url = cambios?.url || (cambios?.status === 'complete' ? tab?.url : null);
+    if (!url) return;
+
+    adoptarPorNavegacion(tabId, url).catch((err) => log.warn?.('adoptarPorNavegacion', new Error(toMessage(err))));
   });
 
   chrome.alarms.onAlarm.addListener((alarm) => {

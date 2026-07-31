@@ -10,11 +10,14 @@
 
 import {
   CASO_REGEX,
+  DETALLE_APERTURA,
+  DETALLE_SIN_OBSERVACION,
   GUIA_NO_IDENTIFICADA,
   HELP_HOST,
   HELP_SUPPORT_PATH,
   PAGE_TIMEOUT_MS,
   SEL,
+  SIN_GUIA_DETALLE,
   STEP_TIMEOUT_MS,
   TICKET_CASCADA,
   TICKET_SIN_NUMERO,
@@ -38,17 +41,32 @@ function esperarCampo(selector, { timeout = STEP_TIMEOUT_MS, signal } = {}) {
   });
 }
 
-/** Detalle de la consulta: la observacion mas los datos de la devolucion. */
+/**
+ * Detalle de la consulta.
+ *
+ * Empieza SIEMPRE con la misma frase: es el argumento del ticket y no cambia
+ * caso a caso — el producto se envio en buen estado y vuelve mal—, y lo que se
+ * le añade son las observaciones de la devolucion, tal como las manda posventa
+ * en el correo que se carga en "Data del ticket de reembolso". Debajo van los
+ * datos que identifican la orden.
+ *
+ * Si no hubo numero de guia se dice por que va en cero: sin esa linea, quien lee
+ * el caso lo toma por un dato mal copiado.
+ */
 export function armarDetalle(job) {
   const r = job.reembolso || {};
+
+  // La observacion se copia literal, solo sin el punto final: la frase la cierra
+  // esta funcion y "…, sin embargo retorna con Sin embalaje.." queda feo.
+  const observacion = String(r.observacion ?? '').trim().replace(/[.\s]+$/, '');
+
   const lineas = [
-    'Solicito rechazar la devolucion de la siguiente orden:',
+    `${DETALLE_APERTURA} ${observacion || DETALLE_SIN_OBSERVACION}.`,
     `Numero de orden: ${job.orden}`,
-    job.numero_guia ? `Numero de guia: ${job.numero_guia}` : null,
     r.producto ? `Producto: ${r.producto}` : null,
     r.modelo ? `Modelo: ${r.modelo}` : null,
     r.serie ? `Serie: ${r.serie}` : null,
-    r.observacion ? `Detalle: ${r.observacion}` : null,
+    job.numero_guia ? `Numero de guia: ${job.numero_guia}` : SIN_GUIA_DETALLE,
     'Se adjuntan las evidencias fotograficas y los documentos de despacho.',
   ].filter(Boolean);
 
@@ -122,13 +140,14 @@ export async function levantarTicket(job, { prueba, pedirArchivos, antesDeEnviar
   const orden = await esperarCampo(SEL.ticket.numeroOrden, { signal });
   escribirEn(orden, String(job.orden || ''));
 
-  // El campo de guia es obligatorio. Si no se pudo leer de las imagenes va un
-  // "0", que es la convencion acordada para "no identificada".
+  // El campo de guia es obligatorio AQUI (la apelacion por el modulo no lo
+  // pide). Si no hay numero —ni leido ni escrito a mano— va un "0", que es la
+  // convencion acordada, y el detalle ya explica por que (SIN_GUIA_DETALLE).
   const guia = primero(SEL.ticket.numeroGuia);
   if (guia) {
     const valor = job.numero_guia ? String(job.numero_guia) : GUIA_NO_IDENTIFICADA;
     escribirEn(guia, valor);
-    if (!job.numero_guia) onLog?.(`Sin numero de guia leido: se envia "${GUIA_NO_IDENTIFICADA}".`);
+    if (!job.numero_guia) onLog?.(`Sin numero de guia: se envia "${GUIA_NO_IDENTIFICADA}" y se explica en el detalle.`);
   }
 
   // 6. Adjuntos: evidencias + los PDF del comprimido.

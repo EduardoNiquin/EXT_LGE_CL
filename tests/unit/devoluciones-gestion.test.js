@@ -14,6 +14,9 @@ import {
 import { armarDetalle, numeroDeCaso } from '../../src/features/devoluciones/falabella/gestion/content/ticket.js';
 import {
   DEFAULT_MOTIVO,
+  DETALLE_APERTURA,
+  DETALLE_SIN_OBSERVACION,
+  SIN_GUIA_DETALLE,
   SUBSTATUS_DANO_SEVERO,
   SUBSTATUS_INCOMPLETO,
 } from '../../src/features/devoluciones/falabella/gestion/constants.js';
@@ -88,25 +91,56 @@ describe('armarComentario', () => {
 });
 
 describe('armarDetalle (ticket)', () => {
-  it('lleva la orden y lo que se sepa de la devolucion', () => {
+  it('abre siempre con la postura del seller y le pega la observacion', () => {
     const texto = armarDetalle({
       orden: '3222475480',
       numero_guia: '140222',
       reembolso: { producto: 'Televisor', modelo: '55QNED83ASG', serie: null, observacion: 'Sin embalaje' },
     });
 
+    // La primera linea es el argumento del ticket, y no cambia caso a caso.
+    expect(texto.split('\n')[0]).toBe(`${DETALLE_APERTURA} Sin embalaje.`);
+
     expect(texto).toContain('3222475480');
     expect(texto).toContain('140222');
     expect(texto).toContain('55QNED83ASG');
-    expect(texto).toContain('Sin embalaje');
     // La serie no estaba: no se inventa ni deja el rotulo suelto.
     expect(texto).not.toContain('Serie:');
   });
 
-  it('funciona con una orden sin data extraida', () => {
-    const texto = armarDetalle({ orden: '900000001', numero_guia: '', reembolso: null });
-    expect(texto).toContain('900000001');
+  it('no duplica el punto final de la observacion', () => {
+    const texto = armarDetalle({
+      orden: '3222475480',
+      numero_guia: '140222',
+      reembolso: { observacion: 'Pantalla quebrada. ' },
+    });
+
+    expect(texto.split('\n')[0]).toBe(`${DETALLE_APERTURA} Pantalla quebrada.`);
+  });
+
+  it('sin observacion la frase cierra igual', () => {
+    const texto = armarDetalle({ orden: '900000001', numero_guia: '140222', reembolso: null });
+
+    expect(texto.split('\n')[0]).toBe(`${DETALLE_APERTURA} ${DETALLE_SIN_OBSERVACION}.`);
     expect(texto).not.toContain('undefined');
+  });
+
+  /**
+   * El "0" del campo de guia no puede parecer un dato mal copiado: el detalle
+   * dice por que va asi.
+   */
+  it('sin numero de guia explica que la envio el currier', () => {
+    const texto = armarDetalle({ orden: '900000001', numero_guia: '', reembolso: null });
+
+    expect(texto).toContain(SIN_GUIA_DETALLE);
+    expect(texto).not.toContain('Numero de guia:');
+  });
+
+  it('con numero de guia no aparece la nota del currier', () => {
+    const texto = armarDetalle({ orden: '900000001', numero_guia: '140222', reembolso: null });
+
+    expect(texto).toContain('Numero de guia: 140222');
+    expect(texto).not.toContain(SIN_GUIA_DETALLE);
   });
 });
 
