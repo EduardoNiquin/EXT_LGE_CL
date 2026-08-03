@@ -46,6 +46,7 @@ export const FASE = {
   PENDIENTE: 'pendiente',       // aun sin reclamar
   BUSCAR: 'buscar',             // buscar la orden en el modulo de devoluciones
   APELAR: 'apelar',             // formulario "No, rechazar" (apelacion)
+  VERIFICAR: 'verificar',       // la orden tiene que haber salido del modulo tras apelar
   AYUDA: 'ayuda',               // navbar de SellerCenter -> Centro de ayuda
   SOPORTE: 'soporte',           // navbar de la mesa de ayuda -> Soporte
   TICKET: 'ticket',             // pestana "Nuevo caso" + formulario del ticket
@@ -87,6 +88,13 @@ export const DETALLE_SIN_OBSERVACION = 'las observaciones que se aprecian en las
 // es rapida, asi que el plazo de pagina es generoso.
 export const PAGE_TIMEOUT_MS = 90_000;
 export const STEP_TIMEOUT_MS = 15_000;
+
+// Cuanto se espera la salida del formulario tras pulsar "Enviar apelacion".
+// Cuando el envio prospera el portal navega de vuelta al listado (medido en
+// vivo: POST 201 y regreso a returns_pending_review); un clic que no prendio
+// deja la pagina exactamente igual, asi que el timeout aqui significa "no se
+// envio", no "tal vez se envio".
+export const ENVIO_APELACION_TIMEOUT_MS = 30_000;
 
 // Cuanto espera un frame a ver "su" pantalla antes de concluir que no le toca.
 // El contenido del portal se monta por partes y a veces dentro de un iframe:

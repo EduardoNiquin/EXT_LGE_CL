@@ -13,6 +13,7 @@
 import {
   ACORDEONES,
   DEFAULT_MOTIVO,
+  ENVIO_APELACION_TIMEOUT_MS,
   INFORME_STATUS,
   MOTIVO_KEYWORDS,
   PAGE_TIMEOUT_MS,
@@ -22,7 +23,7 @@ import {
   SUBSTATUS_INCOMPLETO,
 } from '../constants.js';
 import { abrirAcordeon, base64ToFile, buscarPorTexto, clickReal, elegirOpcion, escribirEn, normalizar, primero, raizDe, setFiles } from './dom.js';
-import { traza, trazaAviso } from '../../../trace.js';
+import { traza, trazaAviso, trazaError } from '../../../trace.js';
 import { waitFor, waitForElement } from '../../../../../shared/dom/wait.js';
 
 /**
@@ -73,9 +74,9 @@ export function armarComentario(job) {
  * Rellena y (salvo en modo prueba) envia la apelacion.
  *
  * @param {object} job
- * @param {{ prueba: boolean, pedirArchivos: () => Promise<Array>, signal?: AbortSignal, onLog?: Function }} opts
+ * @param {{ prueba: boolean, pedirArchivos: () => Promise<Array>, antesDeEnviar?: () => Promise<any>, signal?: AbortSignal, onLog?: Function }} opts
  */
-export async function apelar(job, { prueba, pedirArchivos, signal, onLog } = {}) {
+export async function apelar(job, { prueba, pedirArchivos, antesDeEnviar, signal, onLog } = {}) {
   // El formulario vive dentro del shadow root de la micro-app, igual que el
   // listado: se resuelve la raiz una vez y se consulta siempre contra ella.
   const raiz = raizApelacion();
@@ -144,10 +145,46 @@ export async function apelar(job, { prueba, pedirArchivos, signal, onLog } = {})
     return { enviado: false };
   }
 
+  // La fase se anota ANTES de pulsar, igual que en el ticket: el envio navega
+  // al listado (a veces con recarga incluida) y quien cargue despues tiene que
+  // saber que ya toca verificar que la orden salio del modulo.
+  await antesDeEnviar?.();
+
   clickReal(enviar);
-  onLog?.('Apelacion enviada.');
+  onLog?.('Apelacion enviada, esperando la vuelta al listado…');
+
+  await esperarSalidaDelFormulario({ signal });
 
   return { enviado: true };
+}
+
+/**
+ * La constancia de que la apelacion de verdad se envio: el portal SALE del
+ * formulario (medido en vivo: el POST responde 201 y la SPA regresa a
+ * returns_pending_review). Un clic que no prendio —o un POST rechazado— deja
+ * la pagina en el formulario, asi que el timeout aqui significa "no se
+ * envio", no "quiza se envio": antes se reportaba OK a ciegas y la orden
+ * seguia en el modulo sin que nadie se enterara.
+ *
+ * Si la navegacion recarga la pagina, esta espera muere con el documento y la
+ * verificacion la retoma la pagina siguiente (fase VERIFICAR).
+ */
+async function esperarSalidaDelFormulario({ signal } = {}) {
+  const salio = await waitFor(
+    () => !location.href.includes('/order/return/rejectAppeals') || null,
+    { timeout: ENVIO_APELACION_TIMEOUT_MS, signal, description: 'la salida del formulario tras enviar' },
+  ).catch(() => null);
+
+  if (salio) return;
+
+  trazaError('apelar', 'El envio no saco al portal del formulario', {
+    url: location.href,
+    botonActivoSigue: Boolean(primero(SEL.apelar.enviarActivo, raizApelacion())),
+  });
+
+  throw new Error(
+    'La apelacion no se envio: tras pulsar "Enviar" el portal no salio del formulario.',
+  );
 }
 
 /** Veces que se intenta elegir el motivo antes de rendirse. */

@@ -165,6 +165,101 @@ export async function buscarOrden(job, { signal, onLog } = {}) {
 }
 
 /**
+ * Fase VERIFICAR: tras enviar la apelacion, la orden tiene que haber salido
+ * del listado de "Revision pendiente" (medido en vivo: el contador del tab
+ * baja y la fila desaparece). Se busca por su numero igual que en la fase
+ * BUSCAR, pero el veredicto es al reves: **encontrarla es el fallo**.
+ *
+ * @returns {Promise<{ sigue: boolean }>} `sigue: true` si la orden aun aparece.
+ */
+export async function verificarApelacion(job, { signal, onLog } = {}) {
+  const numero = digitos(job.orden);
+  if (!numero) throw new Error('La orden no tiene numero utilizable');
+
+  const raiz = raizModulo();
+  const input = anclaListado();
+  if (!input) throw new Error('El buscador de ordenes desaparecio de la pantalla');
+
+  await waitFor(() => raiz.querySelector(SEL.buscar.tabla), {
+    timeout: STEP_TIMEOUT_MS,
+    signal,
+    description: 'la tabla de devoluciones',
+  });
+
+  // La recarga de rescate tambien aplica aqui: si el portal se quedo en "No
+  // data available" al volver del envio, sin ella la tabla vacia se leeria
+  // como "la orden salio" — un OK falso justo donde la verificacion existe
+  // para evitarlo. La marca es por orden y BUSCAR no la gasto (si estamos aqui
+  // es porque alla el listado cargo y encontro la fila).
+  let listadoCargado = await esperarListado(raiz, { signal });
+
+  if (!listadoCargado && recargarUnaVez(job)) {
+    onLog?.('El listado de devoluciones no cargo: recargo la pagina y lo reintento.');
+    trazaAviso('verificar', 'Listado vacio al volver del envio: se recarga la pagina', { orden: numero });
+
+    location.reload();
+
+    // Este documento muere con la recarga; la pagina siguiente retoma el job.
+    await new Promise(() => {});
+  }
+
+  listadoCargado = listadoCargado || todos(SEL.buscar.filas, raiz).length > 0;
+
+  onLog?.(`Verificando que la orden ${numero} ya no este en el modulo…`);
+  trazaInfo('verificar', 'Empieza la verificacion de la apelacion', {
+    orden: numero,
+    listadoConDatos: listadoCargado,
+  });
+
+  let desenlace = null;
+
+  for (let intento = 1; intento <= INTENTOS_BUSQUEDA && !desenlace; intento++) {
+    escribirEn(input, numero);
+    dispararBusqueda(input, raiz, intento);
+
+    desenlace = await esperarDesenlace(numero, raiz, {
+      signal,
+      listadoCargado,
+      descripcion: `la comprobacion de la orden ${numero}`,
+    });
+
+    if (!desenlace && intento < INTENTOS_BUSQUEDA) {
+      trazaAviso('verificar', 'La comprobacion no dio resultado: se reintenta', {
+        orden: numero,
+        intento,
+        de: INTENTOS_BUSQUEDA,
+        ...radiografiaDeLaTabla(raiz),
+      });
+    }
+  }
+
+  if (!desenlace) {
+    // No se reporta OK ni "sigue": sin lectura clara no hay veredicto. El
+    // mensaje pide mirarla a mano porque reintentar a ciegas podria duplicar
+    // la apelacion (o el ticket) de una orden que si se gestiono.
+    trazaAviso('verificar', 'Sin desenlace claro al verificar', {
+      orden: numero,
+      ...radiografiaDeLaTabla(raiz),
+    });
+
+    throw new Error(
+      `No se pudo confirmar si la orden ${numero} salio del modulo: `
+      + 'compruebalo a mano en "Revision pendiente" antes de reintentar',
+    );
+  }
+
+  if (desenlace.fila) {
+    trazaInfo('verificar', 'La orden SIGUE en el modulo: la apelacion no llego', { orden: numero });
+    return { sigue: true };
+  }
+
+  trazaInfo('verificar', 'La orden ya NO esta en el modulo: apelacion confirmada', { orden: numero });
+  onLog?.(`Verificado: la orden ${numero} ya no aparece en el modulo de devoluciones.`);
+
+  return { sigue: false };
+}
+
+/**
  * ¿Se puede gastar la recarga de rescate con esta orden?
  *
  * Una sola vez por orden y solo en el documento superior (recargar un iframe

@@ -505,6 +505,7 @@ function jobEtiqueta(job, run) {
   return {
     buscar: 'Buscando en el modulo…',
     apelar: 'Enviando apelacion…',
+    verificar: 'Verificando que salio del modulo…',
     ticket: 'Levantando ticket…',
   }[job.fase] || 'Preparando…';
 }

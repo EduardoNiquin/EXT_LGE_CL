@@ -32,7 +32,7 @@ import {
   PAGE_TIMEOUT_MS,
   RESULTADO,
 } from '../constants.js';
-import { abrirApelacion, anclaListado, buscarOrden } from './buscar.js';
+import { abrirApelacion, anclaListado, buscarOrden, verificarApelacion } from './buscar.js';
 import { anclaApelacion, apelar } from './apelar.js';
 import { contarShadowRoots, todos } from './dom.js';
 import { anclaTicket, leerConfirmacion, levantarTicket } from './ticket.js';
@@ -314,12 +314,43 @@ async function despachar() {
       case FASE.APELAR: {
         await ancla(anclaApelacion, 'formulario de apelacion', opciones);
 
-        const { enviado } = await apelar(job, opciones);
+        const { enviado } = await apelar(job, {
+          ...opciones,
+          // La fase queda anotada ANTES de pulsar "Enviar": el envio navega al
+          // listado (a veces recargando la pagina) y quien cargue despues
+          // tiene que saber que ya toca verificar, no apelar de nuevo.
+          antesDeEnviar: () => avanzar(job.id, FASE.VERIFICAR),
+        });
+
+        // El OK ya no se reporta aqui: darlo por enviado sin mas era justo el
+        // fallo — la apelacion se daba por hecha aunque el clic no hubiera
+        // prendido. El veredicto lo da la fase VERIFICAR mirando que la orden
+        // haya salido del listado. Solo el modo prueba cierra el job aqui.
+        if (!enviado) {
+          await enviar({
+            type: GESTION_MESSAGES.REPORT,
+            id: job.id,
+            resultado: RESULTADO.ERROR,
+            mensaje: 'Modo prueba: no se envio la apelacion',
+          });
+        }
+        break;
+      }
+
+      // Tras enviar la apelacion el portal vuelve al listado: si la orden ya
+      // no esta, la apelacion se confirma; si sigue, el envio no llego.
+      case FASE.VERIFICAR: {
+        await ancla(anclaListado, 'listado de devoluciones', opciones);
+
+        const { sigue } = await verificarApelacion(job, opciones);
+
         await enviar({
           type: GESTION_MESSAGES.REPORT,
           id: job.id,
-          resultado: enviado ? RESULTADO.OK : RESULTADO.ERROR,
-          mensaje: enviado ? 'Apelada en el modulo de devoluciones' : 'Modo prueba: no se envio la apelacion',
+          resultado: sigue ? RESULTADO.ERROR : RESULTADO.OK,
+          mensaje: sigue
+            ? 'La apelacion se envio pero la orden sigue en el modulo de devoluciones: revisala a mano'
+            : 'Apelada en el modulo de devoluciones (verificado: ya no aparece en la tabla)',
         });
         break;
       }
