@@ -1,0 +1,211 @@
+import { toMessage } from '../../../../shared/errors/index.js';
+import { navigateActiveTab } from '../../../../shared/messaging/messaging.js';
+import { logger } from '../../../../shared/utils/logger.js';
+import { DEFAULT_LISTING_URL, RULE_STATUS, RUN_PHASE } from '../../constants.js';
+import { buildShippingRulesCsv } from '../../csv.js';
+import { clearRun, getRun, setRun, subscribeToRun, updateRun } from '../../state.js';
+import { downloadText, escapeHtml, formatTime } from '../utils.js';
+
+const log = logger('magento/popup');
+let unsubscribeRun = null;
+
+export async function render(container) {
+  if (unsubscribeRun) unsubscribeRun();
+  const run = await getRun();
+
+  container.innerHTML = `
+    <div class="lt-view mg-gsr-view">
+      <section class="lt-form-card">
+        <h3 class="lt-section-title">Global Shipping Rules</h3>
+        <p class="lt-hint">Captura todas las rules, sus campos y las tarifas por region o comuna. La pestana navegara automaticamente entre el listado y cada detalle.</p>
+        <div class="mg-notice">
+          <strong>Antes de iniciar</strong>
+          <span>Inicia sesion en Magento. El proceso abrira el listado oficial y continuara aunque cierres este panel.</span>
+        </div>
+        <div class="lt-actions">
+          <button type="button" id="mg-start" class="ct-btn ct-btn--primary">Iniciar captura</button>
+          <button type="button" id="mg-stop" class="ct-btn ct-btn--ghost" disabled>Detener</button>
+          <button type="button" id="mg-clear" class="ct-btn ct-btn--ghost hidden">Limpiar</button>
+        </div>
+      </section>
+
+      <section id="mg-progress" class="lt-progress hidden">
+        <div class="lt-progress-head">
+          <strong id="mg-progress-title">Preparando...</strong>
+          <span id="mg-progress-counter" class="dt-progress-counter"></span>
+        </div>
+        <div id="mg-progress-bar" class="lt-progress-bar"><span></span></div>
+        <p id="mg-progress-detail" class="lt-hint"></p>
+        <ul id="mg-rule-list" class="lt-region-list"></ul>
+        <button type="button" id="mg-export" class="ct-btn ct-btn--primary hidden">Exportar CSV</button>
+        <details class="ct-diag lt-log-details">
+          <summary>Registro</summary>
+          <ul id="mg-log" class="lt-log"></ul>
+        </details>
+      </section>
+    </div>`;
+
+  container.querySelector('#mg-start').addEventListener('click', () => onStart(container));
+  container.querySelector('#mg-stop').addEventListener('click', onStop);
+  container.querySelector('#mg-clear').addEventListener('click', () => onClear(container));
+  container.querySelector('#mg-export').addEventListener('click', onExport);
+
+  if (run) renderProgress(container, run);
+  toggleButtons(container, run);
+  unsubscribeRun = subscribeToRun((newRun) => {
+    if (newRun) renderProgress(container, newRun);
+    else container.querySelector('#mg-progress')?.classList.add('hidden');
+    toggleButtons(container, newRun);
+  });
+}
+
+async function onStart(container) {
+  const previous = await getRun();
+  if (previous?.active) return;
+
+  const run = {
+    active: true,
+    phase: RUN_PHASE.STARTING,
+    startedAt: Date.now(),
+    finishedAt: null,
+    finishReason: null,
+    listingUrl: DEFAULT_LISTING_URL,
+    currentRuleIndex: -1,
+    items: [],
+    log: [{ ts: Date.now(), level: 'info', message: 'Abriendo Global Shipping Rules' }],
+  };
+  await setRun(run);
+  renderProgress(container, run);
+  toggleButtons(container, run);
+
+  try {
+    await navigateActiveTab(DEFAULT_LISTING_URL);
+  } catch (err) {
+    const message = toMessage(err);
+    await updateRun((current) => ({
+      ...current,
+      active: false,
+      finishedAt: Date.now(),
+      finishReason: 'error',
+      error: message,
+    }));
+    log.error('no se pudo abrir Magento', err);
+  }
+}
+
+async function onStop() {
+  if (!confirm('Detener la captura en curso?')) return;
+  await updateRun((run) => ({
+    ...run,
+    active: false,
+    finishedAt: Date.now(),
+    finishReason: 'cancelled',
+  }));
+}
+
+async function onClear(container) {
+  const run = await getRun();
+  if (run?.active && !confirm('Hay una captura activa. Detenerla y limpiar los datos?')) return;
+  await clearRun();
+  container.querySelector('#mg-progress')?.classList.add('hidden');
+  toggleButtons(container, null);
+}
+
+async function onExport() {
+  const run = await getRun();
+  if (!run?.items?.length) return;
+  const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
+  downloadText(buildShippingRulesCsv(run), `magento-global-shipping-rules-${stamp}.csv`);
+}
+
+function renderProgress(container, run) {
+  const wrap = container.querySelector('#mg-progress');
+  if (!wrap) return;
+  wrap.classList.remove('hidden');
+
+  const stats = computeStats(run);
+  container.querySelector('#mg-progress-title').textContent = progressTitle(run);
+  container.querySelector('#mg-progress-counter').textContent = stats.total
+    ? `${stats.done} / ${stats.total}`
+    : 'Leyendo listado';
+  container.querySelector('#mg-progress-bar span').style.width = `${stats.total ? Math.round((stats.done / stats.total) * 100) : 0}%`;
+
+  const remaining = Math.max(0, stats.total - stats.done);
+  const detail = container.querySelector('#mg-progress-detail');
+  if (run.error) detail.textContent = run.error;
+  else if (run.active && stats.total) detail.textContent = `${remaining} rules pendientes. ${stats.ok} capturadas y ${stats.errors} con error.`;
+  else if (run.active) detail.textContent = 'Configurando 200 rules por pagina y leyendo el listado completo...';
+  else detail.textContent = `${stats.ok} capturadas y ${stats.errors} con error.`;
+
+  renderRuleList(container.querySelector('#mg-rule-list'), run);
+  renderLog(container.querySelector('#mg-log'), run.log || []);
+  container.querySelector('#mg-export').classList.toggle('hidden', run.active || !run.items?.length);
+}
+
+function renderRuleList(list, run) {
+  list.innerHTML = '';
+  (run.items || []).forEach((item, index) => {
+    const row = document.createElement('li');
+    row.className = `lt-region lt-region--${statusClass(item.status)}`;
+    if (run.active && index === run.currentRuleIndex) row.classList.add('lt-region--current');
+    const fees = item.detail?.regionalRows?.length;
+    row.innerHTML = `
+      <div class="lt-region-head">
+        <span class="lt-region-name">${escapeHtml(item.nameFe || 'Sin nombre')}</span>
+        <span class="lt-region-leadtimes">#${escapeHtml(item.id)}</span>
+        <span class="lt-region-status">${statusLabel(item.status)}</span>
+      </div>
+      ${fees != null ? `<div class="lt-region-detail">${fees} tarifa(s) regional(es)</div>` : ''}
+      ${item.error ? `<div class="lt-err">${escapeHtml(item.error)}</div>` : ''}`;
+    list.appendChild(row);
+  });
+}
+
+function renderLog(list, entries) {
+  list.innerHTML = '';
+  entries.slice(-60).reverse().forEach((entry) => {
+    const row = document.createElement('li');
+    row.className = `lt-log-item lt-log-item--${entry.level}`;
+    row.innerHTML = `<span class="lt-log-time">${formatTime(entry.ts)}</span><span class="lt-log-msg">${escapeHtml(entry.message)}</span>`;
+    list.appendChild(row);
+  });
+}
+
+function toggleButtons(container, run) {
+  const active = Boolean(run?.active);
+  const finished = Boolean(run && !run.active);
+  container.querySelector('#mg-start').disabled = active;
+  container.querySelector('#mg-stop').disabled = !active;
+  container.querySelector('#mg-clear').classList.toggle('hidden', !finished);
+}
+
+function computeStats(run) {
+  const items = run.items || [];
+  const ok = items.filter((item) => item.status === RULE_STATUS.OK).length;
+  const errors = items.filter((item) => item.status === RULE_STATUS.ERROR).length;
+  return { total: items.length, done: ok + errors, ok, errors };
+}
+
+function progressTitle(run) {
+  if (run.active && run.phase === RUN_PHASE.DISCOVERING) return 'Leyendo listado...';
+  if (run.active) return 'Capturando rules...';
+  if (run.finishReason === 'cancelled') return 'Captura detenida';
+  if (run.finishReason === 'error') return 'Captura con error';
+  return 'Captura terminada';
+}
+
+function statusClass(status) {
+  if (status === RULE_STATUS.OK) return 'done';
+  if (status === RULE_STATUS.ERROR) return 'error';
+  if (status === RULE_STATUS.READING) return 'running';
+  return 'pending';
+}
+
+function statusLabel(status) {
+  if (status === RULE_STATUS.OK) return 'OK';
+  if (status === RULE_STATUS.ERROR) return 'Error';
+  if (status === RULE_STATUS.READING) return 'Leyendo';
+  return 'Pendiente';
+}
+
+export const __test = { computeStats };

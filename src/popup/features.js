@@ -11,6 +11,7 @@ import { render as renderPim }          from '../features/pim/popup/view.js';
 import { render as renderSolotodo }    from '../features/solotodo/popup/view.js';
 import { render as renderBatallaNaval } from '../features/batalla-naval/popup/view.js';
 import { render as renderAjustes }     from '../features/ajustes/popup/view.js';
+import { render as renderMagento }     from '../features/magento/popup/view.js';
 
 export const features = [
   {
@@ -20,6 +21,14 @@ export const features = [
     abbr: 'TAG',
     keywords: ['tag', 'etiqueta', 'colocar', 'gp1', 'marketing'],
     render: renderColocarTags,
+  },
+  {
+    id: 'magento',
+    name: 'Magento',
+    description: 'Herramientas de administracion para Magento',
+    abbr: 'MGT',
+    keywords: ['magento', 'shipping', 'rules', 'reglas', 'despacho', 'tarifas', 'region', 'comuna', 'csv'],
+    render: renderMagento,
   },
   {
     id: 'lead-times',

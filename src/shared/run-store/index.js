@@ -181,7 +181,13 @@ export function wireAsyncRunLifecycle({
  * @param {number} [o.delay=300]  espera inicial para que monte el DOM/grid.
  * @param {{debug?:Function}} [o.log=console]
  */
-export function wireReloadTickLifecycle({ runKey, tickIfActive, delay = 300, log = console }) {
+export function wireReloadTickLifecycle({
+  runKey,
+  tickIfActive,
+  abortActiveRun = null,
+  delay = 300,
+  log = console,
+}) {
   if (window !== window.top) {
     log.debug?.('iframe — no se inicializa la state machine en este frame');
     return;
@@ -190,6 +196,7 @@ export function wireReloadTickLifecycle({ runKey, tickIfActive, delay = 300, log
   setTimeout(tick, delay);
   chrome.storage.onChanged.addListener((changes, area) => {
     if (area !== 'local' || !changes[runKey]) return;
-    tick();
+    if (changes[runKey].newValue?.active) tick();
+    else abortActiveRun?.();
   });
 }
