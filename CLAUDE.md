@@ -89,7 +89,7 @@ popup/         view.js (sub-router) · utils.js · sections/ (una sub-vista por 
 
 ## Logs por scope (`Ajustes`)
 `logger('foo')` registra el scope `foo`, que aparece en la UI de Ajustes (`features/ajustes`) con toggle individual + "Habilitar/Deshabilitar todos". `log-config/index.js` cachea en memoria y persiste en `chrome.storage.local` (`log-config:scopes`, cross-context vía `storage.onChanged`). `logger.js` chequea `isScopeEnabled(scope)` antes de emitir. Default: todos habilitados.
-Scopes: `colocar-tags`, `colocar-tags:product`, `colocar-tags:offer`, `colocar-tags:delivery-remove`, `colocar-tags:combobox`, `lead-times`, `cupones`, `orden-info`, `starkoms`, `lgcom`, `lgcom/popup`, `seller-center-falabella`, `e-promoters`, `pim`, `solotodo`, `gato`, `content`, `service-worker`, `debug`, `popup`.
+Scopes: `colocar-tags`, `colocar-tags:product`, `colocar-tags:offer`, `colocar-tags:delivery-remove`, `colocar-tags:combobox`, `magento/content`, `magento/global-shipping-rules`, `magento/popup`, `lead-times`, `cupones`, `orden-info`, `starkoms`, `lgcom`, `lgcom/popup`, `seller-center-falabella`, `e-promoters`, `pim`, `solotodo`, `gato`, `content`, `service-worker`, `debug`, `popup`.
 
 ## Manejo de errores y Modo Dev (`shared/errors` · `shared/dev-mode` · `shared/diagnostics`)
 - **`shared/errors`:** `ExtError` (base con `code`/`context`/`cause`), `toMessage(err)` (mensaje legible de cualquier throw), `isAbortError(err, signal)` (cancelación: WaitAbortedError/AbortError/signal.aborted), `describeError(err, meta)` (forma serializable con stack recortado).
@@ -103,7 +103,7 @@ Factory que unifica la persistencia de estado de ejecución que cada feature con
   - **`updateRun` con coalescing de escrituras (velocidad):** encola los updaters y los drena en LOTES — cada lote hace UN `getRun` + UN `setRun` aplicando en orden FIFO todo lo acumulado mientras la IO anterior estaba en vuelo. Reduce de O(N) round-trips a storage a O(rondas de IO) durante las ráfagas de `onStep` fire-and-forget, y reduce los `storage.onChanged` (menos re-renders del popup). Correcto en multi-writer: cada lote re-lee storage, así ve la cancelación que el popup escribe. Resuelve con el estado tras su propio updater (misma semántica que la versión serializada anterior).
 - **`createPersistedValue(key, fallback)`** → `{ get, set }` para last-config / draft / last-query sueltos.
 - **`wireAsyncRunLifecycle({ subscribeToRun, tickIfActive, abortActiveRun?, reconcileOnInit?, topFrameOnly?, log })`** — patrón storage-driven async (Colocar TAGs, Starkoms, Seller Center): reconcile + subscribe(active?tick:abort) + tick inicial.
-- **`wireReloadTickLifecycle({ runKey, tickIfActive, delay=300, log })`** — patrón tick-por-reload (Lead Times, Cupones): top frame, tick inicial con delay + tick en cada `storage.onChanged` del run.
+- **`wireReloadTickLifecycle({ runKey, tickIfActive, abortActiveRun?, delay=300, log })`** — patrón tick-por-reload (Lead Times, Cupones, Magento): top frame, tick inicial con delay + tick en cada `storage.onChanged` del run. **Ojo:** ese tick por `storage.onChanged` corre en el MISMO documento que acaba de pedir la navegación (el navegador tarda cientos de ms; el evento de storage ~1 ms). Si el flow marca un item "en curso", escribe y recién después hace `location.href`, ese tick lo ve "en curso" en la página vieja. Ver el flag `navigating` en `magento/content/flows/run.js`.
 - **Migrado:** los 6 `state.js` (colocar-tags, starkoms, seller-center, lead-times, cupones, orden-info) usan el factory; cada uno conserva su `makeRun` (forma específica). orden-info aliasa los nombres `search` (`getSearch=store.getRun`, etc.).
 
 ## Debug API (`window.__extLgeCl`)
@@ -116,8 +116,8 @@ Sumar a una feature: crear `features/<feature>/debug.js` → `register('<feature
 
 ## Estado del proyecto
 Scaffolding + CI completos. Pipeline release corporativo (.crx firmado + política + ZIP). Debug API modular + logger persistente. Manejo de errores centralizado (`shared/errors`) + Modo Dev + ring buffer de errores con captura global (`shared/diagnostics`, visible en Ajustes). Content multi-frame con resolución de carrera. Capa `shared/dom`. Driver GP1 L-* (modal/messagebox/combobox).
-Features: **Colocar TAGs** (Lectura | Tag Delivery | Quitar Delivery | Tag Producto | Tag Oferta), **Lead Times** (Magento), **Cupones** (Quitar Regla de Cupón), **Información de Orden** (Magento), **Starkoms** (Verificar órdenes y stock), **LG.com** (Info de Producto), **SellerCenter Falabella** (SoporteSeller — Detalle Orden), **Devoluciones** (Falabella: cargar/guardar evidencias + gestión automática; Walmart/Paris pendientes), **E-promoters** (Informe ordenes — CSV/API → filtrado → CSV), **PIM** (Creación de producto — verificar si un SKU existe en PIM/STG), **SoloTodo** (Generar reportes de export en el backoffice — SPA React/MUI), **GATO** (tic-tac-toe multijugador secreto vía Firebase).
-⏳ Pendiente: más tests en `tests/unit/*.test.js` (hoy solo los `devoluciones-*.test.js`).
+Features: **Colocar TAGs** (Lectura | Tag Delivery | Quitar Delivery | Tag Producto | Tag Oferta), **Magento** (Global Shipping Rules → CSV), **Lead Times** (Magento), **Cupones** (Quitar Regla de Cupón), **Información de Orden** (Magento), **Starkoms** (Verificar órdenes y stock), **LG.com** (Info de Producto), **SellerCenter Falabella** (SoporteSeller — Detalle Orden), **Devoluciones** (Falabella: cargar/guardar evidencias + gestión automática; Walmart/Paris pendientes), **E-promoters** (Informe ordenes — CSV/API → filtrado → CSV), **PIM** (Creación de producto — verificar si un SKU existe en PIM/STG), **SoloTodo** (Generar reportes de export en el backoffice — SPA React/MUI), **GATO** (tic-tac-toe multijugador secreto vía Firebase).
+⏳ Pendiente: más tests en `tests/unit/*.test.js` (hoy los `devoluciones-*.test.js` y los `magento-*.test.js`).
 
 ---
 
@@ -173,6 +173,42 @@ Popup: `skus[]` + ofertas activadas `{index,label,use,description,startDate,endD
 **Reorg `content/index.js`:** los 4 ports (`DELIVERY_RUN`, `DELIVERY_REMOVE_RUN`, `PRODUCT_RUN`, `OFFER_RUN`) comparten `runSkuBatch`, parametrizado vía `PORT_RUNNERS[port.name].runPerSku` (evita duplicar manejo de SkuNotFoundError/WaitAbortedError/progress).
 
 **Debug `__extLgeCl.colocarTags.`:** `diagnose()`, `check()`, `find(key)`, `iframes()`, `frameInfo()`, `parse()`, `selectors()`, `checkProductTagRow(i)`, `snapshotProductTags()` (console.table de ambas filas — útil para "No changes"), `checkOfferRow(i)`, `snapshotOfferTags()`, `runOffer({sku,offers,skipProd?})`.
+
+---
+
+## Feature: Magento
+Apartado paraguas para herramientas del admin de Magento que no encajan en una feature propia. Router de 2 niveles: `popup/view.js` lista los módulos (`MODULES`) y monta el elegido. Sub-sección actual: **Global Shipping Rules** (estructura lista para sumar más).
+
+### Global Shipping Rules
+Pantalla: listado **Global Shipping Rules** (`/global_shippingrule/management/index`) + su detalle (`.../edit/entity_id/<N>`). **Read-only:** recorre todas las rules, entra a cada detalle, captura campos y tarifas regionales, y arma un **CSV**. NO toca ningún botón de guardado ni de borrado; los únicos clics son paginadores, headers de secciones colapsables y el selector de tamaño de página.
+```
+src/features/magento/
+├── constants.js   FEATURE_ID, STORAGE_KEYS, PAGE_TYPE, RULE_STATUS, RUN_PHASE, FINISH_REASON, DEFAULT_ADMIN_BASE/ADMIN_BASE_RE/LISTING_PATH, LISTING_URL_RE, DETAIL_URL_RE, MAX_DETAIL_REDIRECTS, SELECTORS, DETAIL_SECTION_SELECTORS
+├── state.js       run store (createRunStore) + makeRun
+├── csv.js         buildShippingRulesCsv (puro/testeable) — una fila por tarifa regional
+├── debug.js       __extLgeCl.magento.*
+├── content/ detector.js · parser.js · index.js · magento/{grid,detail-page}.js · flows/run.js
+└── popup/   view.js (router de módulos) · utils.js · sections/global-shipping-rules.js
+```
+**Estado (`chrome.storage.local["magento:global-shipping-rules:run"]`):** `{ active, phase, startedAt, finishedAt, finishReason?, error?, listingUrl, currentRuleIndex, detailRedirects, items:[{ id, nameFe, editHref, summary, status:pending|reading|ok|error, error?, capturedAt?, detail?:{ fields:[{key,label,section,value}], regionalRows:[{}] } }], log:[...] (cap 400) }`.
+
+**Patrón:** tick-por-reload (`wireReloadTickLifecycle`, como Lead Times/Cupones) — el flujo cruza navegaciones full-page. **onListing:** rule en READING → interrumpida; sin items → `collectAllRules`; próxima PENDING → READING + navegar al detalle; ninguna PENDING → finalizar. **onDetail:** casar la URL con la rule en READING, `expandDetailSections` + `parseDetailFields` + `collectAllRegionalRows`, volver al listado (un error no corta el proceso, marca ERROR y sigue).
+
+**CSV (`csv.js`):** headers = `ID` + `Shipping Rule Name (FE)` + columnas del listado + `Detail - <label>` + `Regional - <columna>` + estado/error/URL. Una rule con N tarifas regionales genera **N filas** (las columnas de la rule se repiten); sin tarifas, una fila. `protectFormula` antepone `'` a lo que Excel ejecutaría (`=`, `+`, `@`, `-texto`), con BOM UTF-8.
+
+**Quirks (críticos):**
+- **La navegación se anuncia por storage ANTES de ocurrir (flag `navigating`):** `onListing` marca la rule READING, escribe en storage y recién después hace `location.href`. Esa escritura dispara `storage.onChanged` en **~1 ms**, mientras que el navegador tarda cientos de ms en cambiar de página: el tick resultante corre todavía en el listado, ve la rule en READING y la da por **interrumpida**. El síntoma es que TODAS las rules terminan en error. `goTo()` levanta `navigating` (que solo baja la carga del documento nuevo) y `tickIfActive` sale temprano mientras esté arriba. `goTo()` además limpia `window.onbeforeunload`, o un confirm "Changes have been made" dejaría el proceso esperando una navegación que nunca ocurre (mismo cuidado que lead-times).
+- **El ID de la columna del listado no siempre es el `entity_id` de la URL.** `findActiveRuleIndex` prueba el `id` del listado, el `entity_id` parseado del `editHref` y, como última salida, **la única rule en READING** (solo puede haber una) dejando aviso en el log. Sin esa salida el proceso rebota listado↔detalle para siempre; `MAX_DETAIL_REDIRECTS` (5) lo corta con un error legible.
+- **Magento no monta el contenido de un fieldset colapsado.** `expandDetailSections` abre las secciones de `DETAIL_SECTION_SELECTORS` + la regional antes de parsear; leer sin eso devuelve campos vacíos y la grilla regional directamente no existe. Una sección que no abre no aborta la captura.
+- **El pager se marca deshabilitado de 4 formas** (`disabled` prop, atributo `disabled`, `aria-disabled`, clase `.disabled`) según sea `<button>` o `<a>`: `isPagerDisabled` las cubre todas. Mirar solo `.disabled` deja el recorrido girando hasta el tope de páginas.
+- **Fallo de paginación ⇒ datos parciales, no cero.** Si una página no avanza (o no se puede fijar 200 por página), `collectAllRules`/`collectAllRegionalRows` avisan por `onWarn` (queda en el registro del proceso) y devuelven lo recolectado, en vez de perder el listado entero.
+- **La base del admin se deriva de la pestaña activa** (`ADMIN_BASE_RE`, igual que orden-info), con `DEFAULT_ADMIN_BASE` de respaldo; si la pestaña no parece admin de Magento, se pide confirmación antes de navegarla. En el listado se guarda la URL real (trae el token `key`).
+- **El popup no llama a un unmount:** la suscripción a storage se corta sola cuando `container.isConnected` es falso. Sin eso, volver al menú y esperar un cambio de estado revienta buscando botones que ya no existen.
+
+**Debug `__extLgeCl.magento.`:** `diagnose()`, `listing()`, `detail()`, `expand()`, `state()`, `stop()`, `reset()`, `tick()`.
+**UI popup:** aviso previo, Iniciar/Detener/Limpiar, progreso (barra + lista de rules con estado y nº de tarifas), botón **Exportar CSV** al terminar, `<details>` con los últimos 60 logs. Live vía `storage.onChanged`.
+**Tests:** `tests/unit/magento-global-shipping-rules.test.js` (CSV + `DETAIL_URL_RE`) y `tests/unit/magento-run-flow.test.js` (`findActiveRuleIndex` + `isPagerDisabled`).
+**Pendientes:** no distingue múltiples tabs Magento; sin reintento por rule (marca ERROR y sigue); sin historial de corridas; el CSV crece rápido (una fila por tarifa regional).
 
 ---
 

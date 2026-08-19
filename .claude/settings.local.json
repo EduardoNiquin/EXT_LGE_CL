@@ -41,7 +41,13 @@
       "mcp__chrome-devtools__take_screenshot",
       "mcp__chrome-devtools__select_page",
       "mcp__chrome-devtools__close_page",
-      "Bash(npx vitest *)"
+      "Bash(npx vitest *)",
+      "mcp__ide__getDiagnostics",
+      "Bash(echo \"EXIT=$?\")",
+      "Bash(echo \"ESLINT_EXIT=$?\")",
+      "Bash(grep -v \"function\\\\|//\")",
+      "Bash(echo \"ESLINT=$?\")",
+      "Bash(echo \"BUILD_EXIT=$?\")"
     ]
   }
 }

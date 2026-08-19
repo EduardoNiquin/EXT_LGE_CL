@@ -1,9 +1,16 @@
 import { toMessage } from '../../../../shared/errors/index.js';
-import { navigateActiveTab } from '../../../../shared/messaging/messaging.js';
+import { getActiveTab } from '../../../../shared/messaging/messaging.js';
 import { logger } from '../../../../shared/utils/logger.js';
-import { DEFAULT_LISTING_URL, RULE_STATUS, RUN_PHASE } from '../../constants.js';
+import {
+  ADMIN_BASE_RE,
+  DEFAULT_ADMIN_BASE,
+  FINISH_REASON,
+  LISTING_PATH,
+  RULE_STATUS,
+  RUN_PHASE,
+} from '../../constants.js';
 import { buildShippingRulesCsv } from '../../csv.js';
-import { clearRun, getRun, setRun, subscribeToRun, updateRun } from '../../state.js';
+import { clearRun, getRun, makeRun, setRun, subscribeToRun, updateRun } from '../../state.js';
 import { downloadText, escapeHtml, formatTime } from '../utils.js';
 
 const log = logger('magento/popup');
@@ -53,6 +60,14 @@ export async function render(container) {
   if (run) renderProgress(container, run);
   toggleButtons(container, run);
   unsubscribeRun = subscribeToRun((newRun) => {
+    // El popup no llama a un unmount: si el usuario volvio al menu, este
+    // contenedor ya no esta en el documento y seguir pintandolo revienta al
+    // buscar botones que ya no existen.
+    if (!container.isConnected) {
+      unsubscribeRun?.();
+      unsubscribeRun = null;
+      return;
+    }
     if (newRun) renderProgress(container, newRun);
     else container.querySelector('#mg-progress')?.classList.add('hidden');
     toggleButtons(container, newRun);
@@ -63,34 +78,46 @@ async function onStart(container) {
   const previous = await getRun();
   if (previous?.active) return;
 
-  const run = {
-    active: true,
-    phase: RUN_PHASE.STARTING,
-    startedAt: Date.now(),
-    finishedAt: null,
-    finishReason: null,
-    listingUrl: DEFAULT_LISTING_URL,
-    currentRuleIndex: -1,
-    items: [],
-    log: [{ ts: Date.now(), level: 'info', message: 'Abriendo Global Shipping Rules' }],
-  };
+  let tab = null;
+  try {
+    tab = await getActiveTab();
+  } catch (err) {
+    log.warn('no hay pestana activa', err);
+  }
+  const listingUrl = `${deriveAdminBase(tab?.url)}${LISTING_PATH}`;
+  if (!isMagentoAdmin(tab?.url)
+    && !confirm(`La pestana activa no parece el admin de Magento y se va a navegar a:\n\n${listingUrl}\n\nContinuar?`)) {
+    return;
+  }
+
+  const run = makeRun({ listingUrl });
   await setRun(run);
   renderProgress(container, run);
   toggleButtons(container, run);
 
   try {
-    await navigateActiveTab(DEFAULT_LISTING_URL);
+    if (!tab?.id) throw new Error('No hay pestana activa para abrir Magento.');
+    await chrome.tabs.update(tab.id, { url: listingUrl });
   } catch (err) {
     const message = toMessage(err);
     await updateRun((current) => ({
       ...current,
       active: false,
       finishedAt: Date.now(),
-      finishReason: 'error',
+      finishReason: FINISH_REASON.ERROR,
       error: message,
     }));
     log.error('no se pudo abrir Magento', err);
   }
+}
+
+/** El admin puede colgar de otra base segun el ambiente (mismo criterio que orden-info). */
+function deriveAdminBase(url) {
+  return url?.match(ADMIN_BASE_RE)?.[1] || DEFAULT_ADMIN_BASE;
+}
+
+function isMagentoAdmin(url) {
+  return /\/(obsadm|admin)\//i.test(url || '');
 }
 
 async function onStop() {
@@ -99,7 +126,7 @@ async function onStop() {
     ...run,
     active: false,
     finishedAt: Date.now(),
-    finishReason: 'cancelled',
+    finishReason: FINISH_REASON.CANCELLED,
   }));
 }
 
@@ -174,9 +201,13 @@ function renderLog(list, entries) {
 function toggleButtons(container, run) {
   const active = Boolean(run?.active);
   const finished = Boolean(run && !run.active);
-  container.querySelector('#mg-start').disabled = active;
-  container.querySelector('#mg-stop').disabled = !active;
-  container.querySelector('#mg-clear').classList.toggle('hidden', !finished);
+  const start = container.querySelector('#mg-start');
+  const stop = container.querySelector('#mg-stop');
+  const clear = container.querySelector('#mg-clear');
+  if (!start || !stop || !clear) return;
+  start.disabled = active;
+  stop.disabled = !active;
+  clear.classList.toggle('hidden', !finished);
 }
 
 function computeStats(run) {
@@ -189,8 +220,8 @@ function computeStats(run) {
 function progressTitle(run) {
   if (run.active && run.phase === RUN_PHASE.DISCOVERING) return 'Leyendo listado...';
   if (run.active) return 'Capturando rules...';
-  if (run.finishReason === 'cancelled') return 'Captura detenida';
-  if (run.finishReason === 'error') return 'Captura con error';
+  if (run.finishReason === FINISH_REASON.CANCELLED) return 'Captura detenida';
+  if (run.finishReason === FINISH_REASON.ERROR) return 'Captura con error';
   return 'Captura terminada';
 }
 
