@@ -43,6 +43,7 @@ export async function render(container) {
         </div>
         <div id="mg-progress-bar" class="lt-progress-bar"><span></span></div>
         <p id="mg-progress-detail" class="lt-hint"></p>
+        <p id="mg-progress-metrics" class="lt-hint"></p>
         <ul id="mg-rule-list" class="lt-region-list"></ul>
         <button type="button" id="mg-export" class="ct-btn ct-btn--primary hidden">Exportar CSV</button>
         <details class="ct-diag lt-log-details">
@@ -163,6 +164,7 @@ function renderProgress(container, run) {
   else if (run.active && stats.total) detail.textContent = `${remaining} rules pendientes. ${stats.ok} capturadas y ${stats.errors} con error.`;
   else if (run.active) detail.textContent = 'Configurando 200 rules por pagina y leyendo el listado completo...';
   else detail.textContent = `${stats.ok} capturadas y ${stats.errors} con error.`;
+  container.querySelector('#mg-progress-metrics').textContent = metricSummary(run);
 
   renderRuleList(container.querySelector('#mg-rule-list'), run);
   renderLog(container.querySelector('#mg-log'), run.log || []);
@@ -217,6 +219,33 @@ function computeStats(run) {
   return { total: items.length, done: ok + errors, ok, errors };
 }
 
+function metricSummary(run) {
+  const metrics = run.metrics || {};
+  const startedAt = Number(run.startedAt) || Date.now();
+  const finishedAt = Number(run.finishedAt) || Date.now();
+  const parts = [
+    `Tiempo total: ${formatDuration(Math.max(0, finishedAt - startedAt))}`,
+    `Navegaciones: ${Number(metrics.navigationCount) || 0}`,
+  ];
+  if (metrics.discoveryMs) parts.push(`Listado: ${formatDuration(metrics.discoveryMs)}`);
+  if (metrics.detailCount) {
+    parts.push(`Promedio por rule: ${formatDuration(metrics.detailMs / metrics.detailCount)}`);
+    parts.push(`Tarifas: ${formatDuration(metrics.regionalMs)}`);
+  }
+  return parts.join(' | ');
+}
+
+function formatDuration(ms) {
+  const totalSeconds = Math.max(0, Math.round(Number(ms) / 1000));
+  if (totalSeconds < 60) return `${totalSeconds}s`;
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  return hours
+    ? `${hours}h ${String(minutes).padStart(2, '0')}m ${String(seconds).padStart(2, '0')}s`
+    : `${minutes}m ${String(seconds).padStart(2, '0')}s`;
+}
+
 function progressTitle(run) {
   if (run.active && run.phase === RUN_PHASE.DISCOVERING) return 'Leyendo listado...';
   if (run.active) return 'Capturando rules...';
@@ -239,4 +268,4 @@ function statusLabel(status) {
   return 'Pendiente';
 }
 
-export const __test = { computeStats };
+export const __test = { computeStats, formatDuration, metricSummary };

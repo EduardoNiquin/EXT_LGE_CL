@@ -6,17 +6,31 @@ import { parseDetailFields } from '../parser.js';
 import { collectAllRegionalRows } from './grid.js';
 
 export async function readShippingRuleDetail({ signal, onWarn } = {}) {
+  const startedAt = Date.now();
   await waitFor(() => document.querySelector(SELECTORS.detailReady), {
     signal,
     timeout: 20000,
     interval: 150,
     description: 'formulario de Global Shipping Rule',
   });
+  const readyAt = Date.now();
 
   await expandDetailSections({ signal });
+  const expandedAt = Date.now();
   const fields = parseDetailFields();
+  const regionalStartedAt = Date.now();
   const regionalRows = await collectAllRegionalRows({ signal, onWarn });
-  return { fields, regionalRows };
+  const finishedAt = Date.now();
+  return {
+    fields,
+    regionalRows,
+    timing: {
+      readyMs: readyAt - startedAt,
+      sectionsMs: expandedAt - readyAt,
+      regionalMs: finishedAt - regionalStartedAt,
+      totalMs: finishedAt - startedAt,
+    },
+  };
 }
 
 /**

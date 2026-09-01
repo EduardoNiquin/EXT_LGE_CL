@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { buildShippingRulesCsv, __test } from '../../src/features/magento/csv.js';
 import { DETAIL_URL_RE } from '../../src/features/magento/constants.js';
+import { __test as popupTest } from '../../src/features/magento/popup/sections/global-shipping-rules.js';
 
 function parseCsvLine(line) {
   const values = [];
@@ -87,5 +88,25 @@ describe('Global Shipping Rules CSV', () => {
   it('reconoce las URLs reales de detalle que usan entity_id', () => {
     const url = 'https://shop.lg.com/obsadm/global_shippingrule/management/edit/entity_id/5799/key/token/';
     expect(url.match(DETAIL_URL_RE)?.[1]).toBe('5799');
+  });
+
+  it('formatea duraciones breves y extensas', () => {
+    expect(popupTest.formatDuration(1499)).toBe('1s');
+    expect(popupTest.formatDuration(65000)).toBe('1m 05s');
+    expect(popupTest.formatDuration(3661000)).toBe('1h 01m 01s');
+  });
+
+  it('resume tiempos y navegaciones persistidas', () => {
+    expect(popupTest.metricSummary({
+      startedAt: 1000,
+      finishedAt: 66000,
+      metrics: {
+        discoveryMs: 5000,
+        detailMs: 40000,
+        regionalMs: 12000,
+        detailCount: 4,
+        navigationCount: 5,
+      },
+    })).toBe('Tiempo total: 1m 05s | Navegaciones: 5 | Listado: 5s | Promedio por rule: 10s | Tarifas: 12s');
   });
 });

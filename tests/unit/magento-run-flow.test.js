@@ -12,7 +12,7 @@
 // que consulta la funcion (`disabled`, atributos y clases).
 
 import { describe, expect, it } from 'vitest';
-import { findActiveRuleIndex } from '../../src/features/magento/content/flows/run.js';
+import { claimNextPendingRule, findActiveRuleIndex } from '../../src/features/magento/content/flows/run.js';
 import { isPagerDisabled } from '../../src/features/magento/content/magento/grid.js';
 import { RULE_STATUS } from '../../src/features/magento/constants.js';
 
@@ -77,6 +77,40 @@ describe('findActiveRuleIndex', () => {
   it('tolera un run sin items', () => {
     expect(findActiveRuleIndex(null, '1')).toBe(-1);
     expect(findActiveRuleIndex({}, '1')).toBe(-1);
+  });
+});
+
+describe('claimNextPendingRule', () => {
+  it('marca la primera rule pendiente para lectura', () => {
+    const run = {
+      currentRuleIndex: 0,
+      items: [rule(10, RULE_STATUS.OK), rule(20, RULE_STATUS.PENDING), rule(30, RULE_STATUS.PENDING)],
+    };
+
+    const claimed = claimNextPendingRule(run);
+
+    expect(claimed).toEqual({ index: 1, item: run.items[1] });
+    expect(run.currentRuleIndex).toBe(1);
+    expect(run.items.map((item) => item.status)).toEqual([
+      RULE_STATUS.OK,
+      RULE_STATUS.READING,
+      RULE_STATUS.PENDING,
+    ]);
+  });
+
+  it('no modifica el run cuando no quedan rules pendientes', () => {
+    const run = {
+      currentRuleIndex: 1,
+      items: [rule(10, RULE_STATUS.OK), rule(20, RULE_STATUS.ERROR)],
+    };
+
+    expect(claimNextPendingRule(run)).toBeNull();
+    expect(run.currentRuleIndex).toBe(1);
+  });
+
+  it('tolera un run sin items', () => {
+    expect(claimNextPendingRule(null)).toBeNull();
+    expect(claimNextPendingRule({})).toBeNull();
   });
 });
 

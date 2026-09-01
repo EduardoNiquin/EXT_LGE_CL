@@ -11,7 +11,7 @@
 //
 // DETAIL:
 //   ├─ Casar la URL con la rule en READING, leer campos + tarifas regionales.
-//   └─ Volver al listado (con OK o con ERROR; un error no corta el proceso).
+//   └─ Guardar el resultado y navegar directo a la siguiente rule pendiente.
 
 import { isAbortError, toMessage } from '../../../../shared/errors/index.js';
 import { logger } from '../../../../shared/utils/logger.js';
@@ -19,6 +19,7 @@ import {
   DEFAULT_LISTING_URL,
   DETAIL_URL_RE,
   FINISH_REASON,
+  LOG_CAP,
   MAX_DETAIL_REDIRECTS,
   PAGE_TYPE,
   RULE_STATUS,
@@ -110,11 +111,14 @@ async function onListing(initialRun, page, signal) {
     await setRun(run);
     await appendLog({ level: 'info', message: 'Leyendo todas las rules del listado' });
 
+    const discoveryStartedAt = Date.now();
     const rules = await collectAllRules({ signal, onWarn: warnToLog });
+    const discoveryMs = Date.now() - discoveryStartedAt;
     if (!rules.length) throw new Error('No se encontraron Global Shipping Rules');
     run = await getRun();
     if (!run?.active) return;
 
+    metricsOf(run).discoveryMs += discoveryMs;
     run.items = rules.map((rule) => ({ ...rule, status: RULE_STATUS.PENDING, error: '' }));
     run.phase = RUN_PHASE.READING;
     run.currentRuleIndex = -1;
@@ -124,23 +128,16 @@ async function onListing(initialRun, page, signal) {
     if (!run?.active) return;
   }
 
-  const nextIndex = run.items.findIndex((item) => item.status === RULE_STATUS.PENDING);
-  if (nextIndex === -1) {
+  const claimed = claimNextPendingRule(run);
+  if (!claimed) {
     await finalize(run);
     return;
   }
 
-  const item = run.items[nextIndex];
-  item.status = RULE_STATUS.READING;
-  item.error = '';
-  run.phase = RUN_PHASE.READING;
-  run.currentRuleIndex = nextIndex;
+  recordNavigation(run);
+  appendReadingLog(run, claimed, run.items.length);
   await setRun(run);
-  await appendLog({
-    level: 'info',
-    message: `Leyendo ${labelOf(item)} (${nextIndex + 1}/${run.items.length})`,
-  });
-  goTo(item.editHref);
+  goTo(claimed.item.editHref);
 }
 
 async function onDetail(run, page, signal) {
@@ -158,11 +155,13 @@ async function onDetail(run, page, signal) {
       return;
     }
     run.detailRedirects = redirects;
+    recordNavigation(run);
     await setRun(run);
     goTo(listingUrlOf(run));
     return;
   }
 
+  const detailStartedAt = Date.now();
   try {
     const detail = await readShippingRuleDetail({ signal, onWarn: warnToLog });
     const latest = await getRun();
@@ -173,13 +172,22 @@ async function onDetail(run, page, signal) {
     item.detail = detail;
     item.status = RULE_STATUS.OK;
     item.capturedAt = Date.now();
+    item.captureMs = detail.timing?.totalMs ?? Date.now() - detailStartedAt;
     latest.detailRedirects = 0;
-    await setRun(latest);
-    await appendLog({
+    recordDetailMetrics(latest, item.captureMs, detail.timing?.regionalMs || 0);
+    appendRunLog(latest, {
       level: 'info',
       message: `${labelOf(item)}: ${detail.fields.length} campos y ${detail.regionalRows.length} tarifas capturadas`,
     });
-    goTo(listingUrlOf(latest));
+    const claimed = claimNextPendingRule(latest);
+    if (claimed) {
+      recordNavigation(latest);
+      appendReadingLog(latest, claimed, latest.items.length);
+    } else {
+      finishRun(latest);
+    }
+    await setRun(latest);
+    if (claimed) goTo(claimed.item.editHref);
   } catch (err) {
     if (isAbortError(err, signal)) throw err;
     const latest = await getRun();
@@ -189,22 +197,39 @@ async function onDetail(run, page, signal) {
     const item = latest.items[latestIndex];
     item.status = RULE_STATUS.ERROR;
     item.error = toMessage(err);
+    item.captureMs = Date.now() - detailStartedAt;
     latest.detailRedirects = 0;
+    recordDetailMetrics(latest, item.captureMs, 0);
+    appendRunLog(latest, { level: 'error', message: `${labelOf(item)}: ${item.error}` });
+    const claimed = claimNextPendingRule(latest);
+    if (claimed) {
+      recordNavigation(latest);
+      appendReadingLog(latest, claimed, latest.items.length);
+    } else {
+      finishRun(latest);
+    }
     await setRun(latest);
-    await appendLog({ level: 'error', message: `${labelOf(item)}: ${item.error}` });
-    goTo(listingUrlOf(latest));
+    if (claimed) goTo(claimed.item.editHref);
   }
 }
 
 async function finalize(run) {
+  finishRun(run);
+  await setRun(run);
+}
+
+function finishRun(run) {
   run.active = false;
   run.phase = RUN_PHASE.DONE;
   run.finishedAt = Date.now();
   run.finishReason = FINISH_REASON.DONE;
-  await setRun(run);
+  run.currentRuleIndex = -1;
   const ok = run.items.filter((item) => item.status === RULE_STATUS.OK).length;
   const errors = run.items.filter((item) => item.status === RULE_STATUS.ERROR).length;
-  await appendLog({ level: errors ? 'warn' : 'info', message: `Proceso terminado: ${ok} ok, ${errors} con error` });
+  appendRunLog(run, {
+    level: errors ? 'warn' : 'info',
+    message: `Proceso terminado: ${ok} ok, ${errors} con error`,
+  });
 }
 
 async function stopWithError(message) {
@@ -236,6 +261,52 @@ function listingUrlOf(run) {
 function ruleIdsOf(item) {
   const fromHref = String(item?.editHref || '').match(DETAIL_URL_RE)?.[1];
   return [item?.id, fromHref].filter(Boolean).map(String);
+}
+
+function metricsOf(run) {
+  const metrics = run.metrics || {};
+  metrics.discoveryMs = Number(metrics.discoveryMs) || 0;
+  metrics.detailMs = Number(metrics.detailMs) || 0;
+  metrics.regionalMs = Number(metrics.regionalMs) || 0;
+  metrics.detailCount = Number(metrics.detailCount) || 0;
+  metrics.navigationCount = Number(metrics.navigationCount) || 0;
+  run.metrics = metrics;
+  return metrics;
+}
+
+function recordNavigation(run) {
+  metricsOf(run).navigationCount += 1;
+}
+
+function recordDetailMetrics(run, detailMs, regionalMs) {
+  const metrics = metricsOf(run);
+  metrics.detailMs += detailMs;
+  metrics.regionalMs += regionalMs;
+  metrics.detailCount += 1;
+}
+
+export function claimNextPendingRule(run) {
+  const items = Array.isArray(run?.items) ? run.items : [];
+  const index = items.findIndex((item) => item.status === RULE_STATUS.PENDING);
+  if (index === -1) return null;
+  const item = items[index];
+  item.status = RULE_STATUS.READING;
+  item.error = '';
+  run.phase = RUN_PHASE.READING;
+  run.currentRuleIndex = index;
+  return { index, item };
+}
+
+function appendRunLog(run, entry) {
+  const entries = [...(Array.isArray(run.log) ? run.log : []), { ts: Date.now(), ...entry }];
+  run.log = entries.slice(-LOG_CAP);
+}
+
+function appendReadingLog(run, claimed, total) {
+  appendRunLog(run, {
+    level: 'info',
+    message: `Leyendo ${labelOf(claimed.item)} (${claimed.index + 1}/${total})`,
+  });
 }
 
 export function findActiveRuleIndex(run, ruleId) {

@@ -11,7 +11,7 @@ export function init() {
     runKey: STORAGE_KEYS.RUN,
     tickIfActive,
     abortActiveRun,
-    delay: 500,
+    delay: 0,
     log,
   });
 }

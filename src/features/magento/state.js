@@ -24,6 +24,13 @@ export function makeRun({ listingUrl = DEFAULT_LISTING_URL } = {}) {
     listingUrl,
     currentRuleIndex: -1,
     detailRedirects: 0,
+    metrics: {
+      discoveryMs: 0,
+      detailMs: 0,
+      regionalMs: 0,
+      detailCount: 0,
+      navigationCount: 1,
+    },
     items: [],
     log: [{ ts: Date.now(), level: 'info', message: 'Abriendo Global Shipping Rules' }],
   };
