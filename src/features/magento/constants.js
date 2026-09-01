@@ -52,12 +52,32 @@ export const SELECTORS = {
   listingEditLink: 'a[data-action="item-edit"], .data-grid-actions-cell a, td:last-child a',
   listingLoadingMask: '.admin__data-grid-loading-mask',
   listingPageSizeInputId: 'shipping_rule_management_listing.shipping_rule_management_listing.listing_top.listing_paging_sizes',
+  gridWrap: '.admin__data-grid-outer-wrap',
+  pageSizeMenu: '.admin__data-grid-pager-wrap .selectmenu, .selectmenu',
+  pageSizeToggle: '.selectmenu-toggle-action, .selectmenu-toggle',
+  pageSizeOption: '.selectmenu-item-action',
   pagerNext: '.admin__data-grid-pager .action-next',
   pagerPrevious: '.admin__data-grid-pager .action-previous',
   pagerCurrent: '.admin__data-grid-pager input[data-ui-id="current-page-input"]',
   detailReady: '[data-index="shippingrule_info"]',
   regionalRoot: '[data-index="regional_delivery"]',
   collapsibleTitle: '.fieldset-wrapper-title[data-state-collapsible]',
+};
+
+// Cuantas filas se piden por pagina en cada grilla. Recorrer paginas cuesta una
+// peticion + un re-render cada vez, asi que conviene traer todo de una.
+export const LISTING_PAGE_SIZE = 200;
+export const REGIONAL_PAGE_SIZE = 200;
+
+// Puente con el mundo MAIN (content/bridge.js). Le pide a los UI components de
+// Magento las tarifas regionales completas en vez de recorrer el paginador.
+export const BRIDGE = {
+  SOURCE: 'ext-lge-cl/magento-bridge',
+  TIMEOUT_MS: 3000,
+  OPS: {
+    PROBE: 'probe',
+    EXPAND_REGIONAL: 'expand-regional',
+  },
 };
 
 export const DETAIL_SECTION_SELECTORS = [

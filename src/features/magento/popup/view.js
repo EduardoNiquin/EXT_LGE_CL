@@ -1,8 +1,16 @@
 import { toMessage } from '../../../shared/errors/index.js';
+import * as buscarOrden from '../buscar-orden/popup/section.js';
 import * as globalShippingRules from './sections/global-shipping-rules.js';
 import { escapeHtml } from './utils.js';
 
 const MODULES = [
+  {
+    id: 'buscar-orden',
+    name: 'Buscar orden',
+    description: 'Encontrar la orden a partir de los datos del pago',
+    abbr: 'BO',
+    render: buscarOrden.render,
+  },
   {
     id: 'global-shipping-rules',
     name: 'Global Shipping Rules',

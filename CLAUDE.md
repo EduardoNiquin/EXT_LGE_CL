@@ -89,7 +89,7 @@ popup/         view.js (sub-router) · utils.js · sections/ (una sub-vista por 
 
 ## Logs por scope (`Ajustes`)
 `logger('foo')` registra el scope `foo`, que aparece en la UI de Ajustes (`features/ajustes`) con toggle individual + "Habilitar/Deshabilitar todos". `log-config/index.js` cachea en memoria y persiste en `chrome.storage.local` (`log-config:scopes`, cross-context vía `storage.onChanged`). `logger.js` chequea `isScopeEnabled(scope)` antes de emitir. Default: todos habilitados.
-Scopes: `colocar-tags`, `colocar-tags:product`, `colocar-tags:offer`, `colocar-tags:delivery-remove`, `colocar-tags:combobox`, `magento/content`, `magento/global-shipping-rules`, `magento/popup`, `lead-times`, `cupones`, `orden-info`, `starkoms`, `lgcom`, `lgcom/popup`, `seller-center-falabella`, `e-promoters`, `pim`, `solotodo`, `gato`, `content`, `service-worker`, `debug`, `popup`.
+Scopes: `colocar-tags`, `colocar-tags:product`, `colocar-tags:offer`, `colocar-tags:delivery-remove`, `colocar-tags:combobox`, `magento/content`, `magento/global-shipping-rules`, `magento/buscar-orden`, `magento/popup`, `lead-times`, `cupones`, `orden-info`, `starkoms`, `lgcom`, `lgcom/popup`, `seller-center-falabella`, `e-promoters`, `pim`, `solotodo`, `gato`, `content`, `service-worker`, `debug`, `popup`.
 
 ## Manejo de errores y Modo Dev (`shared/errors` · `shared/dev-mode` · `shared/diagnostics`)
 - **`shared/errors`:** `ExtError` (base con `code`/`context`/`cause`), `toMessage(err)` (mensaje legible de cualquier throw), `isAbortError(err, signal)` (cancelación: WaitAbortedError/AbortError/signal.aborted), `describeError(err, meta)` (forma serializable con stack recortado).
@@ -116,7 +116,7 @@ Sumar a una feature: crear `features/<feature>/debug.js` → `register('<feature
 
 ## Estado del proyecto
 Scaffolding + CI completos. Pipeline release corporativo (.crx firmado + política + ZIP). Debug API modular + logger persistente. Manejo de errores centralizado (`shared/errors`) + Modo Dev + ring buffer de errores con captura global (`shared/diagnostics`, visible en Ajustes). Content multi-frame con resolución de carrera. Capa `shared/dom`. Driver GP1 L-* (modal/messagebox/combobox).
-Features: **Colocar TAGs** (Lectura | Tag Delivery | Quitar Delivery | Tag Producto | Tag Oferta), **Magento** (Global Shipping Rules → CSV), **Lead Times** (Magento), **Cupones** (Quitar Regla de Cupón), **Información de Orden** (Magento), **Starkoms** (Verificar órdenes y stock), **LG.com** (Info de Producto), **SellerCenter Falabella** (SoporteSeller — Detalle Orden), **Devoluciones** (Falabella: cargar/guardar evidencias + gestión automática; Walmart/Paris pendientes), **E-promoters** (Informe ordenes — CSV/API → filtrado → CSV), **PIM** (Creación de producto — verificar si un SKU existe en PIM/STG), **SoloTodo** (Generar reportes de export en el backoffice — SPA React/MUI), **GATO** (tic-tac-toe multijugador secreto vía Firebase).
+Features: **Colocar TAGs** (Lectura | Tag Delivery | Quitar Delivery | Tag Producto | Tag Oferta), **Magento** (Buscar orden → encontrar la orden por los datos del pago; Global Shipping Rules → CSV), **Lead Times** (Magento), **Cupones** (Quitar Regla de Cupón), **Información de Orden** (Magento), **Starkoms** (Verificar órdenes y stock), **LG.com** (Info de Producto), **SellerCenter Falabella** (SoporteSeller — Detalle Orden), **Devoluciones** (Falabella: cargar/guardar evidencias + gestión automática; Walmart/Paris pendientes), **E-promoters** (Informe ordenes — CSV/API → filtrado → CSV), **PIM** (Creación de producto — verificar si un SKU existe en PIM/STG), **SoloTodo** (Generar reportes de export en el backoffice — SPA React/MUI), **GATO** (tic-tac-toe multijugador secreto vía Firebase).
 ⏳ Pendiente: más tests en `tests/unit/*.test.js` (hoy los `devoluciones-*.test.js` y los `magento-*.test.js`).
 
 ---
@@ -177,22 +177,60 @@ Popup: `skus[]` + ofertas activadas `{index,label,use,description,startDate,endD
 ---
 
 ## Feature: Magento
-Apartado paraguas para herramientas del admin de Magento que no encajan en una feature propia. Router de 2 niveles: `popup/view.js` lista los módulos (`MODULES`) y monta el elegido. Sub-sección actual: **Global Shipping Rules** (estructura lista para sumar más).
+Apartado paraguas para herramientas del admin de Magento que no encajan en una feature propia. Router de 2 niveles: `popup/view.js` lista los módulos (`MODULES`) y monta el elegido. Sub-secciones: **Buscar orden** y **Global Shipping Rules**.
+**Cada módulo trae su propio run en storage y su propia state machine**; `magento/content/index.js` las engancha todas con una sola llamada desde `src/content/index.js`, y `magento/debug.js` importa los `debug.js` de los módulos para que un único import registre todos los comandos. Al sumar un módulo hay que tocar los dos, o queda escrito pero muerto (le pasó a Buscar orden: existía completo y no aparecía en ningún lado).
+
+### Buscar orden
+Pantalla: listado de **órdenes** del admin (`/sales/order/index`) + el detalle de cada orden (`/sales/order/view/order_id/<N>`). **Read-only.** Responde la pregunta inversa a la de *Información de Orden*: teniendo los **datos del pago** (código de autorización, monto, ID de sesión, payment_id de MercadoPago…) pero no el número de orden, recorre las órdenes del rango de fechas, decodifica las notas de transacción de cada una y marca las que coinciden. Todo lo capturado sale como **CSV** aunque el proceso se detenga a medias.
+```
+src/features/magento/buscar-orden/
+├── constants.js   MODULE_ID, STORAGE_KEYS, PAGE_TYPE, ORDER_STATUS, RUN_PHASE, FINISH_REASON, GATEWAY(+LABEL), SEARCH_FIELDS, MAX_RANGE_DAYS(28)/DEFAULT_RANGE_DAYS(7), STORE_VIEW_LABEL, LISTING/ORDER_VIEW REs, LISTING_COLUMNS, PAGE_SIZE, SELECTORS
+├── state.js       run store (createRunStore) + makeRun + draft
+├── transactions.js  puro: parseNoteComment (pares "Label: valor" o JSON) · detectGateway · buildTransaction · readField · normalizeKey
+├── match.js         puro: buildCriteria · describeCriteria · valueMatches · transactionMatches · evaluateOrder
+├── csv.js           buildMatrix (misma matriz para la tabla del popup y el CSV) · matrixToCsv
+├── debug.js       __extLgeCl.magentoBuscarOrden.*
+├── content/ detector.js · parser.js · grid.js · index.js · flows/run.js
+└── popup/   section.js (formulario + progreso + tabla de resultados)
+```
+**Estado (`chrome.storage.local["magento:buscar-orden:run"]`):** `{ active, phase, startedAt, finishedAt, finishReason?:done|cancelled|error|limit|first-match, error?, config:{from,to,gateways[],fields{},maxOrders,stopOnFirstMatch}, listingUrl, currentIndex, detailRedirects, matches, items:[{ incrementId, entityId, viewHref, summary, status:pending|reading|ok|error, matched, matchedIndexes[], transactions:[{gateway,when,noteStatus,title,order[],values{}}], error? }], log:[...] (cap 400) }`. El borrador del formulario vive en `magento:buscar-orden:draft`.
+
+**Patrón:** tick-por-reload (`wireReloadTickLifecycle`, delay 600), igual que el resto de Magento. **onListing:** orden en READING → interrumpida; sin items → aplicar filtros + recorrer TODAS las páginas y armar la cola; siguiente PENDING → READING + navegar a su detalle. **onOrderView:** casar la URL con la orden en READING, leer las notas, evaluarlas contra los criterios y **saltar directo al detalle siguiente** (volver al listado por cada orden duplicaría las navegaciones). Flag `navigating` + `goTo()` que limpia `onbeforeunload`, mismo cuidado que en Global Shipping Rules.
+
+**Lo que el grid de órdenes impone** (mismas reglas que la búsqueda de *Información de Orden*, que es el flujo probado):
+- **Solo los dos filtros que Magento exige:** rango de **Purchase Date** (≤ 1 mes; la UI corta en `MAX_RANGE_DAYS`=28) y **Purchase Point** = "Chile Default Store View". Cualquier filtro heredado hace fallar la consulta ⇒ primero `resetAllFilters`, después esos dos. El reset puede deseleccionar el Purchase Point: `ensureStoreView` lo vuelve a tildar.
+- **Esperar a que el grid esté listo ANTES de tocar nada:** es Knockout y restaura la última búsqueda guardada al montar; escribir antes es escribir para que Magento lo pise.
+- **El chip de filtro aparece antes que las filas nuevas.** Tras Apply/Reset, `clickAndSettle` espera a que arranque el mask de carga o cambie la huella de la tabla (`gridSnapshot`: nº de filas + primera fila + "records found") y recién ahí recolecta. Sin eso se recorre el listado **sin filtrar** — miles de órdenes equivocadas, y el síntoma es "tarda infinito", no un error. Si después de aplicar no queda ningún chip activo, se avisa en el registro.
+- Filas por `tr.data-row` (se acepta también `tr[data-role="row"]`); el **ID de la columna es el increment id**, y el que va en la URL del detalle es el **entity_id** que sale del propio link "View". `PAGE_SIZE` 200 por página, con caída al mayor tamaño disponible (`pickPageSizeOption`).
+
+**Criterios (`match.js`, puro):** una pasarela tildada sin ningún campo = "todas las transacciones de esa pasarela"; ninguna pasarela = capturar todo el rango. La comparación es tolerante a propósito (el dato se pega de una planilla): exacta → solo dígitos si ambos lados son numéricos (ignorando ceros a la izquierda, `002187`) → contiene. Las notas **sin pasarela** (historial de Magento, "esperando pago") se descartan antes de guardar: no son datos de transacción y duplicarían el storage.
+
+**UI popup (`popup/section.js`):** rango Desde/Hasta con aviso del tope de Magento, una tarjeta plegable por pasarela con sus campos, "Máximo de órdenes" y "Detener en la 1ª coincidencia", Iniciar/Detener/Limpiar, progreso en vivo, tabla de resultados (la **misma matriz** que el CSV, así lo que se ve es lo que se exporta) con toggle "Solo coincidencias", Copiar CSV / Descargar CSV y `<details>` con el registro. Si la pestaña ya está en el listado no se la navega (se conservan los filtros); si no, se pide confirmación. Estilos `.bo-*` en `popup.css`.
+**Debug `__extLgeCl.magentoBuscarOrden.`:** `diagnose()`, `rows()`, `records()`, `transactions()`, `evaluate()`, `dates()`, `csv(onlyMatches?)`, `state()`, `draft()`, `stop()`, `reset()`, `tick()`.
+**Tests:** `tests/unit/magento-buscar-orden.test.js` (nota → pares, detección de pasarela, comparación tolerante, matriz del CSV, formato de fechas del datepicker, `pickPageSizeOption`, `rangeDays`).
+**Pendientes/limitaciones:** entra a **una orden por navegación**, así que un rango ancho son miles de cargas — conviene acotar el rango, el "Máximo de órdenes" o parar en la 1ª coincidencia; una mejora clara sería descartar en el listado por la columna "Grand Total (Base)" cuando se busca por monto. No distingue múltiples tabs de Magento y no impide correrlo junto a Global Shipping Rules en la misma pestaña (se pelearían por la navegación); sin reintento por orden.
 
 ### Global Shipping Rules
 Pantalla: listado **Global Shipping Rules** (`/global_shippingrule/management/index`) + su detalle (`.../edit/entity_id/<N>`). **Read-only:** recorre todas las rules, entra a cada detalle, captura campos y tarifas regionales, y arma un **CSV**. NO toca ningún botón de guardado ni de borrado; los únicos clics son paginadores, headers de secciones colapsables y el selector de tamaño de página.
 ```
 src/features/magento/
-├── constants.js   FEATURE_ID, STORAGE_KEYS, PAGE_TYPE, RULE_STATUS, RUN_PHASE, FINISH_REASON, DEFAULT_ADMIN_BASE/ADMIN_BASE_RE/LISTING_PATH, LISTING_URL_RE, DETAIL_URL_RE, MAX_DETAIL_REDIRECTS, SELECTORS, DETAIL_SECTION_SELECTORS
+├── constants.js   FEATURE_ID, STORAGE_KEYS, PAGE_TYPE, RULE_STATUS, RUN_PHASE, FINISH_REASON, DEFAULT_ADMIN_BASE/ADMIN_BASE_RE/LISTING_PATH, LISTING_URL_RE, DETAIL_URL_RE, MAX_DETAIL_REDIRECTS, SELECTORS, DETAIL_SECTION_SELECTORS, LISTING/REGIONAL_PAGE_SIZE, BRIDGE
 ├── state.js       run store (createRunStore) + makeRun
 ├── csv.js         buildShippingRulesCsv (puro/testeable) — una fila por tarifa regional
 ├── debug.js       __extLgeCl.magento.*
-├── content/ detector.js · parser.js · index.js · magento/{grid,detail-page}.js · flows/run.js
+├── content/ detector.js · parser.js · index.js · bridge.js (mundo MAIN) · bridge-client.js · magento/{grid,detail-page}.js · flows/run.js
+├── buscar-orden/  modulo propio (ver abajo)
 └── popup/   view.js (router de módulos) · utils.js · sections/global-shipping-rules.js
 ```
-**Estado (`chrome.storage.local["magento:global-shipping-rules:run"]`):** `{ active, phase, startedAt, finishedAt, finishReason?, error?, listingUrl, currentRuleIndex, detailRedirects, metrics:{ discoveryMs, detailMs, regionalMs, detailCount, navigationCount }, items:[{ id, nameFe, editHref, summary, status:pending|reading|ok|error, error?, capturedAt?, captureMs?, detail?:{ fields:[{key,label,section,value}], regionalRows:[{}], timing:{readyMs,sectionsMs,regionalMs,totalMs} } }], log:[...] (cap 400) }`.
+**Estado (`chrome.storage.local["magento:global-shipping-rules:run"]`):** `{ active, phase, startedAt, finishedAt, finishReason?, error?, listingUrl, currentRuleIndex, detailRedirects, metrics:{ discoveryMs, detailMs, regionalMs, detailCount, navigationCount }, items:[{ id, nameFe, editHref, summary, status:pending|reading|ok|error, error?, capturedAt?, captureMs?, detail?:{ fields:[{key,label,section,value}], regionalRows:[{}], regionalVia, timing:{readyMs,sectionsMs,regionalMs,totalMs} } }], log:[...] (cap 400) }`.
 
 **Patron:** tick-por-reload (`wireReloadTickLifecycle`, como Lead Times/Cupones) con espera inicial 0; los lectores esperan sus propios selectores. **onListing:** rule en READING -> interrumpida; sin items -> `collectAllRules`; proxima PENDING -> READING + navegar al detalle; ninguna PENDING -> finalizar. **onDetail:** casar la URL con la rule en READING, `expandDetailSections` + `parseDetailFields` + `collectAllRegionalRows`, guardar el resultado y navegar directamente al siguiente `editHref`. Solo vuelve al listado para recuperarse de un detalle que no se puede asociar. Un error por rule no corta el proceso: marca ERROR y continua con el siguiente detalle.
+
+**Velocidad (el costo está en las cargas de página, no en el parseo).** Etapas aplicadas, en orden de impacto:
+1. **Detalle → detalle sin volver al listado** (hecho): con todos los `editHref` capturados en el descubrimiento, `onDetail` navega directo al siguiente. De ~2N cargas completas a ~N. Solo se vuelve al listado para recuperarse de un detalle que no se puede asociar.
+2. **Tarifas regionales en una sola página** (hecho): la grilla regional se paginaba a clicks, y cada página cuesta una petición + un re-render **en cada rule**. `loadAllRegionalRows` intenta, en orden: (a) **bridge del mundo MAIN** → le sube el `pageSize` al UI component de Magento (`uiRegistry`), una sola petición; (b) **selector de tamaño de página** del DOM (`trySetPageSize`, genérico: por id para el listado, por contenedor para la regional; si no existe el tamaño pedido toma el mayor disponible); (c) **paginador de siempre** como respaldo. La vía que funcionó queda en `detail.regionalVia` y en el registro del proceso (`[bridge:paging]`, `[page-size]`, `[pager]`), que es como se mide en vivo si la ruta rápida prendió.
+3. **Secciones colapsables en paralelo** (hecho): se clickean todas y después se espera cada una, en vez de pagar la animación de las 5 en serie por rule. Sin `sleep` fijos entre secciones: los lectores esperan sus propios selectores.
+4. ⏳ **Pedir los detalles por HTTP directo** con un pool de 3-4 (no 4 pestañas): `__extLgeCl.magento.probe()` entrega justo lo que falta para decidirlo — si las tarifas ya vienen en el data provider y contra qué endpoint las pide Magento. **Cuatro pestañas paralelas quedan como último recurso:** el run es un único objeto en storage con un solo `currentRuleIndex` y una sola rule en READING, así que exigiría coordinador en el service worker, asignación exclusiva por worker y fusión de resultados.
 
 **CSV (`csv.js`):** headers = `ID` + `Shipping Rule Name (FE)` + columnas del listado + `Detail - <label>` + `Regional - <columna>` + estado/error/URL. Una rule con N tarifas regionales genera **N filas** (las columnas de la rule se repiten); sin tarifas, una fila. `protectFormula` antepone `'` a lo que Excel ejecutaría (`=`, `+`, `@`, `-texto`), con BOM UTF-8.
 
@@ -204,11 +242,12 @@ src/features/magento/
 - **Fallo de paginación ⇒ datos parciales, no cero.** Si una página no avanza (o no se puede fijar 200 por página), `collectAllRules`/`collectAllRegionalRows` avisan por `onWarn` (queda en el registro del proceso) y devuelven lo recolectado, en vez de perder el listado entero.
 - **La base del admin se deriva de la pestaña activa** (`ADMIN_BASE_RE`, igual que orden-info), con `DEFAULT_ADMIN_BASE` de respaldo; si la pestaña no parece admin de Magento, se pide confirmación antes de navegarla. En el listado se guarda la URL real (trae el token `key`).
 - **El popup no llama a un unmount:** la suscripción a storage se corta sola cuando `container.isConnected` es falso. Sin eso, volver al menú y esperar un cambio de estado revienta buscando botones que ya no existen.
+- **El bridge es una vía rápida OPCIONAL, nunca un requisito.** `content/bridge.js` corre en el mundo **MAIN** (content script propio en el manifest, `<all_urls>` + `include_globs: ["*obsadm*"]`, `all_frames:false`) porque el content aislado no ve `window.require` ni el `uiRegistry` de la página, y el CSP de Magento bloquea inyectar un `<script>` inline. Habla solo por `postMessage`, sin `chrome.*` ni imports, todo en try/catch, y lo único que escribe es el **tamaño de página de la grilla regional** (estado de la vista, no del formulario). `askBridge` (lado aislado) **jamás lanza** salvo cancelación: si el script no está, no encuentra el data source o no contesta en `BRIDGE.TIMEOUT_MS` (3 s), devuelve `{ok:false,reason}` y el recorrido por DOM sigue igual que antes. La forma interna del registry cambia entre versiones de Magento (`storage.data` / `storage._data` / `filter({})`) y el data source se elige por puntaje (nombre `regional`, columnas tipo `address`/`delivery_fee`, y que `totalRecords > items.length`), no por un nombre hardcodeado.
 
-**Debug `__extLgeCl.magento.`:** `diagnose()`, `listing()`, `detail()`, `expand()`, `state()`, `stop()`, `reset()`, `tick()`.
+**Debug `__extLgeCl.magento.`:** `diagnose()`, `listing()`, `detail()`, `expand()`, `probe()` (radiografía del `uiRegistry`: providers, filas cargadas vs `totalRecords`, endpoint), `expandRegional()`, `regional()` (deja la grilla regional en una página y dice por qué vía), `state()`, `stop()`, `reset()`, `tick()`.
 **UI popup:** aviso previo, Iniciar/Detener/Limpiar, progreso (barra + lista de rules con estado y nº de tarifas), botón **Exportar CSV** al terminar, `<details>` con los últimos 60 logs. Live vía `storage.onChanged`.
-**Tests:** `tests/unit/magento-global-shipping-rules.test.js` (CSV + `DETAIL_URL_RE`) y `tests/unit/magento-run-flow.test.js` (`findActiveRuleIndex` + `isPagerDisabled`).
-**Pendientes:** no distingue múltiples tabs Magento; sin reintento por rule (marca ERROR y sigue); sin historial de corridas; el CSV crece rápido (una fila por tarifa regional).
+**Tests:** `tests/unit/magento-global-shipping-rules.test.js` (CSV + `DETAIL_URL_RE`), `tests/unit/magento-run-flow.test.js` (`findActiveRuleIndex` + `isPagerDisabled`) y `tests/unit/magento-bridge.test.js` (`askBridge`: respuesta, timeout, mensajes ajenos, cancelación; + `pickPageSizeOption`).
+**Pendientes:** medir en vivo qué vía usa la grilla regional (`probe()` en una rule real) para decidir la etapa 4; no distingue múltiples tabs Magento; sin reintento por rule (marca ERROR y sigue); sin historial de corridas; el CSV crece rápido (una fila por tarifa regional).
 
 ---
 

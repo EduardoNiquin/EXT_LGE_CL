@@ -177,7 +177,10 @@ async function onDetail(run, page, signal) {
     recordDetailMetrics(latest, item.captureMs, detail.timing?.regionalMs || 0);
     appendRunLog(latest, {
       level: 'info',
-      message: `${labelOf(item)}: ${detail.fields.length} campos y ${detail.regionalRows.length} tarifas capturadas`,
+      // La via de las tarifas (bridge / tamano de pagina / paginador) queda en
+      // el registro: es la unica forma de ver en vivo si la ruta rapida prendio.
+      message: `${labelOf(item)}: ${detail.fields.length} campos y ${detail.regionalRows.length} tarifas capturadas`
+        + (detail.regionalVia ? ` [${detail.regionalVia}]` : ''),
     });
     const claimed = claimNextPendingRule(latest);
     if (claimed) {

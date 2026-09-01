@@ -2349,3 +2349,80 @@ mark {
 .mg-notice strong { color: var(--text); }
 .mg-gsr-view .lt-region-list { max-height: 230px; }
 .mg-gsr-view #mg-progress-detail { min-height: 15px; }
+
+/* === Magento — Buscar orden === */
+.bo-view .lt-form-card { gap: 8px; }
+.bo-hint--error { color: var(--danger); }
+
+/* Cada pasarela es una tarjeta plegable: los campos solo se ven si esta tildada,
+   asi el formulario no arranca con 14 inputs encima. */
+.bo-gateways { display: flex; flex-direction: column; gap: 8px; }
+.bo-gateway {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  padding: 8px 10px;
+}
+.bo-gateway-toggle { font-weight: 600; }
+.bo-gateway-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border-soft);
+}
+.bo-gateway-fields.hidden { display: none; }
+.bo-gateway-fields .dt-field { margin: 0; }
+
+.bo-criteria {
+  padding: 6px 8px;
+  border-left: 2px solid var(--accent);
+  background: var(--surface-2);
+  color: var(--text-secondary);
+  word-break: break-word;
+}
+
+.bo-results-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 10px 0 6px;
+  flex-wrap: wrap;
+}
+.bo-results-actions { display: flex; gap: 6px; }
+.bo-results-actions .ct-btn { padding: 5px 10px; font-size: 11px; }
+
+/* La tabla replica el CSV: puede traer decenas de columnas, asi que scrollea en
+   los dos ejes dentro de su caja en vez de estirar el popup. */
+.bo-table-wrap {
+  max-height: 260px;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+.bo-table-wrap .ct-empty { margin: 0; padding: 14px; }
+.bo-table-wrap .lt-hint { margin: 0; padding: 6px 8px; }
+.bo-table { border-collapse: collapse; font-size: 11px; white-space: nowrap; }
+.bo-table th,
+.bo-table td {
+  border-bottom: 1px solid var(--border-soft);
+  border-right: 1px solid var(--border-soft);
+  padding: 4px 6px;
+  text-align: left;
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.bo-table th {
+  position: sticky;
+  top: 0;
+  background: var(--surface-3);
+  color: var(--text);
+  font-weight: 700;
+  z-index: 1;
+}
+.bo-table td { color: var(--text-secondary); }
+.bo-table tbody tr:hover td { background: var(--surface-2); }

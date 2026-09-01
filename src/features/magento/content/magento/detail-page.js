@@ -1,6 +1,6 @@
 import { isAbortError } from '../../../../shared/errors/index.js';
 import { clickEl } from '../../../../shared/dom/events.js';
-import { sleep, waitFor } from '../../../../shared/dom/wait.js';
+import { waitFor } from '../../../../shared/dom/wait.js';
 import { DETAIL_SECTION_SELECTORS, SELECTORS } from '../../constants.js';
 import { parseDetailFields } from '../parser.js';
 import { collectAllRegionalRows } from './grid.js';
@@ -19,11 +19,17 @@ export async function readShippingRuleDetail({ signal, onWarn } = {}) {
   const expandedAt = Date.now();
   const fields = parseDetailFields();
   const regionalStartedAt = Date.now();
-  const regionalRows = await collectAllRegionalRows({ signal, onWarn });
+  let regionalVia = '';
+  const regionalRows = await collectAllRegionalRows({
+    signal,
+    onWarn,
+    onInfo: (info) => { regionalVia = info?.via || ''; },
+  });
   const finishedAt = Date.now();
   return {
     fields,
     regionalRows,
+    regionalVia,
     timing: {
       readyMs: readyAt - startedAt,
       sectionsMs: expandedAt - readyAt,
@@ -38,14 +44,21 @@ export async function readShippingRuleDetail({ signal, onWarn } = {}) {
  * un fieldset colapsado hasta que se expande, asi que leer sin esto devuelve
  * campos vacios (y la grilla regional directamente no existe). Solo toca los
  * headers de las secciones que interesan: ningun boton de guardado ni de borrado.
+ *
+ * Se clickean todas de una y despues se espera: son colapsables independientes,
+ * y hacerlo en serie pagaba la animacion de cada seccion en CADA rule.
  */
 export async function expandDetailSections({ signal } = {}) {
-  for (const selector of [...DETAIL_SECTION_SELECTORS, SELECTORS.regionalRoot]) {
-    const root = document.querySelector(selector);
-    const title = root?.querySelector(SELECTORS.collapsibleTitle);
-    if (!title || title.getAttribute('data-state-collapsible') !== 'closed') continue;
+  const titles = [...DETAIL_SECTION_SELECTORS, SELECTORS.regionalRoot]
+    .map((selector) => ({
+      selector,
+      title: document.querySelector(selector)?.querySelector(SELECTORS.collapsibleTitle),
+    }))
+    .filter(({ title }) => title && title.getAttribute('data-state-collapsible') === 'closed');
 
-    clickEl(title);
+  titles.forEach(({ title }) => clickEl(title));
+
+  for (const { selector, title } of titles) {
     try {
       await waitFor(() => title.getAttribute('data-state-collapsible') === 'open', {
         signal,
@@ -57,8 +70,6 @@ export async function expandDetailSections({ signal } = {}) {
       if (isAbortError(err, signal)) throw err;
       // Una seccion que no abre no justifica perder el resto del detalle: los
       // campos que si estan montados se leen igual.
-      continue;
     }
-    await sleep(120, signal);
   }
 }
