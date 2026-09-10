@@ -2426,3 +2426,58 @@ mark {
 }
 .bo-table td { color: var(--text-secondary); }
 .bo-table tbody tr:hover td { background: var(--surface-2); }
+
+/* ---------------------------------------------------------------------------
+   Magento / Crear Softbundles
+   Lo propio del modulo: el bloque de configuracion plegable, la
+   previsualizacion de lo que se va a crear y los chips de productos hijos.
+   El resto reusa .lt-* (formulario, progreso, registro) y .dt-* (campos).
+--------------------------------------------------------------------------- */
+.sb-source { margin: 10px 0 8px; }
+
+.sb-preview {
+  margin: 8px 0 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+}
+.sb-preview .lt-hint { margin: 0 0 4px; }
+.sb-preview-list {
+  margin: 0;
+  padding-left: 16px;
+  font-size: 11px;
+  color: var(--text-secondary);
+  word-break: break-all;
+}
+.sb-preview-list li { margin: 2px 0; }
+
+.sb-config { margin-bottom: 8px; }
+.sb-config-body { padding: 8px 2px 2px; }
+.sb-config-body .dt-check { margin-top: 6px; }
+
+/* Los productos hijos de un bundle: se ven de un vistazo cuales entraron y
+   cual fallo (el motivo va en el title, que es donde cabe). */
+.sb-children {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 6px;
+}
+.sb-child {
+  font-size: 10px;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sb-child--ok {
+  background: var(--success-bg);
+  color: var(--success);
+  border-color: var(--success-border);
+}
+.sb-child--error {
+  background: var(--danger-bg);
+  color: var(--danger);
+  border-color: var(--danger-border);
+}

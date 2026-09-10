@@ -47,7 +47,9 @@
       "Bash(echo \"ESLINT_EXIT=$?\")",
       "Bash(grep -v \"function\\\\|//\")",
       "Bash(echo \"ESLINT=$?\")",
-      "Bash(echo \"BUILD_EXIT=$?\")"
+      "Bash(echo \"BUILD_EXIT=$?\")",
+      "Bash(python3 -c *)",
+      "Bash(python -c *)"
     ]
   }
 }

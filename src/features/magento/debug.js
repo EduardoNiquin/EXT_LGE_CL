@@ -1,7 +1,8 @@
 import { cmd, register } from '../../shared/debug/index.js';
 // El apartado es un paraguas: este import registra tambien los comandos de sus
-// modulos (`__extLgeCl.magentoBuscarOrden.*`).
+// modulos (`__extLgeCl.magentoBuscarOrden.*`, `__extLgeCl.magentoSoftbundles.*`).
 import './buscar-orden/debug.js';
+import './softbundles/debug.js';
 import { BRIDGE, FINISH_REASON, REGIONAL_PAGE_SIZE } from './constants.js';
 import { clearRun, getRun, updateRun } from './state.js';
 import { diagnose } from './content/detector.js';
