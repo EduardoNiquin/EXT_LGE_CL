@@ -11,6 +11,11 @@ keys/
 *.pem
 *.crx
 
+# Navegador de pruebas: perfil (trae la sesion de Magento: nunca commitear)
+# y el binario de Chrome for Testing que descarga `npm run browser`.
+.browser-profile-*/
+.browsers/
+
 # Variables de entorno
 .env
 .env.local

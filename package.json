@@ -7,6 +7,9 @@
   "scripts": {
     "dev": "vite build --watch --mode chrome",
     "dev:edge": "vite build --watch --mode edge",
+    "browser": "node scripts/dev-browser.mjs",
+    "browser:edge": "node scripts/dev-browser.mjs --browser=edge",
+    "browser:eval": "node scripts/browser-eval.mjs",
     "build:chrome": "vite build --mode chrome",
     "build:edge": "vite build --mode edge",
     "build": "npm run build:chrome && npm run build:edge",
