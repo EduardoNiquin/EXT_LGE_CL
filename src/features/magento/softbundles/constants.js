@@ -202,21 +202,67 @@ export const SELECTORS = {
   advancedCount:    '.admin__action-multiselect-search-count',
 
   // --- ofertas (productos hijos) ---
-  // El boton "Add New Offer" es un <span> clickable en 2.4.5 y un <button> en
-  // otras versiones del tema: se aceptan los dos.
-  addOfferButton: '[data-index="general_item"] [data-index="modal_button"], [data-index="modal_button"]',
-  offerModal:     'aside[data-role="modal"]._show',
+  // "Add New Offer". Su hermano `open-edit-form-example-modal-button`
+  // ("Edit Offer") comparte el `data-index` y esta OCULTO: lo usa el modulo por
+  // dentro y no hay que pulsarlo, por eso queda excluido del respaldo.
+  addOfferButton: 'button.open-insert-form-example-modal-button, [data-index="modal_button"]:not(.open-edit-form-example-modal-button)',
+  modalsWrapper:  '.modals-wrapper',
+  anyModal:       'aside[data-role="modal"], .modal-slide, .modal-popup',
   offerFieldset:  '[data-index="packageruleitem"]',
-  offerSave:      '.page-actions-buttons button[data-role="action"]',
+  modalClose:     'button.action-close',
+  // El "Save" del modal. Ojo: dentro tambien hay un "Add" SIN clase propia que
+  // pertenece a la tabla interna de marketing text y no guarda nada; por eso el
+  // boton se elige ademas por su texto.
+  modalSave:      'button.action-primary, button[data-role="action"]',
   priceRows:      'tbody[data-role="options-container"] tr',
   // El input del descuento lleva el id del grupo de clientes pegado
-  // (`discount-rate-1` = B2C). Magento lo pone en el `name` y en la `class`,
-  // y no siempre bajo el tbody de opciones: se buscan las dos vias.
-  discountRate:   'input[name*="discount-rate"], input[class*="discount-rate-"]',
+  // (`discount-rate-1` = B2C), en el `name` y en la `class`. Se excluye
+  // `total-package-discount-rate-N`, que es "Discount on total package" y vive
+  // FUERA de los modales (otra razon para acotar siempre al modal).
+  discountRate:   'input[class*="discount-rate-"]:not([class*="total-package"]), input[name*="discount-rate"]:not([name*="total-package"])',
   childGrid:      '[data-index="general_item"] table.data-grid, table.data-grid',
   childRow:       'tbody tr.data-row',
   childSkuCell:   'td.related_product_sku .data-grid-cell-content',
 };
+
+/**
+ * Como reconocer el modal de oferta entre los SEIS que Magento deja montados en
+ * `div.modals-wrapper` desde que carga la pantalla (dos de ellos de Page
+ * Builder, uno titulado "Edit"). No se crean al pulsar el boton: ya estan ahi,
+ * asi que un selector generico engancha el que no es.
+ *
+ * Los nombres van SIN guiones bajos ni medios a proposito: la comparacion
+ * normaliza las dos partes (`normalizeModalClass`), de modo que encaja igual
+ * como Magento escriba la clase.
+ */
+export const OFFER_MODAL_CLASS = {
+  NEW:  'packagerulepackageproductitemformareasgeneralitemgeneralitemofferpackagemodal',
+  EDIT: 'packagerulepackageproductitemformeditareasgeneralitemeditgeneralitemediteditmodal',
+};
+
+/** Respaldo si Magento reordena la clase larga: lo distintivo de cada modal. */
+export const OFFER_MODAL_HINT = {
+  NEW:  'offerpackagemodal',
+  EDIT: 'editeditmodal',
+};
+
+/**
+ * La UNICA senal fiable de que un modal esta abierto.
+ *
+ * Ni `offsetParent` ni la altura sirven: el modal es `position: fixed`, asi que
+ * `offsetParent === null` INCLUSO abierto (falso negativo), y
+ * `getBoundingClientRect().height` devuelve ~1305px INCLUSO cerrado (falso
+ * positivo). Al abrir, Magento agrega esta clase al modal (y la de estado al
+ * <body>); al cerrar las quita.
+ *
+ * Se compara IGNORANDO el guion bajo de estado: el admin escribe sus clases de
+ * estado como `_show`, pero la documentacion de la que sale esto llego con los
+ * guiones bajos comidos. Aceptar las dos formas cuesta nada y cubre el fallo
+ * mas caro posible — si esta comprobacion da negativo, el modal parece no
+ * abrirse nunca y el paso muere esperando.
+ */
+export const MODAL_OPEN_CLASS = 'show';
+export const BODY_MODAL_CLASS = 'has-modal';
 
 /**
  * Campos del formulario del padre, por `data-index`.

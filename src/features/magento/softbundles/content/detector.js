@@ -5,6 +5,7 @@ import {
   PAGE_TYPE,
   SELECTORS,
 } from '../constants.js';
+import { findOfferModal } from './magento/offer-modal.js';
 
 export function detectPage() {
   const url = location.href;
@@ -34,6 +35,6 @@ export function diagnose() {
     addOfferButton: Boolean(document.querySelector(SELECTORS.addOfferButton)),
     saveAndContinue: Boolean(document.querySelector(SELECTORS.saveAndContinue)),
     save: Boolean(document.querySelector(SELECTORS.save)),
-    offerModalOpen: Boolean(document.querySelector(SELECTORS.offerModal)),
+    offerModalOpen: Boolean(findOfferModal()),
   };
 }

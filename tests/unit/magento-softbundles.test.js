@@ -10,6 +10,7 @@ import { buildExistingMatrix, buildMatrix, matrixToCsv } from '../../src/feature
 import { BUNDLE_STATUS, CHILD_STATUS, DUPLICATE_POLICY } from '../../src/features/magento/softbundles/constants.js';
 import { decideOnDuplicate, findCreatingIndex } from '../../src/features/magento/softbundles/content/flows/run.js';
 import { pickPageSizeOption, splitRelated } from '../../src/features/magento/softbundles/content/magento/listing.js';
+import { isModalOpen, matchesModalKind, normalizeModalClass } from '../../src/features/magento/softbundles/content/magento/offer-modal.js';
 import { toMagentoDate } from '../../src/features/magento/softbundles/popup/section.js';
 import { classifyRejection } from '../../src/features/magento/softbundles/content/parser.js';
 
@@ -284,5 +285,54 @@ describe('pickPageSizeOption', () => {
   it('sin opciones devuelve null', () => {
     expect(pickPageSizeOption([], 200)).toBeNull();
     expect(pickPageSizeOption(null, 200)).toBeNull();
+  });
+});
+
+describe('identificacion del modal de oferta', () => {
+  // Magento deja SEIS modales montados desde que carga la pantalla; estas son
+  // sus clases reales, con los separadores que usa el admin.
+  const NUEVO = 'modal-slide packagerule_packageproductitem_form_areas_general_item_general_item_offer_package_modal _show';
+  const EDITAR = 'modal-slide packagerule_packageproductitem_form_edit_areas_general_item_edit_general_item_edit_edit_modal';
+  const PAGEBUILDER = 'modal-slide pagebuilder_modal_form_pagebuilder_modal_form_modal';
+
+  it('distingue el modal de alta del de edicion', () => {
+    expect(matchesModalKind(NUEVO, 'new')).toBe(true);
+    expect(matchesModalKind(NUEVO, 'edit')).toBe(false);
+    expect(matchesModalKind(EDITAR, 'edit')).toBe(true);
+    expect(matchesModalKind(EDITAR, 'new')).toBe(false);
+  });
+
+  it('no confunde los modales ajenos (Page Builder se titula "Edit")', () => {
+    expect(matchesModalKind(PAGEBUILDER, 'new')).toBe(false);
+    expect(matchesModalKind(PAGEBUILDER, 'edit')).toBe(false);
+    expect(matchesModalKind('modal-popup confirm', 'new')).toBe(false);
+    expect(matchesModalKind('', 'new')).toBe(false);
+  });
+
+  it('no depende de como Magento separe las palabras de la clase', () => {
+    // La comparacion normaliza los dos lados: da igual si la clase viene con
+    // guiones bajos, medios o pegada.
+    expect(normalizeModalClass('a_b-c d')).toBe('abcd');
+    expect(matchesModalKind(NUEVO.replace(/_/g, '-'), 'new')).toBe(true);
+    expect(matchesModalKind(NUEVO.replace(/_/g, ''), 'new')).toBe(true);
+  });
+});
+
+describe('isModalOpen', () => {
+  const conClases = (...clases) => ({ classList: clases });
+
+  it('acepta la clase de estado con y sin guion bajo', () => {
+    // El admin escribe `_show`; si la comprobacion no lo contempla, el modal
+    // parece no abrirse nunca y el paso muere esperando.
+    expect(isModalOpen(conClases('modal-slide', '_show'))).toBe(true);
+    expect(isModalOpen(conClases('modal-slide', 'show'))).toBe(true);
+  });
+
+  it('un modal cerrado no esta abierto', () => {
+    expect(isModalOpen(conClases('modal-slide'))).toBe(false);
+    // Y no se deja enganar por una clase que apenas contenga el texto.
+    expect(isModalOpen(conClases('modal-slide', 'showcase'))).toBe(false);
+    expect(isModalOpen(null)).toBe(false);
+    expect(isModalOpen({})).toBe(false);
   });
 });

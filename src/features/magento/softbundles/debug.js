@@ -16,7 +16,9 @@ import {
   parseListingRows,
 } from './content/magento/listing.js';
 import { fillParentForm, formRoot } from './content/magento/parent-form.js';
-import { createOffer, findOfferModal, openOfferModal, readOfferSkus, splitVisible } from './content/magento/offer-modal.js';
+import {
+  createOffer, describeModals, findOfferModal, isModalOpen, openOfferModal, readOfferSkus, splitVisible,
+} from './content/magento/offer-modal.js';
 import { hasLoadedOptions, readSelectedProduct, selectProduct } from './content/magento/advanced-select.js';
 import { field } from './content/magento/fields.js';
 import { readMessages } from './content/parser.js';
@@ -83,6 +85,8 @@ register('magentoSoftbundles', {
   // --- ofertas ---
   openOffer: cmd(() => openOfferModal({}), 'Abre el modal "Add New Offer"'),
   offerModal: cmd(() => Boolean(findOfferModal()), 'True si el modal de oferta esta abierto'),
+  modals: cmd(() => describeModals(), 'Los 6 modales montados: cual es cual, cual esta abierto y cuantos inputs de tasa tiene'),
+  modalOpen: cmd(() => isModalOpen(findOfferModal({ openOnly: false })), 'True si el modal de alta tiene la clase "show"'),
   offers: cmd(() => readOfferSkus(), 'SKU de las ofertas ya creadas'),
   splitVisible: cmd(() => splitVisible(), 'True si el % sobre el principal esta a la vista'),
   addOffer: cmd(
