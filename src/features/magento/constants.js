@@ -77,7 +77,15 @@ export const BRIDGE = {
   OPS: {
     PROBE: 'probe',
     EXPAND_REGIONAL: 'expand-regional',
+    // Softbundles: inyecta un SKU en el ui-select de "Main Product". Ese
+    // widget filtra SOLO sobre lo que ya tiene cargado (~100 opciones), asi
+    // que un producto legitimo puede no aparecer nunca por teclado.
+    FORCE_PRODUCT: 'force-product-option',
   },
+  // Marca temporal sobre el wrap del ui-select: el DOM es lo unico que
+  // comparten el mundo aislado y el MAIN, asi que es como se le dice al bridge
+  // "este de aca", sin depender de un selector que ambos tengan que deducir.
+  TARGET_ATTR: 'data-ext-lge-cl-target',
 };
 
 export const DETAIL_SECTION_SELECTORS = [

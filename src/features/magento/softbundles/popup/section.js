@@ -8,6 +8,9 @@ import {
   CHILD_STATUS,
   DEFAULT_CONFIG,
   DEFAULT_ADMIN_BASE,
+  DUPLICATE_POLICY,
+  DUPLICATE_POLICY_LABEL,
+  EXPORT_PHASE_LABEL,
   FINISH_REASON,
   LISTING_PATH,
   LISTING_URL_RE,
@@ -18,7 +21,8 @@ import {
 import { buildMatrix, matrixToCsv } from '../csv.js';
 import { countOffers, parseBundleLines, parsePercent } from '../parse-input.js';
 import {
-  clearRun, getDraft, getRun, makeRun, setDraft, setRun, subscribeToRun, updateRun,
+  clearExport, clearRun, getDraft, getExport, getRun, makeExport, makeRun,
+  setDraft, setExport, setRun, subscribeToExport, subscribeToRun, updateRun,
 } from '../state.js';
 import { downloadText, escapeHtml, formatTime } from '../../popup/utils.js';
 
@@ -26,10 +30,12 @@ const log = logger('magento/popup');
 const PLACEHOLDER = 'SKU_PADRE,SKU_HIJO1,SKU_HIJO2\nSKU_PADRE2,SKU_HIJO1:10,SKU_HIJO2:8:40';
 
 let unsubscribeRun = null;
+let unsubscribeExport = null;
 
 export async function render(container) {
   if (unsubscribeRun) unsubscribeRun();
-  const [run, draft] = await Promise.all([getRun(), getDraft()]);
+  if (unsubscribeExport) unsubscribeExport();
+  const [run, draft, exportState] = await Promise.all([getRun(), getDraft(), getExport()]);
   const config = { ...defaultConfig(), ...(draft || {}) };
 
   container.innerHTML = `
@@ -138,7 +144,15 @@ export async function render(container) {
           </div>
         </details>
 
-        <label class="dt-check"><input type="checkbox" id="sb-skip-existing" ${config.skipExisting ? 'checked' : ''}><span>Omitir los SKU que ya tienen package rule</span></label>
+        <div class="dt-field">
+          <label class="dt-label" for="sb-duplicate-policy">Si el SKU principal ya tiene package rule</label>
+          <select id="sb-duplicate-policy" class="dt-input">
+            ${Object.entries(DUPLICATE_POLICY_LABEL).map(([value, label]) => `
+              <option value="${value}" ${config.duplicatePolicy === value ? 'selected' : ''}>${escapeHtml(label)}</option>`).join('')}
+          </select>
+          <p class="lt-hint" id="sb-duplicate-hint"></p>
+        </div>
+
         <label class="dt-check"><input type="checkbox" id="sb-dry-run" ${config.dryRun ? 'checked' : ''}><span>Modo simulacion (no guarda nada)</span></label>
         <p class="lt-hint" id="sb-dry-hint"></p>
 
@@ -147,6 +161,18 @@ export async function render(container) {
           <button type="button" id="sb-stop" class="ct-btn ct-btn--ghost" disabled>Detener</button>
           <button type="button" id="sb-clear" class="ct-btn ct-btn--ghost hidden">Limpiar</button>
         </div>
+      </section>
+
+      <section class="lt-form-card">
+        <h3 class="lt-section-title">Soft bundles existentes</h3>
+        <p class="lt-hint">Lee el listado completo de Package Rule y arma un CSV <strong>padre, hijo</strong> (una fila por oferta). Solo lectura: no entra a ninguna regla ni toca nada.</p>
+        <div class="lt-actions">
+          <button type="button" id="sb-export-start" class="ct-btn ct-btn--primary">Leer el listado</button>
+          <button type="button" id="sb-export-stop" class="ct-btn ct-btn--ghost hidden">Detener</button>
+          <button type="button" id="sb-export-download" class="ct-btn ct-btn--primary hidden">Descargar CSV</button>
+          <button type="button" id="sb-export-clear" class="ct-btn ct-btn--ghost hidden">Limpiar</button>
+        </div>
+        <p class="lt-hint" id="sb-export-status"></p>
       </section>
 
       <section id="sb-progress" class="lt-progress hidden">
@@ -174,10 +200,17 @@ export async function render(container) {
   container.querySelector('#sb-clear').addEventListener('click', () => onClear(container));
   container.querySelector('#sb-export').addEventListener('click', onExport);
   container.querySelector('#sb-copy').addEventListener('click', (event) => onCopy(event.currentTarget));
+  container.querySelector('#sb-export-start').addEventListener('click', onExportStart);
+  container.querySelector('#sb-export-stop').addEventListener('click', onExportStop);
+  container.querySelector('#sb-export-download').addEventListener('click', onExportDownload);
+  container.querySelector('#sb-export-clear').addEventListener('click', () => onExportClear(container));
+  container.querySelector('#sb-duplicate-policy').addEventListener('change', () => updateDuplicateHint(container));
 
   setSource(container, config.source);
   updatePreview(container);
   updateDryHint(container);
+  updateDuplicateHint(container);
+  renderExport(container, exportState);
   if (run) renderProgress(container, run);
   toggleButtons(container, run);
 
@@ -193,6 +226,112 @@ export async function render(container) {
     else container.querySelector('#sb-progress')?.classList.add('hidden');
     toggleButtons(container, newRun);
   });
+
+  unsubscribeExport = subscribeToExport((state) => {
+    if (!container.isConnected) {
+      unsubscribeExport?.();
+      unsubscribeExport = null;
+      return;
+    }
+    renderExport(container, state);
+  });
+}
+
+// -----------------------------------------------------------------------------
+// export de los bundles existentes
+// -----------------------------------------------------------------------------
+
+async function onExportStart() {
+  const creation = await getRun();
+  if (creation?.active) {
+    alert('Hay una creacion de bundles en curso. Espera a que termine o detenla: los dos trabajos usan el mismo listado.');
+    return;
+  }
+
+  let tab = null;
+  try {
+    tab = await getActiveTab();
+  } catch (err) {
+    log.warn('no hay pestana activa', err);
+  }
+
+  // Si ya esta en el listado no se navega: recorrerlo es justamente lo que se
+  // va a hacer, y una navegacion de mas cuesta una carga entera.
+  const onListing = LISTING_URL_RE.test(tab?.url || '');
+  const listingUrl = onListing ? tab.url : `${deriveAdminBase(tab?.url)}${LISTING_PATH}`;
+  if (!onListing && !confirm(`La pestana activa no es el listado de Package Rule. Se va a navegar a:\n\n${listingUrl}\n\nContinuar?`)) {
+    return;
+  }
+
+  await setExport(makeExport());
+  if (onListing) return;
+  try {
+    if (!tab?.id) throw new Error('No hay pestana activa para abrir el listado de Package Rule.');
+    await chrome.tabs.update(tab.id, { url: listingUrl });
+  } catch (err) {
+    log.error('no se pudo abrir el listado de Package Rule', err);
+  }
+}
+
+function onExportStop() {
+  return updateExportState((state) => ({
+    ...state,
+    active: false,
+    finishedAt: Date.now(),
+    finishReason: FINISH_REASON.CANCELLED,
+  }));
+}
+
+async function onExportDownload() {
+  const state = await getExport();
+  if (!state?.csv) return;
+  const stamp = new Date().toISOString().slice(0, 10);
+  downloadText(state.csv, `magento-softbundles-existentes-${stamp}.csv`);
+}
+
+async function onExportClear(container) {
+  await clearExport();
+  renderExport(container, null);
+}
+
+async function updateExportState(updater) {
+  const state = await getExport();
+  if (!state) return;
+  await setExport(updater(state));
+}
+
+function renderExport(container, state) {
+  const status = container.querySelector('#sb-export-status');
+  const start = container.querySelector('#sb-export-start');
+  const stop = container.querySelector('#sb-export-stop');
+  const download = container.querySelector('#sb-export-download');
+  const clear = container.querySelector('#sb-export-clear');
+  if (!status) return;
+
+  const active = Boolean(state?.active);
+  start.disabled = active;
+  stop.classList.toggle('hidden', !active);
+  download.classList.toggle('hidden', !state?.csv);
+  clear.classList.toggle('hidden', !state || active);
+
+  if (!state) {
+    status.textContent = '';
+    return;
+  }
+  if (active) {
+    const total = state.total ? ` de ~${state.total}` : '';
+    status.textContent = `${EXPORT_PHASE_LABEL[state.phase] || state.phase} ${state.rules || 0} regla(s)${total}, pagina ${state.pages || 1}.`;
+    return;
+  }
+  if (state.finishReason === FINISH_REASON.ERROR) {
+    status.textContent = `Error: ${state.error}`;
+    return;
+  }
+  if (state.finishReason === FINISH_REASON.CANCELLED) {
+    status.textContent = 'Detenido.';
+    return;
+  }
+  status.textContent = `${state.rules} package rule(s) leidas en ${state.pages} pagina(s): ${state.rows} fila(s) padre-hijo.`;
 }
 
 // -----------------------------------------------------------------------------
@@ -215,12 +354,18 @@ function isoDate(date) {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 }
 
-/** ISO del <input type="date"> -> formato del datepicker de Magento (m/dd/yyyy). */
+/**
+ * ISO del <input type="date"> -> formato del datepicker de Magento.
+ *
+ * jQuery UI lo declara como `mm/d/yy`: mes con DOS digitos, dia SIN cero a la
+ * izquierda y ano de cuatro (`09/9/2026`). Verificado contra el admin real; al
+ * reves el widget reinterpreta el texto al perder el foco.
+ */
 export function toMagentoDate(iso) {
   const match = String(iso || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
   if (!match) return '';
   const [, year, month, day] = match;
-  return `${Number(month)}/${day}/${year}`;
+  return `${month}/${Number(day)}/${year}`;
 }
 
 function setSource(container, source) {
@@ -297,8 +442,8 @@ function readConfig(container) {
     split:            checked('#sb-split'),
     mainDiscountRate: value('#sb-main-discount'),
     // run
-    skipExisting: checked('#sb-skip-existing'),
-    dryRun:       checked('#sb-dry-run'),
+    duplicatePolicy: value('#sb-duplicate-policy'),
+    dryRun:          checked('#sb-dry-run'),
   };
 }
 
@@ -311,6 +456,18 @@ function updateDryHint(container) {
   container.querySelector('#sb-dry-hint').textContent = dry
     ? 'En simulacion se llena el formulario del bundle (lo que confirma que el SKU principal existe en Magento) y se vuelve al listado sin guardar. Las ofertas no se pueden probar sin crear antes el bundle.'
     : 'Se van a crear package rules reales en Magento.';
+}
+
+function updateDuplicateHint(container) {
+  const policy = container.querySelector('#sb-duplicate-policy').value;
+  const hint = container.querySelector('#sb-duplicate-hint');
+  if (policy === DUPLICATE_POLICY.DELETE) {
+    hint.textContent = 'OJO: borrar un package rule borra tambien TODAS sus ofertas, y no se puede deshacer. En modo simulacion no se borra nada.';
+  } else if (policy === DUPLICATE_POLICY.ASK) {
+    hint.textContent = 'La pregunta aparece en la pestana de Magento, una por cada SKU repetido. Cancelar = omitir ese bundle.';
+  } else {
+    hint.textContent = 'El bundle se saltea y la regla que ya existe queda intacta.';
+  }
 }
 
 function updatePreview(container) {
@@ -361,9 +518,21 @@ async function onStart(container) {
     return;
   }
 
+  const exporting = await getExport();
+  if (exporting?.active) {
+    alert('Hay una lectura del listado en curso. Espera a que termine o detenla antes de crear bundles.');
+    return;
+  }
+
   const offers = countOffers(bundles);
+  // El borrado es lo unico irreversible de todo el modulo: se nombra aparte en
+  // la confirmacion, no escondido entre el resto del resumen.
+  const deleteWarning = config.duplicatePolicy === DUPLICATE_POLICY.DELETE
+    ? 'Los SKU que YA tengan package rule se van a BORRAR (con todas sus ofertas) y crear de nuevo.\n\n'
+    : '';
   if (!config.dryRun && !confirm(
     `Se van a crear ${bundles.length} package rule(s) con ${offers} oferta(s) en Magento (website ${WEBSITE_LABEL}).\n\n`
+    + deleteWarning
     + `${warnings.length ? `Hay ${warnings.length} aviso(s) en la lista.\n\n` : ''}Continuar?`,
   )) return;
 

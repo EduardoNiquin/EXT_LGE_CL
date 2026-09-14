@@ -1,4 +1,4 @@
-import { SELECTORS } from '../constants.js';
+import { SELECTORS, TEXTS } from '../constants.js';
 
 function textOf(message) {
   const inner = message.querySelector(SELECTORS.messageText);
@@ -21,4 +21,23 @@ export function readMessages() {
 export function hasSuccess(needle) {
   const target = needle.toLowerCase();
   return readMessages().success.some((message) => message.toLowerCase().includes(target));
+}
+
+/**
+ * Clasifica el mensaje con el que Magento devuelve el formulario del padre.
+ *
+ * `This sku has been existed.` NO es un fallo del SKU: el servidor lo
+ * reconocio y lo valido contra el catalogo, solo que ese producto ya tiene su
+ * package rule. Como este modulo nunca borra nada, el bundle se omite.
+ *
+ * @param {string} message
+ * @returns {?{ message: string, duplicate: boolean }} null si no hay mensaje.
+ */
+export function classifyRejection(message) {
+  const text = String(message ?? '').trim();
+  if (!text) return null;
+  return {
+    message: text,
+    duplicate: text.toLowerCase().includes(TEXTS.SKU_EXISTS.toLowerCase()),
+  };
 }

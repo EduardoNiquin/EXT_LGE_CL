@@ -21,6 +21,7 @@ import { logger } from '../../../../../shared/utils/logger.js';
 import {
   BUNDLE_STATUS,
   CHILD_STATUS,
+  DUPLICATE_POLICY,
   FINISH_REASON,
   MAX_REDIRECTS,
   PAGE_TYPE,
@@ -29,13 +30,14 @@ import {
   TEXTS,
   WEBSITE_LABEL,
 } from '../../constants.js';
-import { appendLog, getRun, updateRun } from '../../state.js';
+import { appendLog, getExport, getRun, updateRun } from '../../state.js';
 import { sameSku } from '../../parse-input.js';
 import { detectPage } from '../detector.js';
-import { hasSuccess, readMessages } from '../parser.js';
+import { classifyRejection, hasSuccess, readMessages } from '../parser.js';
 import {
   clearFilters,
   clickAddPackage,
+  deleteExistingRule,
   ensureWebsite,
   findExistingRule,
   waitForGridReady,
@@ -48,6 +50,11 @@ import {
 import { closeOfferModal, createOffer, findOfferModal, readOfferSkus } from '../magento/offer-modal.js';
 
 const log = logger('magento/softbundles');
+
+// Cuantas veces se acepta volver al formulario del padre por el mismo bundle
+// antes de darlo por perdido.
+const MAX_FORM_ATTEMPTS = 2;
+
 let running = false;
 let activeController = null;
 
@@ -80,6 +87,15 @@ export async function tickIfActive() {
   try {
     const run = await getRun();
     if (!run?.active) return;
+
+    // El export recorre el mismo listado cambiando filtros y pagina: dejarlos
+    // correr juntos deja a los dos leyendo la tabla del otro.
+    const exporting = await getExport();
+    if (exporting?.active) {
+      log.debug('export en curso: la creacion espera');
+      return;
+    }
+
     const page = detectPage();
 
     if (page.type === PAGE_TYPE.LISTING) await onListing(run, page, controller.signal);
@@ -124,13 +140,53 @@ async function onListing(initialRun, page, signal) {
     return;
   }
 
+  run = await reconcileDeletes(run);
+  if (!run?.active) return;
+
   run = await reconcileOnListing(run);
   if (!run?.active) return;
 
-  run = await checkExistingRules(run, signal);
+  const checked = await checkExistingRules(run, signal);
+  // Borrar un package rule recarga el listado: el tick muere aca y lo retoma
+  // el de la carga nueva.
+  if (checked.navigating) return;
+  run = checked.run;
   if (!run?.active) return;
 
   await startNextBundle(run, signal);
+}
+
+/**
+ * Cierra el borrado que acaba de recargar el listado. Magento confirma con
+ * "The package has been deleted."; sin ese mensaje no se da por hecho que la
+ * regla se fue (se reintenta la revision del SKU en la vuelta siguiente).
+ */
+async function reconcileDeletes(run) {
+  const index = run.items.findIndex((item) => item.pendingDelete);
+  if (index === -1) return run;
+
+  const item = run.items[index];
+  const deleted = hasSuccess(TEXTS.PACKAGE_DELETED);
+  const updated = await updateRun((current) => ({
+    ...current,
+    items: current.items.map((candidate, position) => (position === index
+      ? {
+        ...candidate,
+        pendingDelete: null,
+        // Con el borrado confirmado el SKU queda libre: se crea como uno mas.
+        // Si no se confirmo, se vuelve a revisar en la proxima pasada.
+        checkedExisting: deleted,
+      }
+      : candidate)),
+  }));
+
+  await appendLog({
+    level: deleted ? 'warn' : 'error',
+    message: deleted
+      ? `${item.parentSku}: se borro el package rule ${item.pendingDelete.id} y sus ofertas; se crea de nuevo.`
+      : `${item.parentSku}: no se pudo confirmar el borrado del package rule ${item.pendingDelete.id}; se revisa otra vez.`,
+  });
+  return updated;
 }
 
 /** Cierra el bundle que volvio del guardado y marca los que se quedaron a medias. */
@@ -141,6 +197,10 @@ async function reconcileOnListing(run) {
 
   const saved = hasSuccess(TEXTS.RULE_SAVED);
   const magentoErrors = readMessages().errors;
+  // Magento devuelve el rechazo del guardado en el formulario, pero segun la
+  // version puede soltarlo aca. Si el motivo es el duplicado, el bundle se
+  // omite en vez de darlo por roto: la regla que ya existe no se toca.
+  const rejection = classifyRejection(magentoErrors[0]);
 
   const updated = await updateRun((current) => {
     const items = current.items.map((item, index) => {
@@ -160,10 +220,20 @@ async function reconcileOnListing(run) {
         };
       }
       if (index === creating) {
+        if (rejection?.duplicate) {
+          return {
+            ...item,
+            status: BUNDLE_STATUS.SKIPPED,
+            skipReason: SKIP_REASON.ALREADY_EXISTS,
+            error: `Ya existe un package rule para ${item.parentSku} (Magento: "${rejection.message}"). No se toca la regla existente.`,
+          };
+        }
         return {
           ...item,
           status: BUNDLE_STATUS.ERROR,
-          error: 'La creacion se interrumpio antes de terminar (se volvio al listado).',
+          error: rejection
+            ? `Magento rechazo el guardado: ${rejection.message}`
+            : 'La creacion se interrumpio antes de terminar (se volvio al listado).',
         };
       }
       return item;
@@ -181,19 +251,30 @@ async function reconcileOnListing(run) {
     });
   }
   if (creating !== -1) {
-    await appendLog({ level: 'error', message: `${updated.items[creating].parentSku}: creacion interrumpida` });
+    const item = updated.items[creating];
+    await appendLog({
+      level: item.status === BUNDLE_STATUS.SKIPPED ? 'warn' : 'error',
+      message: item.error || `${item.parentSku}: creacion interrumpida`,
+    });
   }
   return updated;
 }
 
 /**
- * Marca como omitidos los SKU padre que ya tienen un package rule. Se hace una
- * sola vez y en el listado: son consultas AJAX del grid, sin navegar.
+ * Resuelve los SKU padre que YA tienen package rule. Magento no admite dos
+ * reglas con el mismo padre, asi que hay que decidir por cada uno; la decision
+ * la fija `config.duplicatePolicy` (ver DUPLICATE_POLICY).
+ *
+ * La revision se hace una sola vez y en el listado: son consultas AJAX del
+ * grid, sin navegar. El BORRADO si navega, y por eso corta el tick.
+ *
+ * @returns {Promise<{ run: object, navigating: boolean }>}
  */
 async function checkExistingRules(initialRun, signal) {
   let run = initialRun;
-  if (!run.config?.skipExisting) return run;
-  if (!run.items.some((item) => item.status === BUNDLE_STATUS.PENDING && !item.checkedExisting)) return run;
+  if (!run.items.some((item) => item.status === BUNDLE_STATUS.PENDING && !item.checkedExisting)) {
+    return { run, navigating: false };
+  }
 
   run = await updateRun((current) => ({ ...current, phase: RUN_PHASE.CHECKING }));
   await appendLog({ level: 'info', message: 'Revisando cuales SKU ya tienen package rule...' });
@@ -211,25 +292,72 @@ async function checkExistingRules(initialRun, signal) {
       failure = toMessage(err);
     }
 
+    if (!result.found) {
+      run = await updateRun((current) => ({
+        ...current,
+        items: current.items.map((candidate, position) => (position === index
+          ? { ...candidate, checkedExisting: true }
+          : candidate)),
+      }));
+      if (!run?.active) return { run, navigating: false };
+      if (failure) {
+        await appendLog({ level: 'warn', message: `No se pudo revisar ${item.parentSku} en el listado (${failure}); se crea igual.` });
+      }
+      continue;
+    }
+
+    const decision = decideOnDuplicate(item.parentSku, result.id, run.config);
+    if (decision !== DUPLICATE_POLICY.DELETE) {
+      run = await updateRun((current) => ({
+        ...current,
+        items: current.items.map((candidate, position) => (position === index
+          ? {
+            ...candidate,
+            checkedExisting: true,
+            status: BUNDLE_STATUS.SKIPPED,
+            skipReason: SKIP_REASON.ALREADY_EXISTS,
+            error: `Ya existe el package rule ${result.id}`,
+          }
+          : candidate)),
+      }));
+      if (!run?.active) return { run, navigating: false };
+      await appendLog({ level: 'warn', message: `${item.parentSku}: ya existe el package rule ${result.id}, se omite.` });
+      continue;
+    }
+
+    // Se anota ANTES de pulsar: el borrado recarga el listado y esta escritura
+    // es lo unico que sobrevive para saber que estabamos haciendo.
+    run = await updateRun((current) => ({
+      ...current,
+      items: current.items.map((candidate, position) => (position === index
+        ? { ...candidate, pendingDelete: { id: result.id, sku: item.parentSku } }
+        : candidate)),
+    }));
+    if (!run?.active) return { run, navigating: false };
+
+    await appendLog({ level: 'warn', message: `${item.parentSku}: borrando el package rule ${result.id} (y sus ofertas) para volver a crearlo...` });
+    markNavigating();
+    const outcome = await deleteExistingRule(item.parentSku, { signal, expectedId: result.id });
+    if (outcome.deleted) return { run, navigating: true };
+
+    // No se borro nada: se deshace la marca y el bundle se omite, que es el
+    // desenlace conservador.
+    navigating = false;
     run = await updateRun((current) => ({
       ...current,
       items: current.items.map((candidate, position) => (position === index
         ? {
           ...candidate,
+          pendingDelete: null,
           checkedExisting: true,
-          status: result.found ? BUNDLE_STATUS.SKIPPED : candidate.status,
-          skipReason: result.found ? SKIP_REASON.ALREADY_EXISTS : candidate.skipReason,
-          error: result.found ? `Ya existe el package rule ${result.id}` : candidate.error,
+          status: BUNDLE_STATUS.SKIPPED,
+          skipReason: SKIP_REASON.ALREADY_EXISTS,
+          error: `No se pudo borrar el package rule ${result.id}: ${outcome.reason}`,
         }
         : candidate)),
     }));
-    if (!run?.active) return run;
-
-    if (failure) {
-      await appendLog({ level: 'warn', message: `No se pudo revisar ${item.parentSku} en el listado (${failure}); se crea igual.` });
-    } else if (result.found) {
-      await appendLog({ level: 'warn', message: `${item.parentSku}: ya existe el package rule ${result.id}, se omite.` });
-    }
+    if (!run?.active) return { run, navigating: false };
+    await appendLog({ level: 'error', message: `${item.parentSku}: no se pudo borrar el package rule ${result.id} (${outcome.reason}); se omite.` });
   }
 
   await clearFilters({ signal }).catch(() => { /* el listado queda filtrado, no es fatal */ });
@@ -238,7 +366,40 @@ async function checkExistingRules(initialRun, signal) {
     level: 'info',
     message: skipped ? `${skipped} bundle(s) ya existian y se omiten` : 'Ningun SKU tenia package rule previo',
   });
-  return getRun();
+  return { run: await getRun(), navigating: false };
+}
+
+/**
+ * Que hacer con un padre que ya tiene regla. Devuelve SKIP o DELETE.
+ *
+ * El modo simulacion NUNCA borra: se supone que es para mirar sin tocar, y un
+ * borrado ahi seria la sorpresa mas cara posible.
+ *
+ * Con la politica en "preguntar", la pregunta sale en la pestana de Magento
+ * (`confirm`), que es donde el usuario esta mirando el proceso: el popup puede
+ * estar cerrado, y el service worker no tiene donde dibujarla.
+ */
+export function decideOnDuplicate(parentSku, ruleId, config, ask = defaultAsk) {
+  const policy = config?.duplicatePolicy || DUPLICATE_POLICY.SKIP;
+  if (policy === DUPLICATE_POLICY.SKIP) return DUPLICATE_POLICY.SKIP;
+  if (config?.dryRun) return DUPLICATE_POLICY.SKIP;
+  if (policy === DUPLICATE_POLICY.DELETE) return DUPLICATE_POLICY.DELETE;
+  return ask(parentSku, ruleId) ? DUPLICATE_POLICY.DELETE : DUPLICATE_POLICY.SKIP;
+}
+
+function defaultAsk(parentSku, ruleId) {
+  const message = [
+    `${parentSku} ya tiene el package rule ${ruleId}.`,
+    '',
+    'Aceptar = BORRAR esa regla (y todas sus ofertas) y crearla de nuevo.',
+    'Cancelar = dejarla como esta y omitir este bundle.',
+  ].join('\n');
+  try {
+    return window.confirm(message);
+  } catch {
+    // Sin poder preguntar, la opcion segura es no borrar.
+    return false;
+  }
 }
 
 /** Toma el proximo bundle pendiente y entra a "Add New Package". Si no queda, cierra. */
@@ -256,7 +417,7 @@ async function startNextBundle(run, signal) {
     currentIndex: nextIndex,
     redirects: 0,
     items: current.items.map((candidate, index) => (index === nextIndex
-      ? { ...candidate, status: BUNDLE_STATUS.CREATING, error: '' }
+      ? { ...candidate, status: BUNDLE_STATUS.CREATING, error: '', attempts: 0 }
       : candidate)),
   }));
   if (!updated?.active) return;
@@ -280,6 +441,37 @@ async function onNew(run, page, signal) {
     return;
   }
   const item = run.items[index];
+
+  // Un formulario recien abierto no trae mensajes: si hay uno de error, es que
+  // Magento rechazo NUESTRO guardado y nos devolvio aca. Sin esta lectura el
+  // tick siguiente vuelve a llenar el mismo formulario y a guardarlo, para
+  // siempre.
+  const rejection = readNewFormRejection();
+  if (rejection) {
+    if (!rejection.duplicate) {
+      await failBundle(index, `Magento rechazo el guardado: ${rejection.message}`);
+    } else {
+      await resolveDuplicateAtSave(run, index, item, rejection);
+    }
+    goTo(run.listingUrl);
+    return;
+  }
+
+  // Red de seguridad: si volvimos al formulario sin mensaje que lo explique,
+  // rellenarlo otra vez repetiria el intento a ciegas.
+  const attempts = (item.attempts || 0) + 1;
+  if (attempts > MAX_FORM_ATTEMPTS) {
+    await failBundle(index, `El formulario del padre se recargo ${attempts} veces sin que Magento confirmara nada.`);
+    goTo(run.listingUrl);
+    return;
+  }
+  const withAttempt = await updateRun((current) => ({
+    ...current,
+    items: current.items.map((candidate, position) => (position === index
+      ? { ...candidate, attempts }
+      : candidate)),
+  }));
+  if (!withAttempt?.active) return;
 
   try {
     await fillParentForm({
@@ -448,6 +640,64 @@ export function findCreatingIndex(run, packageId = '') {
     if (byId !== -1) return byId;
   }
   return items.findIndex((item) => item.status === BUNDLE_STATUS.CREATING);
+}
+
+/** Motivo por el que Magento devolvio el formulario del padre (ver `classifyRejection`). */
+function readNewFormRejection() {
+  return classifyRejection(readMessages().errors[0]);
+}
+
+/**
+ * El padre resulto duplicado recien al guardar (la revision previa no lo
+ * alcanzo, o alguien creo la regla mientras tanto). Con la politica en
+ * "borrar" se devuelve el bundle a la cola SIN revisar, para que la pasada del
+ * listado lo encuentre y libere el SKU; con cualquier otra, se omite.
+ *
+ * `deleteAttempts` corta el ida y vuelta: si ya se intento liberar el SKU una
+ * vez y Magento lo sigue viendo ocupado, se omite en vez de seguir rebotando.
+ */
+async function resolveDuplicateAtSave(run, index, item, rejection) {
+  const decision = decideOnDuplicate(item.parentSku, '', run.config);
+  const attempts = item.deleteAttempts || 0;
+
+  if (decision !== DUPLICATE_POLICY.DELETE || attempts >= 1) {
+    const tried = attempts >= 1 ? ' Ya se intento liberarlo una vez.' : '';
+    await skipBundle(index, `Ya existe un package rule para ${item.parentSku} (Magento: "${rejection.message}").${tried} No se toca la regla existente.`);
+    return;
+  }
+
+  await updateRun((current) => ({
+    ...current,
+    items: current.items.map((candidate, position) => (position === index
+      ? {
+        ...candidate,
+        status: BUNDLE_STATUS.PENDING,
+        checkedExisting: false,
+        attempts: 0,
+        deleteAttempts: attempts + 1,
+        error: '',
+      }
+      : candidate)),
+  }));
+  await appendLog({
+    level: 'warn',
+    message: `${item.parentSku}: Magento lo rechazo por duplicado; se vuelve al listado a borrar la regla que ocupa el SKU.`,
+  });
+}
+
+async function skipBundle(index, message) {
+  await updateRun((current) => ({
+    ...current,
+    items: current.items.map((item, position) => (position === index
+      ? {
+        ...item,
+        status: BUNDLE_STATUS.SKIPPED,
+        skipReason: SKIP_REASON.ALREADY_EXISTS,
+        error: message,
+      }
+      : item)),
+  }));
+  await appendLog({ level: 'warn', message });
 }
 
 /** Vuelve al listado cuando la pantalla no se puede asociar a ningun bundle. */

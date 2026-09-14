@@ -21,6 +21,7 @@
 
 (() => {
   const SOURCE = 'ext-lge-cl/magento-bridge';
+  const TARGET_ATTR = 'data-ext-lge-cl-target';
   const MAX_COMPONENTS = 200;
   // Columnas tipicas de la grilla regional: sirven para reconocerla entre todos
   // los data sources que el admin registra en la misma pantalla.
@@ -239,9 +240,81 @@
     };
   }
 
+  // ---------------------------------------------------------------------------
+  // Softbundles: forzar un SKU en el ui-select de "Main Product"
+  // ---------------------------------------------------------------------------
+
+  /**
+   * El selector de producto principal del package rule NO consulta al servidor
+   * al teclear: filtra localmente sobre el lote que ya trajo (~100 opciones) y
+   * ademas esconde los productos que ya tienen regla. Por eso un SKU valido
+   * puede no aparecer jamas por mucho que se escriba.
+   *
+   * La salida es inyectar la opcion en el propio componente Knockout y
+   * seleccionarla con su API (`toggleOptionSelected`, NO `value(...)` a pelo:
+   * asi quedan sincronizados valor, caption visible y provider del formulario).
+   * El backend valida contra el catalogo, no contra el desplegable, asi que
+   * acepta el valor inyectado — y si el SKU ya tenia regla, el propio guardado
+   * lo rechaza con "This sku has been existed.", que es justo lo que se quiere.
+   *
+   * El elemento llega marcado con TARGET_ATTR desde el mundo aislado: el DOM es
+   * lo unico que comparten los dos mundos.
+   */
+  function forceProductOption(payload) {
+    const sku = String((payload && payload.sku) || '').trim();
+    if (!sku) return { applied: false, reason: 'no se indico el SKU' };
+
+    const req = window.require || window.requirejs;
+    if (typeof req !== 'function') return { applied: false, reason: 'la pagina no expone require' };
+    // `ko` esta cargado en cualquier pantalla del admin, asi que el require
+    // sincrono lo resuelve; si no lo estuviera, lanza y se responde que no pudo.
+    const ko = safe(() => req('ko'), null);
+    if (!ko || typeof ko.dataFor !== 'function') return { applied: false, reason: 'knockout no esta disponible' };
+
+    const wrap = document.querySelector(`[${TARGET_ATTR}]`);
+    if (!wrap) return { applied: false, reason: 'no se encontro el selector marcado' };
+
+    const component = safe(() => ko.dataFor(wrap), null);
+    if (!component || typeof component.options !== 'function' || typeof component.toggleOptionSelected !== 'function') {
+      return { applied: false, reason: 'el widget no expone la API de opciones esperada' };
+    }
+
+    const wanted = sku.toUpperCase();
+    const current = safe(() => component.options(), null) || [];
+    let option = current.filter((candidate) => candidate
+      && String(candidate.value || '').toUpperCase() === wanted)[0] || null;
+    const injected = !option;
+
+    if (!option) {
+      option = { value: sku, label: sku, level: 1, path: '', isVisited: false };
+      if (!safe(() => { component.options([option].concat(current)); return true; }, false)) {
+        return { applied: false, reason: 'no se pudo inyectar la opcion en la lista' };
+      }
+      // La cache es lo que el widget vuelve a consultar cuando se limpia el
+      // filtro: sin esto la opcion desaparece al siguiente repintado.
+      safe(() => {
+        if (component.cacheOptions && component.cacheOptions.plain) component.cacheOptions.plain.unshift(option);
+      });
+    }
+
+    safe(() => component.toggleOptionSelected(option));
+
+    const value = String(readValue(component.value) || '');
+    const caption = String(safe(() => (typeof component.setCaption === 'function' ? component.setCaption() : ''), '') || '');
+    const error = String(readValue(component.error) || '');
+    return {
+      applied: value.toUpperCase() === wanted,
+      injected,
+      value,
+      caption,
+      error,
+    };
+  }
+
   const OPS = {
     probe,
     'expand-regional': expandRegional,
+    'force-product-option': forceProductOption,
   };
 
   function respond(id, ok, payload) {

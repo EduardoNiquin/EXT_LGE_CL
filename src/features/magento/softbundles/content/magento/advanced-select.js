@@ -2,23 +2,35 @@
 // productos: el de "Main Product" en el formulario del padre y el de "Related
 // Product SKU" dentro del modal de oferta.
 //
-// No es un <select>: es un widget Knockout que pide las opciones al servidor
-// (`searchmainproductsbystore` / `searchrelatedproducts`) a medida que se
-// escribe en su buscador. Por eso hay que abrirlo, teclear y ESPERAR a que
-// aparezca la opcion; leerlo antes devuelve la lista de la busqueda anterior.
+// Se parecen pero se comportan AL REVES, y confundirlos es donde mas se atasca
+// la automatizacion (medido contra el admin real, 2026-09-14):
+//
+//   | | Main Product (padre)        | Related Product SKU (hijo) |
+//   |-|-----------------------------|----------------------------|
+//   | Origen  | ~100 opciones precargadas | consulta al servidor en cada tecla |
+//   | Buscar  | filtra SOLO lo ya cargado | POST searchrelatedproducts         |
+//   | Oculta SKU ya usados | SI          | no                                 |
+//
+// Consecuencia para el padre: teclear un SKU que no vino en el lote inicial no
+// lo trae nunca — no hay peticion que esperar. Por eso `force: true` cae al
+// bridge del mundo MAIN, que inyecta la opcion en el componente Knockout
+// (ver features/magento/content/bridge.js). El backend valida contra el
+// catalogo, no contra el desplegable, asi que acepta el valor inyectado.
 
 import { ExtError, isAbortError } from '../../../../../shared/errors/index.js';
 import { clickEl } from '../../../../../shared/dom/events.js';
 import { sleep, waitFor } from '../../../../../shared/dom/wait.js';
 import { normalizeSku, sameSku } from '../../parse-input.js';
 import { SELECTORS, TIMEOUTS } from '../../constants.js';
+import { BRIDGE } from '../../../constants.js';
+import { askBridge } from '../../../content/bridge-client.js';
 
 /** El buscador de Magento no devolvio el producto: no existe o no tiene stock. */
 export class SkuNotFoundError extends ExtError {
-  constructor(sku, sample) {
-    super(`El buscador de Magento no encontro el SKU ${sku}: el producto no esta creado o no tiene stock.`, {
+  constructor(sku, sample, detail = 'el producto no esta creado o no tiene stock') {
+    super(`El buscador de Magento no encontro el SKU ${sku}: ${detail}.`, {
       code: 'sku-not-found',
-      context: { sku, sample },
+      context: { sku, sample, detail },
     });
     this.name = 'SkuNotFoundError';
     this.sku = sku;
@@ -94,6 +106,26 @@ async function closeMenu(wrap, signal) {
 }
 
 /**
+ * Pide al bridge del mundo MAIN que inyecte el SKU en el componente Knockout.
+ * El elemento se marca en el DOM (unico terreno comun entre los dos mundos) en
+ * vez de mandar un selector: en la pantalla de edicion hay DOS `product_sku`
+ * (el del padre y el del modal de oferta) y un selector los confundiria.
+ *
+ * Nunca lanza: si el bridge no esta, devuelve `{ applied: false }` y el que
+ * llama reporta el error de SKU no encontrado de siempre.
+ */
+async function forceProduct(wrap, sku, { signal } = {}) {
+  wrap.setAttribute(BRIDGE.TARGET_ATTR, '1');
+  try {
+    const answer = await askBridge(BRIDGE.OPS.FORCE_PRODUCT, { sku }, { signal });
+    if (!answer.ok) return { applied: false, reason: answer.reason };
+    return answer.result || { applied: false, reason: 'el bridge no devolvio resultado' };
+  } finally {
+    wrap.removeAttribute(BRIDGE.TARGET_ATTR);
+  }
+}
+
+/**
  * Elige un producto en el widget.
  *
  * El usuario pega el SKU como lo tiene en su planilla ("RNC7", "86MRGB95BSA.AWH")
@@ -101,15 +133,20 @@ async function closeMenu(wrap, signal) {
  * coincidencia exacta sin el prefijo `CL.` y, si no la hay, una unica opcion.
  * Con varias candidatas se falla en vez de adivinar.
  *
- * @returns {Promise<{ chosen: string, exact: boolean }>}
+ * @param {object}  [opts]
+ * @param {boolean} [opts.force]  fallback por bridge cuando el filtro no lo
+ *   trae. Solo para "Main Product": el del hijo si consulta al servidor, y ahi
+ *   "no aparece" significa de verdad que no existe.
+ * @param {boolean} [opts.remote] true = el widget consulta al servidor (hijo).
+ * @returns {Promise<{ chosen: string, exact: boolean, forced: boolean }>}
  */
-export async function selectProduct(field, sku, { signal, onInfo } = {}) {
+export async function selectProduct(field, sku, { signal, onInfo, force = false, remote = true } = {}) {
   const wrap = wrapOf(field);
   if (!wrap) throw new Error('No se encontro el buscador de productos en el formulario.');
 
   // Ya elegido (reintento sobre el mismo formulario): no se vuelve a tocar.
   if (sameSku(selectedText(wrap), sku)) {
-    return { chosen: selectedText(wrap), exact: true };
+    return { chosen: selectedText(wrap), exact: true, forced: false };
   }
 
   await openMenu(wrap, signal);
@@ -120,19 +157,19 @@ export async function selectProduct(field, sku, { signal, onInfo } = {}) {
   const query = normalizeSku(sku);
   typeSearch(input, query);
 
+  // El widget del hijo tiene que ir y volver del servidor en cada tecla; el del
+  // padre solo filtra en memoria, asi que esperar los 15s completos por un SKU
+  // que no esta cargado es tiempo tirado en cada linea de la carga masiva.
+  const timeout = remote ? TIMEOUTS.SKU_SEARCH : TIMEOUTS.SKU_FILTER;
+
   let candidates = [];
   try {
     await waitFor(() => {
       candidates = optionElements(wrap);
-      const exact = candidates.find((option) => sameSku(option.text, sku));
-      if (exact) return exact;
-      // "0 options" sostenido es la respuesta del servidor, no un estado
-      // intermedio: cortar ahi ahorra el timeout completo por cada SKU que no
-      // existe, que es el caso que mas se repite en una carga masiva.
-      return null;
+      return candidates.find((option) => sameSku(option.text, sku)) || null;
     }, {
       signal,
-      timeout: TIMEOUTS.SKU_SEARCH,
+      timeout,
       interval: 200,
       description: `producto ${sku} en el buscador de Magento`,
     });
@@ -153,10 +190,32 @@ export async function selectProduct(field, sku, { signal, onInfo } = {}) {
     } else if (partial.length > 1) {
       await closeMenu(wrap, signal);
       throw new AmbiguousSkuError(sku, partial.map((option) => option.text));
-    } else {
-      await closeMenu(wrap, signal);
-      throw new SkuNotFoundError(sku, candidates.slice(0, 5).map((option) => option.text));
     }
+  }
+
+  // Nada en la lista. Para el padre eso no prueba que el SKU no exista: puede
+  // estar fuera del lote cargado, o escondido por tener ya un package rule.
+  if (!target) {
+    if (force) {
+      const forced = await forceProduct(wrap, sku, { signal });
+      if (forced.applied) {
+        await closeMenu(wrap, signal);
+        onInfo?.(`"${sku}" no figuraba en el desplegable y se inyecto directamente (Magento lo valida al guardar).`);
+        // El componente marca su propio error de validacion; con el puesto, el
+        // formulario no guarda y conviene verlo ahora y no al final.
+        if (forced.error) onInfo?.(`Aviso: el campo "Main Product" quedo con el error "${forced.error}".`);
+        return { chosen: forced.value || sku, exact: false, forced: true };
+      }
+      await closeMenu(wrap, signal);
+      throw new SkuNotFoundError(
+        sku,
+        candidates.slice(0, 5).map((option) => option.text),
+        `el desplegable no lo lista y tampoco se pudo inyectar (${forced.reason || 'el bridge no respondio'}). `
+        + 'Ese selector solo ofrece productos sin package rule y filtra sobre lo que ya tiene cargado',
+      );
+    }
+    await closeMenu(wrap, signal);
+    throw new SkuNotFoundError(sku, candidates.slice(0, 5).map((option) => option.text));
   }
 
   const chosen = target.text;
@@ -175,7 +234,25 @@ export async function selectProduct(field, sku, { signal, onInfo } = {}) {
   }
 
   await closeMenu(wrap, signal);
-  return { chosen, exact };
+  return { chosen, exact, forced: false };
+}
+
+/**
+ * True si el widget ya tiene opciones que ofrecer. "Main Product" queda inerte
+ * hasta que se elige el store view en "Apply To": el formulario pide su lote de
+ * productos recien entonces, y teclear antes no devuelve nada nunca.
+ */
+export function hasLoadedOptions(field) {
+  const wrap = wrapOf(field);
+  return Boolean(wrap) && optionElements(wrap).length > 0;
+}
+
+/** Abre el desplegable (se usa para forzar la carga inicial de opciones). */
+export async function primeOptions(field, { signal } = {}) {
+  const wrap = wrapOf(field);
+  if (!wrap) return false;
+  await openMenu(wrap, signal);
+  return true;
 }
 
 /** SKU que el widget muestra como elegido (vacio si sigue en "Select..."). */

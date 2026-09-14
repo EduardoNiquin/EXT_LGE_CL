@@ -6,10 +6,12 @@ import {
   parsePercent,
   sameSku,
 } from '../../src/features/magento/softbundles/parse-input.js';
-import { buildMatrix, matrixToCsv } from '../../src/features/magento/softbundles/csv.js';
-import { BUNDLE_STATUS, CHILD_STATUS } from '../../src/features/magento/softbundles/constants.js';
-import { findCreatingIndex } from '../../src/features/magento/softbundles/content/flows/run.js';
+import { buildExistingMatrix, buildMatrix, matrixToCsv } from '../../src/features/magento/softbundles/csv.js';
+import { BUNDLE_STATUS, CHILD_STATUS, DUPLICATE_POLICY } from '../../src/features/magento/softbundles/constants.js';
+import { decideOnDuplicate, findCreatingIndex } from '../../src/features/magento/softbundles/content/flows/run.js';
+import { pickPageSizeOption, splitRelated } from '../../src/features/magento/softbundles/content/magento/listing.js';
 import { toMagentoDate } from '../../src/features/magento/softbundles/popup/section.js';
+import { classifyRejection } from '../../src/features/magento/softbundles/content/parser.js';
 
 describe('normalizacion de SKU', () => {
   it('ignora el prefijo del catalogo y las mayusculas', () => {
@@ -91,8 +93,11 @@ describe('parseBundleLines', () => {
 });
 
 describe('toMagentoDate', () => {
-  it('convierte el ISO del input date al formato del datepicker', () => {
-    expect(toMagentoDate('2026-09-09')).toBe('9/09/2026');
+  it('convierte el ISO del input date al formato del datepicker (mm/d/yy)', () => {
+    // Mes con dos digitos, dia sin cero a la izquierda: es el formato que
+    // declara el datepicker de Magento, y al reves lo reinterpreta.
+    expect(toMagentoDate('2026-09-09')).toBe('09/9/2026');
+    expect(toMagentoDate('2026-09-13')).toBe('09/13/2026');
     expect(toMagentoDate('2026-12-31')).toBe('12/31/2026');
   });
 
@@ -168,5 +173,116 @@ describe('CSV del resultado', () => {
     expect(csv).toContain("'=CMD()");
     expect(csv).toContain('"texto, con coma"');
     expect(csv.startsWith('﻿')).toBe(true);
+  });
+});
+
+describe('classifyRejection', () => {
+  it('reconoce el duplicado de padre, que no es un fallo del SKU', () => {
+    // El servidor valido el SKU contra el catalogo: lo que falta es que ese
+    // producto ya tiene package rule. El bundle se omite, no se borra nada.
+    const rejection = classifyRejection('This sku has been existed.');
+    expect(rejection.duplicate).toBe(true);
+    expect(rejection.message).toBe('This sku has been existed.');
+  });
+
+  it('no se cuelga de la capitalizacion ni de los espacios del mensaje', () => {
+    expect(classifyRejection('  this SKU has been existed.  ').duplicate).toBe(true);
+  });
+
+  it('cualquier otro error es un fallo del guardado, no un duplicado', () => {
+    expect(classifyRejection('This is a required field.').duplicate).toBe(false);
+  });
+
+  it('sin mensaje no hay rechazo: un formulario recien abierto no trae ninguno', () => {
+    expect(classifyRejection('')).toBeNull();
+    expect(classifyRejection(undefined)).toBeNull();
+  });
+});
+
+describe('decideOnDuplicate', () => {
+  const ask = () => true;
+
+  it('con la politica en omitir no borra nunca, ni preguntando', () => {
+    const config = { duplicatePolicy: DUPLICATE_POLICY.SKIP };
+    expect(decideOnDuplicate('SKU', '1', config, ask)).toBe(DUPLICATE_POLICY.SKIP);
+  });
+
+  it('con la politica en borrar, borra', () => {
+    const config = { duplicatePolicy: DUPLICATE_POLICY.DELETE };
+    expect(decideOnDuplicate('SKU', '1', config, ask)).toBe(DUPLICATE_POLICY.DELETE);
+  });
+
+  it('el modo simulacion NUNCA borra, sea cual sea la politica', () => {
+    // Simulacion es para mirar sin tocar: un borrado ahi seria la sorpresa mas
+    // cara posible, y ademas irreversible.
+    expect(decideOnDuplicate('SKU', '1', { duplicatePolicy: DUPLICATE_POLICY.DELETE, dryRun: true }, ask))
+      .toBe(DUPLICATE_POLICY.SKIP);
+    expect(decideOnDuplicate('SKU', '1', { duplicatePolicy: DUPLICATE_POLICY.ASK, dryRun: true }, ask))
+      .toBe(DUPLICATE_POLICY.SKIP);
+  });
+
+  it('preguntando, respeta la respuesta del usuario', () => {
+    const config = { duplicatePolicy: DUPLICATE_POLICY.ASK };
+    expect(decideOnDuplicate('SKU', '1', config, () => true)).toBe(DUPLICATE_POLICY.DELETE);
+    expect(decideOnDuplicate('SKU', '1', config, () => false)).toBe(DUPLICATE_POLICY.SKIP);
+  });
+
+  it('sin politica definida omite: lo seguro es no tocar nada', () => {
+    expect(decideOnDuplicate('SKU', '1', {}, ask)).toBe(DUPLICATE_POLICY.SKIP);
+    expect(decideOnDuplicate('SKU', '1', undefined, ask)).toBe(DUPLICATE_POLICY.SKIP);
+  });
+});
+
+describe('splitRelated', () => {
+  it('parte la columna "Related Product" del listado', () => {
+    expect(splitRelated('CL.A.AWH, CL.B.AWH')).toEqual(['CL.A.AWH', 'CL.B.AWH']);
+  });
+
+  it('una regla sin ofertas no inventa hijos', () => {
+    expect(splitRelated('')).toEqual([]);
+    expect(splitRelated(null)).toEqual([]);
+    expect(splitRelated(' , ')).toEqual([]);
+  });
+});
+
+describe('buildExistingMatrix', () => {
+  it('genera una fila por pareja padre-hijo', () => {
+    const { headers, rows } = buildExistingMatrix([
+      { id: '12', mainProduct: 'CL.P1', relatedProducts: ['CL.H1', 'CL.H2'] },
+      { id: '13', mainProduct: 'CL.P2', relatedProducts: ['CL.H1'] },
+    ]);
+    expect(headers).toEqual(['Package ID', 'SKU principal', 'SKU hijo']);
+    expect(rows).toEqual([
+      ['12', 'CL.P1', 'CL.H1'],
+      ['12', 'CL.P1', 'CL.H2'],
+      ['13', 'CL.P2', 'CL.H1'],
+    ]);
+  });
+
+  it('una regla sin ofertas igual sale, con el hijo vacio', () => {
+    // Omitirla dejaria entender que ese padre no tiene package rule, que es
+    // justo lo contrario de lo que pasa.
+    const { rows } = buildExistingMatrix([{ id: '14', mainProduct: 'CL.P3', relatedProducts: [] }]);
+    expect(rows).toEqual([['14', 'CL.P3', '']]);
+  });
+
+  it('descarta filas sin producto principal y tolera la lista vacia', () => {
+    expect(buildExistingMatrix([{ id: '15', mainProduct: '', relatedProducts: ['x'] }]).rows).toEqual([]);
+    expect(buildExistingMatrix(null).rows).toEqual([]);
+  });
+});
+
+describe('pickPageSizeOption', () => {
+  it('prefiere el tamano pedido', () => {
+    expect(pickPageSizeOption([{ size: 20 }, { size: 200 }], 200)).toEqual({ size: 200 });
+  });
+
+  it('si no esta, cae al mayor disponible', () => {
+    expect(pickPageSizeOption([{ size: 20 }, { size: 50 }], 200)).toEqual({ size: 50 });
+  });
+
+  it('sin opciones devuelve null', () => {
+    expect(pickPageSizeOption([], 200)).toBeNull();
+    expect(pickPageSizeOption(null, 200)).toBeNull();
   });
 });

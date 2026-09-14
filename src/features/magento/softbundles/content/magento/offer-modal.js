@@ -13,10 +13,16 @@ import { sleep, waitFor, waitForElement } from '../../../../../shared/dom/wait.j
 import { OFFER_FIELDS, SELECTORS, TEXTS, TIMEOUTS } from '../../constants.js';
 import { sameSku } from '../../parse-input.js';
 import { selectProduct } from './advanced-select.js';
-import { field, fieldVisible, setSwitch, setText, waitFieldVisible } from './fields.js';
+import { field, fieldVisible, readSwitch, setSwitch, setText, waitFieldVisible } from './fields.js';
 
 function visible(el) {
   return Boolean(el) && el.offsetParent !== null;
+}
+
+/** Valor numerico de un campo de texto del modal (NaN si esta vacio o no existe). */
+function readNumber(root, index) {
+  const input = field(root, index)?.querySelector('input');
+  return Number(input?.value);
 }
 
 /** El aside del modal de oferta (el que trae el fieldset `packageruleitem`). */
@@ -56,14 +62,21 @@ export async function openOfferModal({ signal, reuse = false } = {}) {
 
 /**
  * Tabla "Customer group / Normal price / Discount rate (%)": la llena Magento
- * al elegir el SKU (`packageproductitem/loaddatabysku`). Sin ella no hay donde
- * escribir el descuento.
+ * al elegir el SKU (`packageproductitem/loaddatabysku`, 3-4 s). Sin ella no hay
+ * donde escribir el descuento, y ademas su aparicion es la senal de que la
+ * carga del hijo termino: hasta entonces el resto de los campos del modal
+ * todavia puede moverse solo (ver el aviso de `Display discount rate of 0%`).
+ *
+ * La espera se cuelga del INPUT y no del `<tbody>` de opciones: la fila vive
+ * bajo un contenedor distinto segun la version del tema, pero el input siempre
+ * lleva el id del grupo de clientes pegado (`discount-rate-1` = B2C).
  */
 async function waitPriceRows(root, signal) {
   return waitFor(() => {
-    const rows = Array.from(root.querySelectorAll(SELECTORS.priceRows))
-      .filter((row) => row.querySelector(SELECTORS.discountRate));
-    return rows.length ? rows : null;
+    const inputs = Array.from(root.querySelectorAll(SELECTORS.discountRate));
+    if (!inputs.length) return null;
+    const rows = inputs.map((input) => input.closest('tr') || input.closest('.admin__field') || input.parentElement);
+    return rows.filter(Boolean);
   }, {
     signal,
     timeout: TIMEOUTS.PRICE_TABLE,
@@ -80,10 +93,10 @@ async function waitPriceRows(root, signal) {
 function setDiscountRate(rows, value) {
   const applied = [];
   rows.forEach((row) => {
-    const input = row.querySelector(SELECTORS.discountRate);
+    const input = row.matches?.(SELECTORS.discountRate) ? row : row.querySelector(SELECTORS.discountRate);
     if (!input) return;
     setInputValue(input, String(value));
-    applied.push(row.querySelector('td')?.textContent?.trim() || 'grupo');
+    applied.push(row.querySelector?.('td')?.textContent?.trim() || 'grupo');
   });
   return applied;
 }
@@ -132,9 +145,21 @@ export async function createOffer({ child, config, dryRun, signal, onStep, onInf
 
   onStep?.('offer-fields');
   setSwitch(root, OFFER_FIELDS.ACTIVE, config.childActive);
-  setSwitch(root, OFFER_FIELDS.ZERO_PERCENT, config.showZeroPercent);
   setText(root, OFFER_FIELDS.LIMITED_QTY, config.limitedQty);
   setText(root, OFFER_FIELDS.PRIORITY, config.priority);
+
+  // "Display discount rate of 0%" figura en No en el modal vacio pero Magento
+  // lo enciende SOLO al terminar `loaddatabysku`. Por eso se escribe DESPUES de
+  // la tabla de precios y se vuelve a verificar: una oferta creada sin tocarlo
+  // quedo en Yes y hubo que editarla a mano.
+  setSwitch(root, OFFER_FIELDS.ZERO_PERCENT, config.showZeroPercent);
+  await sleep(150, signal);
+  if (readSwitch(root, OFFER_FIELDS.ZERO_PERCENT) !== Boolean(config.showZeroPercent)) {
+    setSwitch(root, OFFER_FIELDS.ZERO_PERCENT, config.showZeroPercent);
+    if (readSwitch(root, OFFER_FIELDS.ZERO_PERCENT) !== Boolean(config.showZeroPercent)) {
+      onInfo?.(`Aviso: no se pudo dejar "Display discount rate of 0%" en ${config.showZeroPercent ? 'Yes' : 'No'} para ${chosen}.`);
+    }
+  }
 
   // Los textos promocionales solo existen si su switch esta encendido.
   if (config.promotionText) {
@@ -157,6 +182,17 @@ export async function createOffer({ child, config, dryRun, signal, onStep, onInf
     onStep?.('offer-split');
     await waitFieldVisible(root, OFFER_FIELDS.MAIN_DISCOUNT, { signal, timeout: 5000 });
     setText(root, OFFER_FIELDS.MAIN_DISCOUNT, mainDiscountRate);
+
+    // `main_discount_rate` y `discount_related` son el reparto del importe del
+    // descuento entre padre e hijo, y tienen que sumar 100. Magento recalcula
+    // el segundo solo, pero el recalculo llega tarde: en una captura del alta
+    // manual viajo main=50 con discount_related=99. El servidor manda sobre
+    // main, asi que esto es cinturon y tirantes — y sale gratis.
+    await sleep(200, signal);
+    const rest = 100 - Number(mainDiscountRate);
+    if (Number.isFinite(rest) && readNumber(root, OFFER_FIELDS.DISCOUNT_RELATED) !== rest) {
+      setText(root, OFFER_FIELDS.DISCOUNT_RELATED, String(rest));
+    }
   }
 
   if (dryRun) {

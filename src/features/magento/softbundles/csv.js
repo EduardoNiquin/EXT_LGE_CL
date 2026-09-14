@@ -54,6 +54,30 @@ export function buildMatrix(run) {
   return { headers: HEADERS, rows };
 }
 
+const EXISTING_HEADERS = ['Package ID', 'SKU principal', 'SKU hijo'];
+
+/**
+ * Los package rules que YA existen en Magento, leidos del listado: una fila por
+ * pareja padre-hijo, que es el formato con el que se trabajan estas listas.
+ *
+ * Una regla sin ofertas igual sale, con el hijo vacio: no tenerla en el CSV
+ * daria a entender que el padre no tiene package rule, que es justo lo
+ * contrario de lo que pasa.
+ *
+ * @param {Array<{id:string, mainProduct:string, relatedProducts:string[]}>} rules
+ * @returns {{ headers: string[], rows: string[][] }}
+ */
+export function buildExistingMatrix(rules) {
+  const rows = [];
+  (rules || []).forEach((rule) => {
+    const parent = rule?.mainProduct || '';
+    if (!parent) return;
+    const children = rule.relatedProducts?.length ? rule.relatedProducts : [''];
+    children.forEach((child) => rows.push([rule.id || '', parent, child]));
+  });
+  return { headers: EXISTING_HEADERS, rows };
+}
+
 /** Excel ejecuta como formula lo que empieza con =, +, @ o un - seguido de texto. */
 function protectFormula(value) {
   const text = String(value ?? '');

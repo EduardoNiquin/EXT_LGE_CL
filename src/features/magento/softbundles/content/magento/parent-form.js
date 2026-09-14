@@ -4,14 +4,15 @@
 // queda como lo deja Magento. Los unicos botones que se pulsan aca son
 // "Save and Continue Edit" y "Save": "Delete" NUNCA.
 
-import { waitForElement } from '../../../../../shared/dom/wait.js';
+import { isAbortError } from '../../../../../shared/errors/index.js';
+import { sleep, waitFor, waitForElement } from '../../../../../shared/dom/wait.js';
 import { PARENT_FIELDS, SELECTORS, TIMEOUTS } from '../../constants.js';
-import { selectProduct } from './advanced-select.js';
+import { hasLoadedOptions, primeOptions, selectProduct } from './advanced-select.js';
 import {
   field,
   optionLabels,
   selectOptionByLabel,
-  setDate,
+  setDateTime,
   setSwitch,
   setText,
 } from './fields.js';
@@ -46,8 +47,23 @@ export async function fillParentForm({ parentSku, config, signal, onStep, onInfo
     throw new Error(`No se encontro el store view "${storeView}" en "Apply To" (opciones: ${optionLabels(select).join(', ') || 'ninguna'}).`);
   }
 
+  // "Main Product" no trae nada hasta que el formulario pide su lote de
+  // productos para el store view recien elegido. Teclear antes de eso devuelve
+  // una lista vacia, y como el filtro es local no hay peticion que esperar
+  // despues: el SKU simplemente "no existe".
+  onStep?.('store-ready');
+  const productField = field(root, PARENT_FIELDS.PRODUCT_SKU);
+  await waitForProductOptions(productField, { signal, onInfo });
+
   onStep?.('main-product');
-  const { chosen } = await selectProduct(field(root, PARENT_FIELDS.PRODUCT_SKU), parentSku, { signal, onInfo });
+  const { chosen, forced } = await selectProduct(productField, parentSku, {
+    signal,
+    onInfo,
+    // El selector del padre filtra en memoria y esconde los productos que ya
+    // tienen regla: que no aparezca no prueba nada, hay que poder inyectarlo.
+    force: true,
+    remote: false,
+  });
 
   onStep?.('parent-fields');
   setText(root, PARENT_FIELDS.DESCRIPTIONS, config.descriptions);
@@ -57,14 +73,50 @@ export async function fillParentForm({ parentSku, config, signal, onStep, onInfo
   setText(root, PARENT_FIELDS.MAX_RELATED, config.maxRelated);
 
   // Las fechas van al final: el datepicker se abre al enfocar y taparia los
-  // campos de arriba mientras se llenan.
+  // campos de arriba mientras se llenan. "Active From" es obligatorio; "Active
+  // To" vacio significa sin fecha de fin.
   onStep?.('dates');
-  await setDate(root, PARENT_FIELDS.FROM_DATE, config.fromDate, { signal });
-  setText(root, PARENT_FIELDS.FROM_TIME, config.fromTime);
-  await setDate(root, PARENT_FIELDS.TO_DATE, config.toDate, { signal });
-  setText(root, PARENT_FIELDS.TO_TIME, config.toTime);
+  const from = await setDateTime(root, {
+    dateIndex: PARENT_FIELDS.FROM_DATE,
+    timeIndex: PARENT_FIELDS.FROM_TIME,
+    date: config.fromDate,
+    time: config.fromTime,
+  }, { signal });
+  if (config.fromDate && !from.date) {
+    throw new Error('No se encontro el campo "Active From" del package rule (es obligatorio).');
+  }
+  await setDateTime(root, {
+    dateIndex: PARENT_FIELDS.TO_DATE,
+    timeIndex: PARENT_FIELDS.TO_TIME,
+    date: config.toDate,
+    time: config.toTime,
+  }, { signal });
 
-  return { chosenSku: chosen };
+  return { chosenSku: chosen, forced };
+}
+
+/**
+ * Espera a que el desplegable de "Main Product" tenga opciones. Se le da un
+ * empujon abriendolo (el widget pide su lote al desplegarse) y se sigue
+ * adelante si igual no llegan: un SKU forzado no las necesita.
+ */
+async function waitForProductOptions(productField, { signal, onInfo } = {}) {
+  if (!productField || hasLoadedOptions(productField)) return true;
+  await sleep(300, signal);
+  await primeOptions(productField, { signal });
+  try {
+    await waitFor(() => (hasLoadedOptions(productField) ? true : null), {
+      signal,
+      timeout: TIMEOUTS.STORE_READY,
+      interval: 250,
+      description: 'catalogo de "Main Product"',
+    });
+    return true;
+  } catch (err) {
+    if (isAbortError(err, signal)) throw err;
+    onInfo?.('"Main Product" no llego a cargar su lista de productos; se intenta con el SKU tal cual.');
+    return false;
+  }
 }
 
 /** Pulsa "Save and Continue Edit" (Magento navega a la pantalla de edicion). */

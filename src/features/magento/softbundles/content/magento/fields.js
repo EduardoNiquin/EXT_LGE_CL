@@ -33,18 +33,31 @@ export function setText(root, index, value) {
   return true;
 }
 
-/** Marca/desmarca un switch (los "Yes/No" del admin son checkbox ocultos). */
+/**
+ * Marca/desmarca un switch. Los "Yes/No" del admin son un checkbox OCULTO con
+ * el switch dibujado en su `<label>`: pulsar el input directamente falla
+ * ("element did not become interactive"), asi que se pulsa la etiqueta, que es
+ * lo que toca un usuario. El click nativo sobre el input queda de respaldo.
+ */
 export function setSwitch(root, index, checked) {
   if (checked == null) return false;
+  const wanted = Boolean(checked);
   const input = inputOf(root, index, 'input[type="checkbox"]');
   if (!input) return false;
-  setChecked(input, Boolean(checked));
-  if (input.checked !== Boolean(checked)) {
-    // El input mide 1px y esta tapado por su label: si el click nativo no
-    // prendio, se clickea el label, que es lo que toca un usuario.
-    field(root, index)?.querySelector('label.admin__actions-switch-label')?.click();
-  }
-  return input.checked === Boolean(checked);
+  if (input.checked === wanted) return true;
+
+  labelFor(root, index, input)?.click();
+  if (input.checked !== wanted) setChecked(input, wanted);
+  return input.checked === wanted;
+}
+
+/** La etiqueta que dibuja el switch: por `for`, y si no, la del propio campo. */
+function labelFor(root, index, input) {
+  const byFor = input.id ? document.querySelector(`label[for="${CSS.escape(input.id)}"]`) : null;
+  return byFor
+    || input.parentElement?.querySelector('label')
+    || field(root, index)?.querySelector('label.admin__actions-switch-label')
+    || null;
 }
 
 /** Lee el estado de un switch. */
@@ -53,22 +66,49 @@ export function readSwitch(root, index) {
 }
 
 /**
- * Escribe una fecha en un campo con datepicker de jQuery UI. El calendario se
- * abre al enfocar el input y queda flotando sobre el resto del formulario, asi
- * que se cierra despues de escribir.
+ * Escribe fecha y hora de un campo "Active From" / "Active To".
+ *
+ * La fecha va en un datepicker de jQuery UI (formato `mm/d/yy`, ver
+ * `toMagentoDate`): escribir el texto y disparar `change` alcanza, no hace
+ * falta abrir el calendario — pero si se abre al enfocar, y queda flotando
+ * sobre el resto del formulario, asi que se cierra al terminar.
+ *
+ * La hora vive en un input APARTE. Magento la saca a su propio `data-index`
+ * (`from_time`) en unos temas y la deja como segundo input del mismo campo en
+ * otros, por eso se prueban las dos vias antes de darla por ausente.
+ *
+ * @returns {Promise<{date:boolean, time:boolean}>} que se pudo escribir.
  */
-export async function setDate(root, index, value, { signal } = {}) {
-  if (value == null) return false;
-  const input = inputOf(root, index, 'input');
-  if (!input) return false;
-  setInputValue(input, String(value));
-  input.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'Escape' }));
+export async function setDateTime(root, { dateIndex, timeIndex, date, time }, { signal } = {}) {
+  const result = { date: false, time: false };
+  const container = field(root, dateIndex);
+  const dateInput = container?.querySelector('input.admin__control-text, input[type="text"], input');
+  if (date != null && dateInput) {
+    setInputValue(dateInput, String(date));
+    dateInput.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'Escape' }));
+    closeDatepicker();
+    result.date = true;
+  }
+
+  if (time != null) {
+    const timeInput = inputOf(root, timeIndex, 'input')
+      || Array.from(container?.querySelectorAll('input') || []).filter((el) => el !== dateInput)[0]
+      || null;
+    if (timeInput) {
+      setInputValue(timeInput, String(time));
+      result.time = true;
+    }
+  }
+
+  await sleep(80, signal);
+  return result;
+}
+
+function closeDatepicker() {
   const panel = document.querySelector(SELECTORS.datepickerPanel);
   if (panel && panel.offsetParent !== null) {
     try { panel.style.display = 'none'; } catch { /* el widget lo vuelve a manejar */ }
   }
-  await sleep(80, signal);
-  return true;
 }
 
 /**

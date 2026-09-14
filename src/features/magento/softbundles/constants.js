@@ -11,8 +11,9 @@
 export const MODULE_ID = 'softbundles';
 
 export const STORAGE_KEYS = {
-  RUN:   `magento:${MODULE_ID}:run`,
-  DRAFT: `magento:${MODULE_ID}:draft`,
+  RUN:    `magento:${MODULE_ID}:run`,
+  DRAFT:  `magento:${MODULE_ID}:draft`,
+  EXPORT: `magento:${MODULE_ID}:export`,
 };
 
 export const PAGE_TYPE = {
@@ -69,6 +70,41 @@ export const SKIP_REASON = {
   ALREADY_EXISTS: 'already-exists',
 };
 
+/**
+ * Que hacer cuando el SKU principal YA tiene package rule. Magento no deja dos
+ * reglas con el mismo padre, asi que las opciones son omitir el bundle o
+ * borrar la regla que estorba.
+ *
+ * OJO: `DELETE` es la UNICA situacion en la que este modulo pulsa un "Delete",
+ * y borrar un package rule **borra sus ofertas en cascada**. Por eso no es el
+ * valor por defecto, jamas corre en modo simulacion, y solo se pulsa sobre una
+ * fila cuya columna "Main Product" coincide EXACTO con el SKU buscado.
+ */
+export const DUPLICATE_POLICY = {
+  SKIP:   'skip',    // dejar la regla existente y saltear el bundle
+  DELETE: 'delete',  // borrar la existente y crear la nueva
+  ASK:    'ask',     // preguntar en la pestana de Magento, uno por uno
+};
+
+export const DUPLICATE_POLICY_LABEL = {
+  skip:   'Omitirlos (no se toca nada)',
+  delete: 'Borrar el existente y volver a crearlo',
+  ask:    'Preguntarme uno por uno',
+};
+
+/** Fases del export del listado completo (independiente del run de creacion). */
+export const EXPORT_PHASE = {
+  STARTING: 'starting',
+  READING:  'reading',
+  DONE:     'done',
+};
+
+export const EXPORT_PHASE_LABEL = {
+  starting: 'Preparando...',
+  reading:  'Leyendo el listado...',
+  done:     'Listo',
+};
+
 export const DEFAULT_ADMIN_BASE = 'https://shop.lg.com/obsadm';
 export const ADMIN_BASE_RE = /^(https?:\/\/[^/]+\/[^/]*obsadm)\//i;
 
@@ -96,7 +132,9 @@ export const SKU_PREFIX = 'CL.';
 
 export const TIMEOUTS = {
   PAGE:          25000,  // montaje de una pantalla del admin
-  SKU_SEARCH:    15000,  // busqueda AJAX del multiselect de productos
+  STORE_READY:   10000,  // "Main Product" se habilita recien tras elegir "Apply To"
+  SKU_SEARCH:    15000,  // busqueda AJAX del multiselect de productos (hijo)
+  SKU_FILTER:     4000,  // filtrado local del multiselect del padre (no va al servidor)
   SKU_SETTLE:     1200,  // margen para decidir que el buscador no trajo nada
   MODAL:         20000,  // apertura / cierre del modal de oferta
   PRICE_TABLE:   20000,  // tabla de precios por grupo tras elegir el SKU hijo
@@ -128,6 +166,20 @@ export const SELECTORS = {
   filterClearAll:   '.admin__current-filters-actions-wrap button.action-clear',
   filterProductSku: '.admin__data-grid-filters input[name="product_sku"]',
 
+  // --- paginado del listado (solo lectura: exportar los bundles existentes) ---
+  gridOuterWrap:   '.admin__data-grid-outer-wrap',
+  pageSizeMenu:    '.admin__data-grid-pager-wrap .selectmenu, .selectmenu',
+  pageSizeToggle:  '.selectmenu-toggle-action, .selectmenu-toggle',
+  pageSizeOption:  '.selectmenu-item-action',
+  pagerNext:       '.admin__data-grid-pager .action-next',
+  pagerPrevious:   '.admin__data-grid-pager .action-previous',
+  pagerCurrent:    '.admin__data-grid-pager input[data-ui-id="current-page-input"]',
+
+  // El enlace "Delete" de una fila existe en el DOM aunque el menu "Select"
+  // este cerrado. Se usa UNICAMENTE con la politica de duplicados en "borrar",
+  // y solo sobre la fila cuyo "Main Product" coincide exacto.
+  rowDeleteLink:   'a[href*="/package/delete/"]',
+
   // --- modal de confirmacion (cambio de website) ---
   confirmModal:  'aside.modal-popup.confirm._show, aside[data-role="modal"].confirm._show',
   confirmAccept: 'footer.modal-footer button.action-primary, footer.modal-footer button[data-role="action"]',
@@ -150,18 +202,29 @@ export const SELECTORS = {
   advancedCount:    '.admin__action-multiselect-search-count',
 
   // --- ofertas (productos hijos) ---
-  addOfferButton: '[data-index="general_item"] button[data-index="modal_button"], button[data-index="modal_button"]',
+  // El boton "Add New Offer" es un <span> clickable en 2.4.5 y un <button> en
+  // otras versiones del tema: se aceptan los dos.
+  addOfferButton: '[data-index="general_item"] [data-index="modal_button"], [data-index="modal_button"]',
   offerModal:     'aside[data-role="modal"]._show',
   offerFieldset:  '[data-index="packageruleitem"]',
   offerSave:      '.page-actions-buttons button[data-role="action"]',
   priceRows:      'tbody[data-role="options-container"] tr',
-  discountRate:   'input[name*="discount-rate"]',
+  // El input del descuento lleva el id del grupo de clientes pegado
+  // (`discount-rate-1` = B2C). Magento lo pone en el `name` y en la `class`,
+  // y no siempre bajo el tbody de opciones: se buscan las dos vias.
+  discountRate:   'input[name*="discount-rate"], input[class*="discount-rate-"]',
   childGrid:      '[data-index="general_item"] table.data-grid, table.data-grid',
   childRow:       'tbody tr.data-row',
   childSkuCell:   'td.related_product_sku .data-grid-cell-content',
 };
 
-/** Campos del formulario del padre, por `data-index`. */
+/**
+ * Campos del formulario del padre, por `data-index`.
+ *
+ * "Marketing text" (`marketing_text`) queda fuera a proposito: lleva asterisco
+ * de obligatorio pero Magento guarda igual con la tabla vacia (verificado), y
+ * llenarla obliga a pelear con su boton "Add" por cada fila.
+ */
 export const PARENT_FIELDS = {
   STORE:          'store_id',
   PRODUCT_SKU:    'product_sku',
@@ -189,19 +252,34 @@ export const OFFER_FIELDS = {
   ZERO_PERCENT:  'is_display_discount_rate_zero_percent',
   SPLIT:         'is_split',
   MAIN_DISCOUNT: 'main_discount_rate',
+  // Contraparte de MAIN_DISCOUNT: el % del descuento que carga el hijo. Magento
+  // lo recalcula solo a 100 - main, pero el recalculo llega tarde y la oferta
+  // puede guardarse con el par descuadrado (medido: main=50 viajo con 99).
+  DISCOUNT_RELATED: 'discount_related',
 };
 
 export const TEXTS = {
   RULE_SAVED:  'The rule has been saved',
+  PACKAGE_DELETED: 'The package has been deleted',
+  // Magento responde esto al guardar un padre que ya tiene package rule. NO es
+  // un fallo del SKU: el servidor lo reconocio y lo valido contra el catalogo.
+  SKU_EXISTS:  'This sku has been existed',
   OFFER_SAVED: 'The related product has been saved',
   ADD_PACKAGE: 'Add New Package',
   ADD_OFFER:   'Add New Offer',
   SAVE:        'Save',
 };
 
-/** Columna del listado que trae el SKU del producto principal. */
+/** Columnas del listado que se leen. */
 export const LISTING_MAIN_PRODUCT_COLUMN = 'Main Product';
 export const LISTING_ID_COLUMN = 'ID';
+// "Related Product" lista los SKU hijos separados por coma: alcanza para
+// exportar el arbol padre -> hijos sin entrar a una sola regla.
+export const LISTING_RELATED_PRODUCT_COLUMN = 'Related Product';
+
+/** Filas por pagina que se piden al exportar (cae al mayor disponible). */
+export const LISTING_PAGE_SIZE = 200;
+export const MAX_LISTING_PAGES = 200;
 
 /**
  * Configuracion por defecto del formulario del popup. Los valores replican lo
@@ -231,6 +309,6 @@ export const DEFAULT_CONFIG = {
   promotionText:    '',
   promotionDesc:    '',
   // run
-  skipExisting: true,
-  dryRun:       true,
+  duplicatePolicy: DUPLICATE_POLICY.SKIP,
+  dryRun:          true,
 };
