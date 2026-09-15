@@ -2,67 +2,66 @@
 UTILIZA ESPAÑOL NEUTRAL, NADA DE ACENTOS.
 Extensión Chrome + Edge (Chromium, Manifest V3). Modular, escalable, segura.
 
+> **Este archivo es el núcleo.** El detalle de cada feature (quirks, selectores, estado, debug, pendientes) vive en `docs/features/<feature>.md`: **leer el doc de la feature antes de tocarla**, y actualizarlo al cambiarla. Índice al final.
+
 ## Stack
 - **Bundler:** Vite 8 + `vite-plugin-web-extension` (entry points desde el manifest). Dev usa `vite build --watch`, NO `vite dev` (el CSP estricto bloquea el HMR server).
-- **Tests:** Vitest 4 (`--passWithNoTests`). **Lint:** ESLint 10 (flat config, `eslint.config.js`).
+- **Tests:** Vitest 4 (`--passWithNoTests`) + happy-dom para los que parsean HTML (`// @vitest-environment happy-dom`). **Lint:** ESLint 10 (flat config). **Node:** 22 LTS. **Módulos:** ESM.
 - **Packaging:** `web-ext` 10 (ZIPs para stores) + scripts propios para instalación corporativa por política.
-- **Node:** 22 LTS. **Módulos:** ESM (`"type": "module"`).
 
 ## Estructura
 ```
 EXT_LGE_CL/
-├── .github/workflows/ci.yml      CI: lint + test + build chrome/edge
-├── assets/icons/                 PNG 16/32/48/128 (placeholders)
-├── manifests/                    manifest.base.json (MV3 compartido) + .chrome/.edge (overrides)
-├── scripts/                      pack-extension / generate-policy / build-installer / install.ps1 / build.js / package.js
+├── .github/workflows/ci.yml   CI: lint + test + build chrome/edge
+├── assets/icons/              PNG 16/32/48/128
+├── docs/features/             Un .md por feature (detalle completo)
+├── manifests/                 manifest.base.json (MV3 compartido) + .chrome/.edge (overrides)
+├── scripts/                   pack-extension / generate-policy / build-installer / install.ps1 / build.js / package.js
+│                              dev-browser.mjs + browser-eval.mjs (ver docs/browser-testing.md)
 ├── src/
-│   ├── background/service-worker.js   Service worker MV3
-│   ├── content/index.js               Content global: debug API + init de features + runSkuBatch
-│   ├── popup/                          UI action button (popup.js routing, features.js registro)
-│   ├── options/                        Configuración
-│   ├── features/<feature-id>/          Una carpeta por feature (ver "Arquitectura de features")
-│   └── shared/                         Reutilizable: api/ debug/ messaging/ storage/ utils/logger.js
-│       ├── dom/                        wait.js (waitFor/waitForElement/waitForGone/sleep + WaitTimeoutError/WaitAbortedError)
-│       │                               events.js (setInputValue/setSelectValue/setChecked/clickEl/findByText)
-│       ├── errors/index.js             ExtError + toMessage(err) + isAbortError(err,signal) + describeError()
-│       ├── dev-mode/index.js           Flag "modo dev" persistente (key `dev-mode:enabled`, cross-context)
-│       ├── diagnostics/index.js        Ring buffer de errores (key `diagnostics:errors`) + installGlobalErrorCapture()
-│       ├── run-store/index.js          createRunStore (run persistido + updateRun coalescido) + createPersistedValue + wireAsync/ReloadTickLifecycle
-│       └── log-config/index.js         Cache de scopes habilitados (key `log-config:scopes`)
+│   ├── background/service-worker.js
+│   ├── content/index.js       Debug API + init de features + runSkuBatch
+│   ├── popup/                 popup.js (routing) + features.js (registro)
+│   ├── options/
+│   ├── features/<feature-id>/ Ver "Arquitectura de features"
+│   └── shared/                api/ debug/ messaging/ storage/ utils/logger.js
+│       ├── dom/               wait.js (waitFor/waitForElement/waitForGone/sleep + WaitTimeoutError/WaitAbortedError)
+│       │                      events.js (setInputValue/setSelectValue/setChecked/clickEl/findByText)
+│       ├── errors/index.js    ExtError + toMessage + isAbortError + describeError
+│       ├── dev-mode/index.js  Flag modo dev (`dev-mode:enabled`, cross-context)
+│       ├── diagnostics/       Ring buffer de errores (`diagnostics:errors`) + installGlobalErrorCapture()
+│       ├── run-store/         createRunStore + createPersistedValue + wireAsync/ReloadTickLifecycle
+│       └── log-config/        Cache de scopes habilitados (`log-config:scopes`)
 ├── tests/{unit,e2e}/   keys/ (.pem, gitignored)   build/ (gitignored)
-├── eslint.config.js  vite.config.js (merge de manifests por --mode)  package.json
-└── EXTENSION_INSTALL.md
+└── eslint.config.js  vite.config.js  package.json  EXTENSION_INSTALL.md
 ```
 Todas las esperas de `shared/dom` aceptan `AbortSignal`.
 
 ## Comandos
 ```bash
-# Dev/build
-npm run dev / dev:edge        # build --watch (sin HMR)
-npm run build                # ambos → dist/{chrome,edge}/
+npm run dev / dev:edge                # build --watch (sin HMR)
+npm run build                         # ambos → dist/{chrome,edge}/
 npm run build:chrome / :edge / :ext   # :ext = build Edge para release
 npm run package:chrome / :edge        # ZIPs para stores
 npm run lint / npm test
-# Probar en un navegador real (ver seccion propia)
 npm run browser / browser:edge        # navegador con la extension cargada + CDP
 npm run browser -- --restart          # aplicar un rebuild
-npm run browser:eval -- --storage     # conducirlo / inspeccionarlo
+npm run browser:eval -- --storage     # conducirlo / inspeccionarlo   (docs/browser-testing.md)
 # Release corporativo
-npm run version:bump         # +0.1 (X.Y) con rollover en 9: 0.3→0.4→…→0.9→1.0. Sync manifest.base.json + package.json (--set=x.y)
-npm run pack:ext             # dist/edge → .crx firmado + extension-id.txt
-npm run policy:gen           # build/update.xml + install/uninstall-policy.reg
-npm run release:ext          # version:bump + build:ext + pack:ext + policy:gen (bump único, fuente: manifest.base.json)
-npm run installer:build      # release:ext + ZIP build/EXT_LGE_CL-installer-<version>.zip
+npm run version:bump      # +0.1 (X.Y) con rollover en 9: 0.9→1.0. Sync manifest.base.json + package.json (--set=x.y)
+npm run pack:ext          # dist/edge → .crx firmado + extension-id.txt
+npm run policy:gen        # build/update.xml + install/uninstall-policy.reg
+npm run release:ext       # version:bump + build:ext + pack:ext + policy:gen (fuente de versión: manifest.base.json)
+npm run installer:build   # release:ext + ZIP build/EXT_LGE_CL-installer-<version>.zip
 npm run install:ext / uninstall:ext   # importa/revierte .reg (con elevación)
 ```
 
 ## Convenciones
-- **Permisos mínimos:** agregar a `manifest.base.json` solo cuando se necesite; justificar.
+- **Permisos mínimos:** agregar a `manifest.base.json` solo cuando se necesite; justificar. Cambios comunes van a la base; overrides solo para diferencias reales Chrome/Edge.
 - **CSP estricto:** `script-src 'self'; object-src 'self'`. Sin eval ni inline scripts. Todo HTML lleva `<meta http-equiv="Content-Security-Policy">`.
-- **No llamar `chrome.*` directo desde features:** usar `shared/messaging`, `shared/storage`, `shared/utils/logger`. Si una feature necesita `chrome.*`, evaluar moverlo a `shared/`.
-- **Manifests:** cambios comunes en `manifest.base.json`; overrides solo para diferencias reales Chrome/Edge.
+- **No llamar `chrome.*` directo desde features:** usar `shared/messaging`, `shared/storage`, `shared/utils/logger`. Si una feature lo necesita, evaluar moverlo a `shared/`.
 - **Logger antes que `console.log`** (respeta nivel global + scope). **Debug API antes que helpers ad-hoc.**
-- **Errores:** usar `toMessage(err)` (no `err?.message || String(err)`) e `isAbortError(err, signal)` (no `err instanceof WaitAbortedError || signal.aborted`) desde `shared/errors`. Todo `logger().error()` se registra automáticamente en el ring buffer de `shared/diagnostics` (visible en Ajustes → "Errores recientes").
+- **Errores:** `toMessage(err)` (no `err?.message || String(err)`) e `isAbortError(err, signal)` (no `err instanceof WaitAbortedError || signal.aborted`), desde `shared/errors`.
 - Assets se referencian desde el manifest como `assets/icons/iconN.png` (relativo a raíz, no a `src/`).
 - **Nunca commitear** `keys/`, `*.pem`, `*.crx`, `build/`.
 
@@ -70,785 +69,79 @@ npm run install:ext / uninstall:ext   # importa/revierte .reg (con elevación)
 Cada feature en `src/features/<feature-id>/`:
 ```
 constants.js   IDs de mensajes/puertos (prefijo `<feature-id>:`), selectores, enums
-state.js       run persistido vía createRunStore (shared/run-store) + makeRun propio + persisted values
+state.js       run persistido vía createRunStore + makeRun propio + persisted values
 debug.js       comandos auto-registrados en window.__extLgeCl
 content/       detector.js (+diagnose) · parser.js · index.js (listener one-shot + wire*Lifecycle) · drivers/ · flows/
 popup/         view.js (sub-router) · utils.js · sections/ (una sub-vista por archivo)
 ```
-**Wiring:**
-- Registrar en `src/popup/features.js`: `{ id (kebab-case único), name, description, abbr (2-4 letras), keywords[], render }`.
-- `src/content/index.js` importa e inicializa `init()` y `debug.js` de cada feature.
-- **Estado de ejecución:** usar `createRunStore`/`createPersistedValue` (shared/run-store) en `state.js`; enganchar el ciclo de vida con `wireAsyncRunLifecycle` (SPA) o `wireReloadTickLifecycle` (Magento full-page).
-- Comunicación popup↔content vía `chrome.tabs.sendMessage` (helper `shared/messaging/messaging.js`).
-- **Multi-frame** (`all_frames: true`): el handler debe diferenciar top vs iframe. Si el frame detecta la pantalla responde sincrónico; si no, espera unos ms y responde con diagnóstico, dando prioridad a otros frames (patrón en `colocar-tags/content/index.js`).
+**Wiring:** registrar en `src/popup/features.js` (`{ id kebab-case, name, description, abbr 2-4 letras, keywords[], render }`) **y** en `src/content/index.js` (import de `init()` y de `debug.js`). Faltar uno deja la feature escrita pero muerta.
+**Estado de ejecución:** `createRunStore`/`createPersistedValue` en `state.js`; ciclo de vida con `wireAsyncRunLifecycle` (SPA) o `wireReloadTickLifecycle` (Magento full-page).
+**Multi-frame** (`all_frames: true`): el handler diferencia top vs iframe. Si el frame detecta la pantalla responde sincrónico; si no, espera unos ms y responde con diagnóstico, dando prioridad a otros frames (patrón en `colocar-tags/content/index.js`).
 
-## Comunicación popup ↔ content (features SPA: Colocar TAGs)
-- **One-shot:** `chrome.tabs.sendMessage` con `MESSAGES.<NAME>`. Respuesta única.
-- **Streaming con cancelación:** `chrome.tabs.connect(tabId, { name: PORTS.<NAME> })`.
-  - Popup→content: `{ type:'start', config }` | `{ type:'cancel' }`.
-  - Content→popup: `progress {sku,index,total,status,step,detail?,reason?}` | `done` | `cancelled` | `error {reason}`.
-  - Cerrar el port aborta el loop (`AbortController` + `port.onDisconnect`).
-- Solo el frame que detecta la pantalla acepta `onConnect`; los demás ignoran.
-- **Features Magento (Lead Times, Cupones):** comunicación SOLO vía `chrome.storage.local` + `storage.onChanged` (los page reloads cerrarían ports).
+## Comunicación popup ↔ content
+- **One-shot:** `chrome.tabs.sendMessage` con `MESSAGES.<NAME>` (helper `shared/messaging/messaging.js`).
+- **Streaming con cancelación (SPA, ej. Colocar TAGs):** `chrome.tabs.connect(tabId, { name: PORTS.<NAME> })`. Popup→content `{type:'start',config}` | `{type:'cancel'}`; content→popup `progress {sku,index,total,status,step,detail?,reason?}` | `done` | `cancelled` | `error {reason}`. Cerrar el port aborta el loop (`AbortController` + `port.onDisconnect`). Solo el frame que detecta la pantalla acepta `onConnect`.
+- **Features con recargas (Magento, Lead Times, Cupones):** SOLO `chrome.storage.local` + `storage.onChanged` (un reload cerraría el port).
 
 ## Logs por scope (`Ajustes`)
-`logger('foo')` registra el scope `foo`, que aparece en la UI de Ajustes (`features/ajustes`) con toggle individual + "Habilitar/Deshabilitar todos". `log-config/index.js` cachea en memoria y persiste en `chrome.storage.local` (`log-config:scopes`, cross-context vía `storage.onChanged`). `logger.js` chequea `isScopeEnabled(scope)` antes de emitir. Default: todos habilitados.
-Scopes: `colocar-tags`, `colocar-tags:product`, `colocar-tags:offer`, `colocar-tags:delivery-remove`, `colocar-tags:combobox`, `magento/content`, `magento/global-shipping-rules`, `magento/buscar-orden`, `magento/softbundles`, `magento/popup`, `lead-times`, `cupones`, `orden-info`, `starkoms`, `lgcom`, `lgcom/popup`, `seller-center-falabella`, `e-promoters`, `pim`, `solotodo`, `gato`, `content`, `service-worker`, `debug`, `popup`.
+`logger('foo')` registra el scope `foo`, con toggle individual en Ajustes (`features/ajustes`) + "Habilitar/Deshabilitar todos". `log-config` cachea en memoria y persiste en `chrome.storage.local` (`log-config:scopes`, cross-context vía `storage.onChanged`); `logger.js` chequea `isScopeEnabled(scope)` antes de emitir. Default: todos habilitados. Hay un scope por feature/módulo (`colocar-tags[:product|:offer|:delivery-remove|:combobox]`, `magento/<módulo>` (incluye `magento/informacion-de-orden`), `lead-times`, `cupones`, `orden-info`, `starkoms`, `lgcom[/popup]`, `seller-center-falabella`, `e-promoters`, `pim`, `solotodo`, `gato`) más `content`, `service-worker`, `debug`, `popup`.
 
-## Manejo de errores y Modo Dev (`shared/errors` · `shared/dev-mode` · `shared/diagnostics`)
-- **`shared/errors`:** `ExtError` (base con `code`/`context`/`cause`), `toMessage(err)` (mensaje legible de cualquier throw), `isAbortError(err, signal)` (cancelación: WaitAbortedError/AbortError/signal.aborted), `describeError(err, meta)` (forma serializable con stack recortado).
-- **`shared/dev-mode`:** flag global persistente (`dev-mode:enabled`, cache sync + `storage.onChanged` cross-context). `isDevMode()` sync, `setDevMode()`, `subscribeDevMode()`, `whenDevModeReady()`. Activo ⇒ el logger fuerza nivel `debug` en todos los contextos.
-- **`shared/diagnostics`:** ring buffer de errores (cap 60) persistido en `diagnostics:errors` con coalescing de escritura. `recordError(err, {context,scope,extra})`, `getErrors()`, `clearErrors()`, `subscribeErrors()`, `installGlobalErrorCapture(context)` (engancha `window.onerror`/`unhandledrejection`, idempotente). **Todo `logger().error()` alimenta el buffer automáticamente** (busca el primer `Error` entre los args para preservar el stack).
-- **Wiring:** `installGlobalErrorCapture()` se llama en content, popup y service-worker. La UI vive en **Ajustes** (toggle "Modo desarrollador" + tarjeta "Errores recientes" en vivo). Service worker usa logger + `install()` (debug API).
+## Errores y Modo Dev (`shared/errors` · `shared/dev-mode` · `shared/diagnostics`)
+- **errors:** `ExtError` (con `code`/`context`/`cause`), `toMessage(err)`, `isAbortError(err, signal)` (WaitAbortedError/AbortError/signal.aborted), `describeError(err, meta)` (serializable, stack recortado).
+- **dev-mode:** flag persistente (`dev-mode:enabled`, cache sync + `storage.onChanged`). `isDevMode()` sync, `setDevMode()`, `subscribeDevMode()`, `whenDevModeReady()`. Activo ⇒ el logger fuerza nivel `debug` en todos los contextos.
+- **diagnostics:** ring buffer (cap 60) en `diagnostics:errors` con coalescing. `recordError(err,{context,scope,extra})`, `getErrors()`, `clearErrors()`, `subscribeErrors()`, `installGlobalErrorCapture(context)` (engancha `window.onerror`/`unhandledrejection`, idempotente; se llama en content, popup y SW). **Todo `logger().error()` alimenta el buffer** (busca el primer `Error` entre los args para preservar el stack). UI en **Ajustes** (toggle "Modo desarrollador" + "Errores recientes" en vivo).
 
 ## Run store compartido (`shared/run-store`)
-Factory que unifica la persistencia de estado de ejecución que cada feature con batch reimplementaba en su `state.js`.
-- **`createRunStore({ key, logCap=400 })`** → `{ getRun, setRun, clearRun, updateRun, appendLog, subscribeToRun }`.
-  - **`updateRun` con coalescing de escrituras (velocidad):** encola los updaters y los drena en LOTES — cada lote hace UN `getRun` + UN `setRun` aplicando en orden FIFO todo lo acumulado mientras la IO anterior estaba en vuelo. Reduce de O(N) round-trips a storage a O(rondas de IO) durante las ráfagas de `onStep` fire-and-forget, y reduce los `storage.onChanged` (menos re-renders del popup). Correcto en multi-writer: cada lote re-lee storage, así ve la cancelación que el popup escribe. Resuelve con el estado tras su propio updater (misma semántica que la versión serializada anterior).
-- **`createPersistedValue(key, fallback)`** → `{ get, set }` para last-config / draft / last-query sueltos.
-- **`wireAsyncRunLifecycle({ subscribeToRun, tickIfActive, abortActiveRun?, reconcileOnInit?, topFrameOnly?, log })`** — patrón storage-driven async (Colocar TAGs, Starkoms, Seller Center): reconcile + subscribe(active?tick:abort) + tick inicial.
-- **`wireReloadTickLifecycle({ runKey, tickIfActive, abortActiveRun?, delay=300, log })`** — patrón tick-por-reload (Lead Times, Cupones, Magento): top frame, tick inicial con delay + tick en cada `storage.onChanged` del run. **Ojo:** ese tick por `storage.onChanged` corre en el MISMO documento que acaba de pedir la navegación (el navegador tarda cientos de ms; el evento de storage ~1 ms). Si el flow marca un item "en curso", escribe y recién después hace `location.href`, ese tick lo ve "en curso" en la página vieja. Ver el flag `navigating` en `magento/content/flows/run.js`.
-- **Migrado:** los 6 `state.js` (colocar-tags, starkoms, seller-center, lead-times, cupones, orden-info) usan el factory; cada uno conserva su `makeRun` (forma específica). orden-info aliasa los nombres `search` (`getSearch=store.getRun`, etc.).
+- **`createRunStore({ key, logCap=400 })`** → `{ getRun, setRun, clearRun, updateRun, appendLog, subscribeToRun }`. `updateRun` **coalesce escrituras**: encola updaters y los drena en lotes (un `getRun` + un `setRun` por lote, FIFO), bajando de O(N) round-trips a O(rondas de IO) en ráfagas de `onStep` y reduciendo re-renders del popup. Multi-writer correcto: cada lote re-lee storage, así ve la cancelación que escribe el popup.
+- **`createPersistedValue(key, fallback)`** → `{ get, set }` para last-config / draft / last-query.
+- **`wireAsyncRunLifecycle({ subscribeToRun, tickIfActive, abortActiveRun?, reconcileOnInit?, topFrameOnly?, log })`** — storage-driven async (Colocar TAGs, Starkoms, Seller Center, PIM, SoloTodo).
+- **`wireReloadTickLifecycle({ runKey, tickIfActive, abortActiveRun?, delay=300, log })`** — tick-por-reload (Magento, Lead Times, Cupones). **Ojo:** ese tick corre en el MISMO documento que acaba de pedir la navegación (el `storage.onChanged` llega en ~1 ms; el navegador tarda cientos). Si el flow marca un item "en curso", escribe y recién después navega, el tick lo ve "en curso" en la página vieja → usar el flag `navigating` (patrón en `magento/content/flows/run.js`).
+- Los `state.js` de las features con batch usan el factory y conservan su `makeRun` propio.
 
 ## Debug API (`window.__extLgeCl`)
-Existe en content, popup y service worker. En DevTools cambiar "JavaScript context" al de la extensión (content scripts viven en isolated world).
-Generales: `help()`, `features()`, `log.setLevel('debug'|'info'|'warn'|'error'|'silent')` (persiste en localStorage), `log.getLevel()`, `dev.on()`/`dev.off()`/`dev.status()`, `errors()` (console.table del buffer), `clearErrors()`, `<feature>.<comando>()`.
-Sumar a una feature: crear `features/<feature>/debug.js` → `register('<feature>', {...})` (desde `shared/debug`) → side-effect import desde `content/index.js` y/o `popup/popup.js` → usar helper `cmd(fn, 'descripción')`.
+Existe en content, popup y service worker. En DevTools cambiar "JavaScript context" al de la extensión (los content scripts viven en isolated world).
+Generales: `help()`, `features()`, `log.setLevel('debug'|'info'|'warn'|'error'|'silent')` (persiste en localStorage), `log.getLevel()`, `dev.on()/off()/status()`, `errors()`, `clearErrors()`, `<feature>.<comando>()` (los comandos de cada feature están en su doc).
+Sumar comandos: `features/<feature>/debug.js` → `register('<feature>', {...})` (de `shared/debug`) → side-effect import desde `content/index.js` y/o `popup/popup.js` → helper `cmd(fn, 'descripción')`.
 
 ## Popup navegación
 `popup.js`: routing simple `renderHome()` ↔ `openFeature(feature)`. Back button en header en vistas de feature; título refleja la vista.
 
-## Estado del proyecto
-Scaffolding + CI completos. Pipeline release corporativo (.crx firmado + política + ZIP). Debug API modular + logger persistente. Manejo de errores centralizado (`shared/errors`) + Modo Dev + ring buffer de errores con captura global (`shared/diagnostics`, visible en Ajustes). Content multi-frame con resolución de carrera. Capa `shared/dom`. Driver GP1 L-* (modal/messagebox/combobox).
-Features: **Colocar TAGs** (Lectura | Tag Delivery | Quitar Delivery | Tag Producto | Tag Oferta), **Magento** (Buscar orden → encontrar la orden por los datos del pago; Crear Softbundles → package rules en lote; Global Shipping Rules → CSV), **Lead Times** (Magento), **Cupones** (Quitar Regla de Cupón), **Información de Orden** (Magento), **Starkoms** (Verificar órdenes y stock), **LG.com** (Info de Producto), **SellerCenter Falabella** (SoporteSeller — Detalle Orden), **Devoluciones** (Falabella: cargar/guardar evidencias + gestión automática; Walmart/Paris pendientes), **E-promoters** (Informe ordenes — CSV/API → filtrado → CSV), **PIM** (Creación de producto — verificar si un SKU existe en PIM/STG), **SoloTodo** (Generar reportes de export en el backoffice — SPA React/MUI), **GATO** (tic-tac-toe multijugador secreto vía Firebase).
-⏳ Pendiente: más tests en `tests/unit/*.test.js` (hoy los `devoluciones-*.test.js` y los `magento-*.test.js`).
-
----
-
-## Feature: Colocar TAGs
-Pantalla: **Marketing Info Mapping (MIM)** en GP1 (SPA), modal `#dialog2`.
-
-**Detección (`detector.js`):** `isMarketingInfoMappingPage()` verifica `#aform`, `#LblockSearch`, `#tabView`, `#divGrid_stg`. `diagnose()` → `{ detected, missing, selectors, url, title, isTopFrame, iframes, iframeCount }`.
-
-**Parser (`parser.js`):** `parseSearchForm()` (11 campos: site B2C/B2B, super/category/sub, salesModel, modelName, productId, modelStatus, modelType, promotionId, publish). `parseGrid()` detecta tab activa (STG/PROD), lee `tbody tr.L-grid-row`, extrae por fila rowId (clase `L-grid-row-rXXXX`), rowIndex, editIndex (de `onclick="fncModelPopup(N)"`), isSelected, salesModel, modelName, productId, pimSku, super/cat/sub, status, type, publish. Contadores `#mSelectCount`/`#mStgListCount`/`#mProdListCount`.
-
-**Convenciones:** preferir Sales Model con sufijo (ej `24U421A-B.AWHQ`) sobre Model Name. Estados Model: ACTIVE/INACTIVE/DISCONTINUED (interesa ACTIVE).
-
-**`searchProductBySku(sku)`** (común a todos los flows): setea `#productId`, click `#btnSearch-button`, espera fila cuya `.L-grid-col-salesModel` matchee exacto, click su `.L-grid-button` (`fncModelPopup(N)`), espera modal `#dialog2`.
-
-**Mensaje único** `colocar-tags:get-page-data` → `{ ok, data?, reason?, diag? }` (incluye diagnóstico que el popup renderiza en `<details>` si falla).
-
-**Texto messageboxes:** confirm STG/PROD = "all selected rows of information"; success = "successfully saved to STG"/"...to PROD".
-
-### Tag de Delivery — port `colocar-tags:delivery-run`
-Popup: `skus[]`, `tagLabel` (default "Despacho Gratis RM"), `beginDay/Time`, `endDay/Time`, `skipProd` (default true). Por SKU: `applyDeliveryTag` marca `#deliveryTagChk`, selecciona tag vía `cb2-button`/`cb2-listbox`, marca `#deliveryTagUseFlag`, `#deliveryTagUserType=ALL`, setea 4 inputs fecha/hora, `formSubmit()` → confirm YES → ack OK. Si `!skipProd`: `formSubmitProd()` + confirm + ack.
-
-### Quitar Tag de Delivery — port `colocar-tags:delivery-remove-run`
-Inverso: desactiva. Popup solo `skus[]` + `skipProd`. Por SKU: marca `#deliveryTagChk` (dirty trigger/inclusión), **desmarca** `#deliveryTagUseFlag`, SAVE STG → YES → OK, opcional PROD. NO toca combobox ni fechas. Runner `DELIVERY_REMOVE_RUN`.
-
-### Tag de Producto — port `colocar-tags:product-run`
-Popup: `skus[]`, `tags[]` (1-2, cada uno `{category, group, tag, type, beginDay, beginTime, endDay, endTime}`) + `skipProd`. `applyProductTags` en fases:
-- **F1 — llenar por fila (1→2) SIN marcar row chk:** `select#productTagCategory<N>` (Product/Promotion) → combobox `#productTagGroup<N>` → combobox `#productTag<N>` → `select#productTag<N>Type` (gradient/solid/line) → `select#useType<N>=ALL` (tomar el visible, el `#productTag<N>UserType` está duplicado en hidden) → `setDateRange` en `#productTag<N>BeginDay/BeginTime/EndDay/EndTime` → marca `#productTag<N>UseFlag`.
-- **F2 — re-setear `productTag<N>Type` (1→2):** el handler `productTagCategory2.on('change')` pisa `productTag1Type`; reaplicar el type pedido.
-- **F3 — marcar `#productTag<N>Chk` (1→2) con `sleep(150)` entre cada uno:** el row chk es el "commit" que indica fila con data nueva.
-- **F4 — dirtyTriggerTag2** (ver quirk). Luego SAVE STG → confirm YES → OK. Si `!skipProd`: SAVE PROD + confirm + ack (GP1 cierra el modal tras el último OK).
-Pasos llevan `detail.tagIndex`.
-
-### Tag de Oferta — port `colocar-tags:offer-run`
-Pantalla: tabla **"Additional Disclaimer Text"** en el modal MIM. **4 filas fijas** por índice (1=Gift, 2=Discount, 3=Coupon, 4=Truck); el índice determina el tipo, no se parsea texto. DOM por fila N (prefijo `obsAdditionalDisclaimerText`, ver `OFFER_SELECTORS`): `...${N}Chk` (row chk/dirty trigger), `...${N}Flag` (Use), `...${N}Msg` (Description), `...${N}StartDate`/`...${N}EndDate` (datepickers `datePick`, **solo fecha YYYY-MM-DD, sin hora**).
-Popup: `skus[]` + ofertas activadas `{index,label,use,description,startDate,endDate}` + `skipProd`. Persiste estado de las 4 ofertas (`colocar-tags:offer:last-config`). `applyOfferTags` por índice: marca row chk (siempre) → Use → Description → `setDateOnlyRange` (variante solo-fecha de `gp1/daterange.js`, mismo sentinel). SAVE STG → YES → OK (con retry "No changes"), opcional PROD. Pasos llevan `detail.offerIndex`/`detail.offerLabel`.
-**Validación (`validateOffers`):** si `use` marcado, exige Description+Start+End. Si desmarcado, opcionales. Fechas vía `validateDateRange` (solo fecha, start≤end).
-
-### Quirks GP1 (críticos)
-- **Dirty trigger — Producto (`#productTag2Chk`):** marcar solo `#productTag1Chk` + llenar fila 1 NO basta para `formSubmit()` ("No changes were made."). Tocar `#productTag2Chk` (aunque fila 2 vacía) SÍ lo destraba. **Workaround `dirtyTriggerTag2` (F4):** marcar `#productTag2Chk` y **dejarlo marcado** (si ya estaba, OFF→ON; un toggle que vuelve al estado original NO sirve — GP1 compara vs snapshot inicial). GP1 ignora filas con Chk marcado sin tag value → benigno.
-- **Dirty trigger — Oferta (idéntico):** marcar el row chk de la fila con data no basta. **Workaround `dirtyTriggerOffers`** (vía `performSave`/`dirtyNudge`, `maxRetries=2`): (1) re-marca OFF→ON el row chk de cada oferta aplicada (inclusión); (2) marca el row chk de una fila **spare** vacía/inactiva (`findSafeSpareRow`) y lo deja marcado (trigger); (3) fallback OFF→ON sobre las aplicadas si no hay spare. Cubre STG y PROD.
-- **"No changes were made." + retry (defense in depth):** `performSave` race-detecta el outcome: confirm box → YES→OK; "No changes" → click OK, espera 300ms, **reintenta save una vez**; si persiste → throw. Antes del save: row chk al final (F3), `setChecked` usa `el.click()` nativo (no `dispatchEvent`), `performSave` hace `activeElement.blur()`.
-- **Type pisado por handler cat2:** `cat1='Promotion'+cat2='Product'|'Promotion'` → `productTagCategory2.on('change')` (líneas 11691-11713 de Pedida.md) fuerza `productTag1Type`. Por eso F2 reaplica el type al final.
-- **Crash benigno al abrir modal sin tags previos:** `offerRetrieveModelBasicInfo.js` hace `tagArray[''][''].forEach` (sin null-check para `category1=''`/`group1=''`) → TypeError. Benigno: los handlers `.on('change')` ya quedaron registrados y el flow re-cascadea los populates.
-- **Combobox Product Tag IDs duplicados:** los `<ul role="listbox">` comparten ids (`cb1-listbox`, `cb2-listbox`). `selectComboboxByInput` (`gp1/combobox.js`) resuelve botón y listbox vía `input.closest('.combobox.combobox-list')`, no por id, y espera a que el listbox tenga `<li>` (combos encadenados, populate async).
-- **Tags dinámicos, NO hardcodear:** opciones de `productTagGroup<N>`/`productTag<N>`/`cb2-listbox` las puebla el backend por SKU. `commitComboboxSelection` intenta match exacto + case-insensitive y lanza `ComboboxOptionNotFoundError` con muestra. `runSkuBatch` lo atrapa y reporta SKU como ERROR.
-- **`keyup` sintético:** `setInputValue` despacha `keyup` como `KeyboardEvent` con `key='Unidentified'` (no printable). Con `Event` genérico, `event.key=undefined` y `ComboboxAutocomplete.onComboboxKeyUp`→`isPrintableCharacter` crashea (`event.key.length`). Síntoma: `#productTagNType` a medio poblar y "No changes were made.".
-- **Datepicker orden de rangos (`setDateRange`):** GP1 valida "From≤To" en vivo; si el nuevo `beginDay` es posterior al `endDay` viejo, rebota. `gp1/daterange.js` empuja primero `endDay/endTime` a sentinel `2099-12-31 23:30`, luego setea begin, luego end real. Usado por Delivery y Product.
-- **Pre-flight modal:** antes de cada `searchProductBySku`, `ensureCleanModalState()` drena messageboxes (OK/YES/NO hasta 4 veces) y cierra `#dialog2` residual. Si sigue abierto → SKU ERROR `step:'pre-modal-open'` y continúa. Evita la cascada de fallos.
-- **Watchdog popup:** `attachPortWatchdog` (`popup/utils.js`) dispara a 12s si el port no recibió mensajes (cubre pestaña no-GP1 / no-MIM).
-- **Validación fechas centralizada:** `content/validators.js#validateDateTimeRange` (formato YYYY-MM-DD/HH:MM + semántica begin≤end). Usado por Delivery y Product.
-- **Limitaciones (usuario):** si un producto ya tiene 2 tags y se manda 1, el 2° se sobrescribe (del sistema). 2 tags se aplican en orden 1→2.
-
-**Reorg `content/index.js`:** los 4 ports (`DELIVERY_RUN`, `DELIVERY_REMOVE_RUN`, `PRODUCT_RUN`, `OFFER_RUN`) comparten `runSkuBatch`, parametrizado vía `PORT_RUNNERS[port.name].runPerSku` (evita duplicar manejo de SkuNotFoundError/WaitAbortedError/progress).
-
-**Debug `__extLgeCl.colocarTags.`:** `diagnose()`, `check()`, `find(key)`, `iframes()`, `frameInfo()`, `parse()`, `selectors()`, `checkProductTagRow(i)`, `snapshotProductTags()` (console.table de ambas filas — útil para "No changes"), `checkOfferRow(i)`, `snapshotOfferTags()`, `runOffer({sku,offers,skipProd?})`.
-
----
-
-## Feature: Magento
-Apartado paraguas para herramientas del admin de Magento que no encajan en una feature propia. Router de 2 niveles: `popup/view.js` lista los módulos (`MODULES`) y monta el elegido. Sub-secciones: **Buscar orden**, **Crear Softbundles** y **Global Shipping Rules**.
-**Cada módulo trae su propio run en storage y su propia state machine**; `magento/content/index.js` las engancha todas con una sola llamada desde `src/content/index.js`, y `magento/debug.js` importa los `debug.js` de los módulos para que un único import registre todos los comandos. Al sumar un módulo hay que tocar los dos, o queda escrito pero muerto (le pasó a Buscar orden: existía completo y no aparecía en ningún lado).
-
-### Buscar orden
-Pantalla: listado de **órdenes** del admin (`/sales/order/index`) + el detalle de cada orden (`/sales/order/view/order_id/<N>`). **Read-only.** Responde la pregunta inversa a la de *Información de Orden*: teniendo los **datos del pago** (código de autorización, monto, ID de sesión, payment_id de MercadoPago…) pero no el número de orden, recorre las órdenes del rango de fechas, decodifica las notas de transacción de cada una y marca las que coinciden. Todo lo capturado sale como **CSV** aunque el proceso se detenga a medias.
-```
-src/features/magento/buscar-orden/
-├── constants.js   MODULE_ID, STORAGE_KEYS, PAGE_TYPE, ORDER_STATUS, RUN_PHASE, FINISH_REASON, GATEWAY(+LABEL), SEARCH_FIELDS, MAX_RANGE_DAYS(28)/DEFAULT_RANGE_DAYS(7), STORE_VIEW_LABEL, LISTING/ORDER_VIEW REs, LISTING_COLUMNS, PAGE_SIZE, SELECTORS
-├── state.js       run store (createRunStore) + makeRun + draft
-├── transactions.js  puro: parseNoteComment (pares "Label: valor" o JSON) · detectGateway · buildTransaction · readField · normalizeKey
-├── match.js         puro: buildCriteria · describeCriteria · valueMatches · transactionMatches · evaluateOrder
-├── csv.js           buildMatrix (misma matriz para la tabla del popup y el CSV) · matrixToCsv
-├── debug.js       __extLgeCl.magentoBuscarOrden.*
-├── content/ detector.js · parser.js · grid.js · index.js · flows/run.js
-└── popup/   section.js (formulario + progreso + tabla de resultados)
-```
-**Estado (`chrome.storage.local["magento:buscar-orden:run"]`):** `{ active, phase, startedAt, finishedAt, finishReason?:done|cancelled|error|limit|first-match, error?, config:{from,to,gateways[],fields{},maxOrders,stopOnFirstMatch}, listingUrl, currentIndex, detailRedirects, matches, items:[{ incrementId, entityId, viewHref, summary, status:pending|reading|ok|error, matched, matchedIndexes[], transactions:[{gateway,when,noteStatus,title,order[],values{}}], error? }], log:[...] (cap 400) }`. El borrador del formulario vive en `magento:buscar-orden:draft`.
-
-**Patrón:** tick-por-reload (`wireReloadTickLifecycle`, delay 600), igual que el resto de Magento. **onListing:** orden en READING → interrumpida; sin items → aplicar filtros + recorrer TODAS las páginas y armar la cola; siguiente PENDING → READING + navegar a su detalle. **onOrderView:** casar la URL con la orden en READING, leer las notas, evaluarlas contra los criterios y **saltar directo al detalle siguiente** (volver al listado por cada orden duplicaría las navegaciones). Flag `navigating` + `goTo()` que limpia `onbeforeunload`, mismo cuidado que en Global Shipping Rules.
-
-**Lo que el grid de órdenes impone** (mismas reglas que la búsqueda de *Información de Orden*, que es el flujo probado):
-- **Solo los dos filtros que Magento exige:** rango de **Purchase Date** (≤ 1 mes; la UI corta en `MAX_RANGE_DAYS`=28) y **Purchase Point** = "Chile Default Store View". Cualquier filtro heredado hace fallar la consulta ⇒ primero `resetAllFilters`, después esos dos. El reset puede deseleccionar el Purchase Point: `ensureStoreView` lo vuelve a tildar.
-- **Esperar a que el grid esté listo ANTES de tocar nada:** es Knockout y restaura la última búsqueda guardada al montar; escribir antes es escribir para que Magento lo pise.
-- **El chip de filtro aparece antes que las filas nuevas.** Tras Apply/Reset, `clickAndSettle` espera a que arranque el mask de carga o cambie la huella de la tabla (`gridSnapshot`: nº de filas + primera fila + "records found") y recién ahí recolecta. Sin eso se recorre el listado **sin filtrar** — miles de órdenes equivocadas, y el síntoma es "tarda infinito", no un error. Si después de aplicar no queda ningún chip activo, se avisa en el registro.
-- Filas por `tr.data-row` (se acepta también `tr[data-role="row"]`); el **ID de la columna es el increment id**, y el que va en la URL del detalle es el **entity_id** que sale del propio link "View". `PAGE_SIZE` 200 por página, con caída al mayor tamaño disponible (`pickPageSizeOption`).
-
-**Criterios (`match.js`, puro):** una pasarela tildada sin ningún campo = "todas las transacciones de esa pasarela"; ninguna pasarela = capturar todo el rango. La comparación es tolerante a propósito (el dato se pega de una planilla): exacta → solo dígitos si ambos lados son numéricos (ignorando ceros a la izquierda, `002187`) → contiene. Las notas **sin pasarela** (historial de Magento, "esperando pago") se descartan antes de guardar: no son datos de transacción y duplicarían el storage.
-
-**UI popup (`popup/section.js`):** rango Desde/Hasta con aviso del tope de Magento, una tarjeta plegable por pasarela con sus campos, "Máximo de órdenes" y "Detener en la 1ª coincidencia", Iniciar/Detener/Limpiar, progreso en vivo, tabla de resultados (la **misma matriz** que el CSV, así lo que se ve es lo que se exporta) con toggle "Solo coincidencias", Copiar CSV / Descargar CSV y `<details>` con el registro. Si la pestaña ya está en el listado no se la navega (se conservan los filtros); si no, se pide confirmación. Estilos `.bo-*` en `popup.css`.
-**Debug `__extLgeCl.magentoBuscarOrden.`:** `diagnose()`, `rows()`, `records()`, `transactions()`, `evaluate()`, `dates()`, `csv(onlyMatches?)`, `state()`, `draft()`, `stop()`, `reset()`, `tick()`.
-**Tests:** `tests/unit/magento-buscar-orden.test.js` (nota → pares, detección de pasarela, comparación tolerante, matriz del CSV, formato de fechas del datepicker, `pickPageSizeOption`, `rangeDays`).
-**Pendientes/limitaciones:** entra a **una orden por navegación**, así que un rango ancho son miles de cargas — conviene acotar el rango, el "Máximo de órdenes" o parar en la 1ª coincidencia; una mejora clara sería descartar en el listado por la columna "Grand Total (Base)" cuando se busca por monto. No distingue múltiples tabs de Magento y no impide correrlo junto a Global Shipping Rules en la misma pestaña (se pelearían por la navegación); sin reintento por orden.
-
-### Crear Softbundles
-Pantallas: listado **Package Rule** (`/packagerule/package/index/`), **New Package** (`/packagerule/package/new/`) y su edición (`.../edit/package_id/<N>`). Crea package rules (soft bundles) en lote: una línea de entrada = un bundle, con su producto principal y sus productos hijos.
-```
-src/features/magento/softbundles/
-├── constants.js     MODULE_ID, STORAGE_KEYS, PAGE_TYPE, BUNDLE_STATUS(+LABEL), CHILD_STATUS, RUN_PHASE, FINISH_REASON, SKIP_REASON, URLs/REs, WEBSITE/STORE_VIEW_LABEL, SKU_PREFIX, TIMEOUTS, SELECTORS, PARENT_FIELDS, OFFER_FIELDS, TEXTS, DEFAULT_CONFIG
-├── parse-input.js   puro: parseBundleLines · normalizeSku/sameSku · parsePercent · countOffers
-├── state.js         run store (createRunStore) + makeRun + draft + store del export (makeExport)
-├── csv.js           buildMatrix (una fila por oferta) + buildExistingMatrix (padre,hijo) + matrixToCsv
-├── debug.js         __extLgeCl.magentoSoftbundles.*
-├── content/ detector.js · parser.js (mensajes + classifyRejection) · flows/{run,export}.js
-│           magento/{listing,parent-form,offer-modal,advanced-select,fields}.js
-└── popup/   section.js
-```
-**Entrada:** una línea por bundle, `SKU_PADRE,SKU_HIJO1,SKU_HIJO2` (coma, `;` o tab). Un hijo puede traer su propio porcentaje pegado con dos puntos: `SKU:5` (descuento del hijo) y `SKU:5:50` (descuento + % repartido al principal); lo que no venga en la línea sale del formulario. Acepta pegar texto **o** subir un CSV (se lee a texto y pasa por el mismo parser). `parseBundleLines` descarta encabezados, comentarios (`#`), líneas sin hijos, padres repetidos y un hijo igual al padre, y devuelve `warnings` que el popup muestra antes de iniciar.
-
-**Estado (`chrome.storage.local["magento:softbundles:run"]`):** `{ active, phase, startedAt, finishedAt, finishReason?, error?, config, listingUrl, currentIndex, redirects, items:[{ parentSku, status:pending|creating|saving|ok|partial|skipped|simulated|error, packageId, editUrl, checkedExisting, skipReason?, attempts, pendingDelete?, deleteAttempts, error?, children:[{ sku, chosenSku?, discountRate, mainDiscountRate, status:pending|ok|error, error? }] }], log:[...] (cap 400) }`. El borrador del formulario vive en `magento:softbundles:draft`, y el export de los bundles existentes en `magento:softbundles:export` (`{ active, phase, pages, rules, rows, total, csv, log }` — el CSV se guarda ya armado para poder volver a bajarlo sin releer el listado).
-
-**Patrón:** tick-por-reload (`wireReloadTickLifecycle`, delay 600) como el resto de Magento. **3 navegaciones por bundle** (`index` → `new` → `edit` → `index`); las ofertas van por **AJAX dentro de la pantalla de edición**, sin recargar.
-- **onListing:** dejar el website en `Chile Website` (cambiarlo navega y suelta el tick) → cerrar el bundle que volvió de guardarse (OK o PARTIAL según los hijos) y marcar como interrumpido el que quedó a medias → revisar (una sola vez) qué SKU ya tienen package rule → tomar el próximo pendiente y pulsar `#add`.
-- **onNew:** llenar el formulario del padre (`selectOptionByLabel` en `store_id` + multiselect de Main Product + switches + fechas) y pulsar `#save_and_continue`. En **modo simulación** el recorrido para acá: se vuelve al listado sin guardar (lo que igual verifica que el SKU principal exista en Magento).
-- **onEdit:** guardar el `package_id`, marcar como OK las ofertas que ya figuren en la grilla (una recarga a mitad no debe duplicarlas), crear una oferta por hijo y pulsar `#save`. Un hijo que falla NO corta el bundle: se registra y sigue con el siguiente; el bundle igual se guarda (el rule ya existe desde el `save_and_continue`, y no guardarlo no lo borraría).
-
-**Quirks (críticos):**
-- **Los dos selectores de producto se parecen y se comportan AL REVÉS** (`advanced-select.js`) — es donde más se atasca la automatización. Ninguno es un `<select>`: son widgets Knockout, y su input va con `valueUpdate: 'afterkeydown'`, así que el valor tiene que estar puesto **antes** del `keydown` (por eso no sirve `setInputValue` acá). Pero el parecido termina ahí:
-  - **Related Product SKU (hijo, en el modal)** sí consulta al servidor en cada tecla (`POST searchrelatedproducts`). Hay que teclear y **esperar**; leerlo antes devuelve la lista de la búsqueda anterior. Acá "no aparece" sí significa que el producto no existe o no tiene stock. Se teclea **sin el prefijo `CL.`**.
-  - **Main Product (padre)** NO va al servidor: trae ~100 opciones precargadas y **filtra sobre eso, en memoria**. Además **esconde los productos que ya tienen package rule**. Así que un SKU perfectamente válido puede no aparecer jamás por mucho que se escriba, y no hay petición que esperar: el síntoma es un `SkuNotFoundError` falso, y encima **no se puede distinguir "no está cargado" de "ya tiene regla"** mirando el desplegable. La salida es **inyectar la opción en el componente Knockout** (`force: true` → op `force-product-option` del bridge del mundo MAIN, §7.2 de `docs/flujo.md`): se mete en `options()` y en `cacheOptions.plain` y se elige con `toggleOptionSelected` —nunca asignando `value(...)` a pelo, que deja el caption y el provider desincronizados—. El backend valida contra el **catálogo**, no contra el desplegable, así que acepta el valor inyectado; y si el SKU ya tenía regla, el propio guardado lo rechaza con `This sku has been existed.`, que es justo lo que se quiere. El bridge es opcional: sin él se falla con el error de siempre, pero explicando las dos causas.
-- **"Main Product" no carga nada hasta elegir "Apply To"** (el store view). El formulario pide su lote de productos recién entonces (2-3 s), así que teclear antes devuelve una lista vacía — y como el filtro es local, tampoco llega nada después. `waitForProductOptions` abre el desplegable y espera a que tenga opciones antes de buscar el SKU.
-- **Un padre duplicado dejaba el proceso en bucle.** Magento rechaza el segundo package rule de un mismo SKU con `This sku has been existed.` y **devuelve el formulario**. Sin leer ese mensaje, el tick siguiente veía el bundle en CREATING sobre la pantalla `new`, lo volvía a llenar y a guardar, para siempre. `onNew` lee los mensajes **antes** de llenar: un formulario recién abierto no trae ninguno, así que cualquier error es el rechazo de *nuestro* guardado. Duplicado ⇒ el bundle se marca **SKIPPED** (la regla existente NO se toca: este módulo no borra nada); cualquier otro error ⇒ ERROR. Como respaldo hay un contador `attempts` por bundle (`MAX_FORM_ATTEMPTS`), y `reconcileOnListing` hace la misma lectura por si la versión de Magento suelta el rechazo en el listado. `classifyRejection` (puro, en `content/parser.js`) está cubierto por tests.
-- **El SKU pegado no es el del catálogo.** El usuario escribe `86MRGB95BSA.AWH` y Magento devuelve `CL.86MRGB95BSA.AWH`: la comparación ignora el prefijo `CL.` (`sameSku`). Y a veces se pega el código corto (`RNC7` → `CL.RNC7.DCHLLLK`): sin coincidencia exacta se acepta **una sola** candidata (queda en el registro) y con varias se falla con `AmbiguousSkuError` en vez de adivinar. Si el buscador no devuelve nada → `SkuNotFoundError`: el producto no está creado o no tiene stock, se marca el bundle con ERROR y se sigue con el siguiente.
-- **La tabla de descuentos no existe hasta elegir el SKU hijo.** `loaddatabysku` la llena (3-4 s); `waitPriceRows` la espera colgándose del **input** y no del `<tbody>` (la fila cuelga de un contenedor distinto según el tema, pero el input siempre lleva el id del grupo pegado: `discount-rate-1` = B2C). **Se escribe el mismo porcentaje en todos los grupos** que traiga la tabla: dejar uno en 0 crearía una oferta sin descuento para esos clientes. Su aparición es además la señal de que la carga del hijo terminó — hasta entonces el resto del modal todavía se mueve solo (ver el switch de 0%).
-- **⚠ `Display discount rate of 0%` se enciende SOLO.** En el modal vacío figura en No, pero después de `loaddatabysku` queda en **Yes**. Por eso se escribe *después* de la tabla de precios y se **verifica**: una oferta creada sin tocarlo quedó en Yes y hubo que editarla a mano.
-- **`main_discount_rate` está oculto hasta encender el split.** Se marca `is_split` y se espera a que el campo se haga visible (`waitFieldVisible`); Magento exige un valor **entre 1 y 99** (el 0 lo rechaza). Va en par con `discount_related` (el % que carga el hijo): **tienen que sumar 100**. Magento lo recalcula solo, pero el recálculo llega tarde y la oferta puede guardarse descuadrada (en una captura del alta manual viajó `main=50` con `discount_related=99`). El servidor manda sobre `main_discount_rate`, así que el resultado salió igual — pero escribir el complemento sale gratis y se hace.
-- **Fecha del datepicker: `mm/d/yy`** — mes con **dos** dígitos, día **sin** cero a la izquierda, año de cuatro (`09/9/2026`). `toMagentoDate` lo arma así; al revés el widget reinterpreta el texto al perder el foco. Escribir el texto y disparar `change` alcanza, no hay que abrir el calendario. La **hora va en un input aparte**: `setDateTime` la busca por su propio `data-index` y, si no está, como segundo input del campo de la fecha.
-- **"Marketing text" lleva asterisco pero guarda vacío** (verificado): no se toca, y llenarlo obligaría a pelear con su botón "Add" por cada fila.
-- **Los `id` de los campos los genera Magento en cada carga** (`#WP865RB`, `#F2ACX5T`…): todo se ubica por `data-index`. Los switches "Yes/No" son checkbox de 1px tapados por su label, y pulsar el input directamente falla («element did not become interactive»): `setSwitch` clickea `label[for="<id>"]` y deja el click nativo sobre el input como respaldo.
-- **Identificar el modal de oferta es EL punto donde más falla la automatización** (`offer-modal.js`), por cuatro trampas que no se ven a simple vista y que hicieron fallar la primera versión entera:
-  1. **Hay SEIS modales en el DOM desde que carga la pantalla**, dentro de `div.modals-wrapper`. **No se crean al pulsar el botón**: ya están ahí, ocultos — dos son de Page Builder y uno se titula "Edit". Cualquier selector genérico (`.modal-slide`, `.modal-popup`, `[data-role="modal"]`) engancha el que no es. Los dos que importan son "New Package Offer" y "Edit Package Offer", y se reconocen por su clase larga (`OFFER_MODAL_CLASS`), comparada **normalizada** (`normalizeModalClass` quita `_`, `-` y espacios): así encaja sea cual sea el separador que use esa versión de Magento.
-  2. **El contenido existe aunque el modal esté cerrado** — el ui-select del SKU, el `Save` y todos los campos. Esperar a que "exista el formulario" es un falso positivo: se rellena un modal cerrado y no pasa absolutamente nada.
-  3. **`offsetParent` y la altura MIENTEN.** El modal es `position: fixed`, así que `offsetParent === null` **incluso abierto** (falso negativo — esto era el bug: `findOfferModal` no encontraba nada nunca y el paso moría esperando), y `getBoundingClientRect().height` da ~1305px **incluso cerrado** (falso positivo). La única señal fiable es la **clase de estado** (`_show` en el modal, `_has-modal` en el `<body>`); `isModalOpen` la compara ignorando el guion bajo inicial, porque es el fallo más caro posible si se escribe de la otra forma.
-  4. **El input del descuento tiene el MISMO `name` en los dos modales.** Lo que los distingue es la clase `new-modal` / `edit-modal`. **Regla de oro: todo se acota a `modal.querySelector(...)`, nunca a `document`** — eso también evita enganchar `total-package-discount-rate-N` ("Discount on total package"), que vive fuera de los modales.
-- **Abrir y guardar, acotado al modal:** se abre con `button.open-insert-form-example-modal-button` (~23 ms hasta la clase de estado). Su hermano `open-edit-form-example-modal-button` comparte el `data-index`, está **oculto** y lo usa el módulo por dentro: no se pulsa. Dentro del modal, `button.action-close` cierra y `button.action-primary` guarda — pero se elige **por texto**, porque también hay un `Add` sin clase propia que pertenece a la tabla interna de marketing text y no guarda nada.
-- **"Precios cargados" = hay un input de tasa DENTRO del modal.** Sin SKU elegido no existe ninguno, así que su aparición es la señal de que `loaddatabysku` terminó. (Si alguna vez hace falta editar una oferta: en la grilla, el enlace de editar se llama **como el ID de la oferta** mientras el menú está cerrado, y solo pasa a decir "Edit" tras pulsar el `.action-select` de esa fila.)
-- **El modal guarda por AJAX y la señal fiable es la grilla.** El mensaje de éxito ("The related product has been saved") se pisa entre ofertas; se espera a que el modal **pierda la clase de estado** y a que el SKU aparezca en `td.related_product_sku`. Si no cierra se leen los `.admin__field-error` para decir qué campo faltó, y si no llega a abrirse el error dice cuántos modales hay montados y cuántos se reconocieron (`__extLgeCl.magentoSoftbundles.modals()` da la radiografía completa).
-- **Modal reusado = valores arrastrados.** Si quedó abierto de un intento anterior se cierra y se reabre: Magento lo reinicia al abrirlo, pero reusar el que estaba conservaría el descuento y los switches del hijo previo.
-- **La navegación se anuncia por storage ANTES de ocurrir:** mismo flag `navigating` que Global Shipping Rules, y `onbeforeunload` se limpia antes de cada click de guardado (el formulario del package rule lo cuelga y el confirm dejaría el proceso esperando una navegación que nunca llega).
-- **El listado obliga a elegir website:** el botón "Add New Package" arma su URL con el id del website (`/website/111/`), así que sin `Chile Website` seleccionado no se puede crear. El cambio de scope pasa por un confirm ("Please confirm scope switching") y navega.
-- **"Add New Package" se pulsa, no se arma la URL:** la de Magento lleva su token `key`, que cambia por sesión.
-- **Revisión de duplicados:** siempre se filtra el listado por `input[name="product_sku"]` antes de crear (una consulta AJAX por SKU, sin navegar) y se confirma comparando la columna "Main Product" fila por fila — el filtro de Magento es "contiene". El chip del filtro aparece antes que las filas nuevas: `clickAndSettle` espera a que arranque el mask o cambie la huella de la tabla.
-- **Qué hacer con un duplicado lo decide `config.duplicatePolicy`** (`DUPLICATE_POLICY`, `decideOnDuplicate` — puro y con tests): `skip` (por defecto: se saltea el bundle y la regla existente queda intacta), `delete` (se borra la regla que ocupa el SKU y se crea de nuevo) o `ask` (se pregunta con un `confirm` **en la pestaña de Magento**, no en el popup: el popup puede estar cerrado y el proceso cruza navegaciones). **El modo simulación nunca borra**, sea cual sea la política — es la salvaguarda que cubre el error más caro posible.
-- **El borrado es la ÚNICA acción destructiva del módulo** y llegó por pedido explícito. `deleteExistingRule` (`listing.js`) exige, en orden: que la fila coincida **exacto** por `sameSku` (el filtro de Magento es "contiene", así que sin esto se podría borrar la regla de otro producto), que haya **una sola** fila exacta (con varias se aborta, no se adivina) y que el `package_id` sea el esperado. Borrar un package rule **borra sus ofertas en cascada** y no se puede deshacer, así que el popup lo nombra aparte en la confirmación previa en vez de esconderlo en el resumen. El `pendingDelete` del item se escribe **antes** de pulsar (el borrado recarga el listado y esa escritura es lo único que sobrevive), y `reconcileDeletes` cierra el ciclo leyendo `The package has been deleted.`: sin ese mensaje no se da por hecho que la regla se fue, se revisa otra vez.
-- **Fuera de eso, "Delete" no se toca** (ni el de cada oferta). Los únicos clics de guardado son `#save_and_continue`, el `Save` del modal y `#save`.
-- **Exportar los bundles existentes (padre → hijo)** es un trabajo **aparte**, con su propia clave (`magento:softbundles:export`), su propio `createRunStore` y su propio `wireReloadTickLifecycle`. Es **solo lectura y NO navega**: Magento ya publica los hijos en la columna **"Related Product"** del listado separados por coma (`splitRelated`), así que alcanza con recorrer sus páginas — entrar a cada regla costaría una carga de página por cada una, que es lo único caro del módulo. `collectAllBundles` limpia los filtros (persisten por usuario: heredar el de otra consulta exportaría un subconjunto sin avisar), sube el tamaño de página a 200 (`pickPageSizeOption` cae al mayor disponible) y pagina; una página que no avanza **no pierde lo recolectado**, avisa y devuelve lo que haya. `buildExistingMatrix` arma una fila por pareja, y **una regla sin ofertas igual sale con el hijo vacío**: omitirla haría entender que ese padre no tiene package rule, justo lo contrario de lo que pasa.
-- **El export y la creación no pueden correr juntos:** viven en el mismo listado y se pisarían filtros y paginador. Se bloquean mutuamente en los dos lados (el tick del otro sale temprano, y el popup avisa antes de arrancar).
-
-**UI popup (`popup/section.js`):** toggle **Pegar texto / Subir archivo CSV**, previsualización (bundles, ofertas y avisos), dos `<details>` con **todos** los campos —"Datos del bundle" (Apply To, Descriptions, Active From/To con fecha y hora, máximo de relacionados, Active, Combinable, Show out of stock) y "Datos de cada oferta" (Discount rate, % al principal + split, Maximum Qty to Offer, Priority, Promotion Text/Description, oferta activa, Display 0%)—, el desplegable **"Si el SKU principal ya tiene package rule"** (omitir / borrar / preguntar, con un aviso que cambia según lo elegido) y el toggle **Modo simulación**, Iniciar/Detener/Limpiar, progreso en vivo (barra + una tarjeta por bundle con chips de sus hijos) y Copiar/Descargar CSV. Aparte, la tarjeta **"Soft bundles existentes"**: Leer el listado / Detener / Descargar CSV / Limpiar, con el avance en vivo. Persiste el borrador completo (incluido el texto). Estilos `.sb-*` en `popup.css`.
-**Debug `__extLgeCl.magentoSoftbundles.`:** `diagnose()`, `selectors()`, `messages()`, `website()`, `setWebsite()`, `rows()`, `exists(sku)`, `clearFilters()`, `bundles()`, `existingCsv()`, `exportBundles()`, `exportState()`, `exportReset()`, `deleteRule(sku, expectedId?)` (**destructivo**), `pickMain(sku,{force=true})`, `mainOptionsLoaded()`, `mainProduct()`, `fillParent({sku,...})`, `openOffer()`, `modals()` (radiografia de los 6 modales), `modalOpen()`, `offers()`, `splitVisible()`, `addOffer({sku,discountRate?,mainDiscountRate?,dryRun=true})`, `parse(text)`, `state()`, `draft()`, `csv()`, `stop()`, `reset()`, `tick()`.
-**Tests:** `tests/unit/magento-softbundles.test.js` (parser de la entrada, normalización de SKU, porcentajes, `toMagentoDate`, `classifyRejection`, `decideOnDuplicate`, `matchesModalKind`/`isModalOpen`, `splitRelated`, `buildExistingMatrix`, `pickPageSizeOption`, `findCreatingIndex`, matriz del CSV).
-**Referencia:** `src/features/magento/softbundles/docs/flujo.md` — el recorrido completo medido contra el admin real (2026-09-14): modelo de datos, URLs y `key`, scope de website, los dos selectores de SKU, endpoints y payloads, tiempos observados. **Ignorar su §2 (red/túnel):** describe el entorno donde se levantó esa sesión; la extensión corre dentro del navegador del usuario y no necesita nada de eso.
-**Pendientes/limitaciones:** el modo simulación no puede probar las ofertas (necesitan el bundle ya creado); no distingue múltiples pestañas de Magento ni impide correrlo junto a **otro módulo** en la misma pestaña (entre sus dos trabajos propios sí se bloquean); sin reintento por bundle ni por oferta; el descuento se escribe igual para todos los grupos de clientes; solo trabaja sobre el website `Chile Website`. Con la política en **"preguntar"**, el `confirm` sale en la pestaña de Magento: si está en segundo plano, el proceso queda esperando hasta que el usuario la mire. El export lee los hijos de la columna del listado, así que hereda lo que Magento muestre ahí (no abre las reglas para contrastar).
-
-### Global Shipping Rules
-Pantalla: listado **Global Shipping Rules** (`/global_shippingrule/management/index`) + su detalle (`.../edit/entity_id/<N>`). **Read-only:** recorre todas las rules, entra a cada detalle, captura campos y tarifas regionales, y arma un **CSV**. NO toca ningún botón de guardado ni de borrado; los únicos clics son paginadores, headers de secciones colapsables y el selector de tamaño de página.
-```
-src/features/magento/
-├── constants.js   FEATURE_ID, STORAGE_KEYS, PAGE_TYPE, RULE_STATUS, RUN_PHASE, FINISH_REASON, DEFAULT_ADMIN_BASE/ADMIN_BASE_RE/LISTING_PATH, LISTING_URL_RE, DETAIL_URL_RE, MAX_DETAIL_REDIRECTS, SELECTORS, DETAIL_SECTION_SELECTORS, LISTING/REGIONAL_PAGE_SIZE, BRIDGE
-├── state.js       run store (createRunStore) + makeRun
-├── csv.js         buildShippingRulesCsv (puro/testeable) — una fila por tarifa regional
-├── debug.js       __extLgeCl.magento.*
-├── content/ detector.js · parser.js · index.js · bridge.js (mundo MAIN) · bridge-client.js · magento/{grid,detail-page}.js · flows/run.js
-├── buscar-orden/  modulo propio (ver abajo)
-└── popup/   view.js (router de módulos) · utils.js · sections/global-shipping-rules.js
-```
-**Estado (`chrome.storage.local["magento:global-shipping-rules:run"]`):** `{ active, phase, startedAt, finishedAt, finishReason?, error?, listingUrl, currentRuleIndex, detailRedirects, metrics:{ discoveryMs, detailMs, regionalMs, detailCount, navigationCount }, items:[{ id, nameFe, editHref, summary, status:pending|reading|ok|error, error?, capturedAt?, captureMs?, detail?:{ fields:[{key,label,section,value}], regionalRows:[{}], regionalVia, timing:{readyMs,sectionsMs,regionalMs,totalMs} } }], log:[...] (cap 400) }`.
-
-**Patron:** tick-por-reload (`wireReloadTickLifecycle`, como Lead Times/Cupones) con espera inicial 0; los lectores esperan sus propios selectores. **onListing:** rule en READING -> interrumpida; sin items -> `collectAllRules`; proxima PENDING -> READING + navegar al detalle; ninguna PENDING -> finalizar. **onDetail:** casar la URL con la rule en READING, `expandDetailSections` + `parseDetailFields` + `collectAllRegionalRows`, guardar el resultado y navegar directamente al siguiente `editHref`. Solo vuelve al listado para recuperarse de un detalle que no se puede asociar. Un error por rule no corta el proceso: marca ERROR y continua con el siguiente detalle.
-
-**Velocidad (el costo está en las cargas de página, no en el parseo).** Etapas aplicadas, en orden de impacto:
-1. **Detalle → detalle sin volver al listado** (hecho): con todos los `editHref` capturados en el descubrimiento, `onDetail` navega directo al siguiente. De ~2N cargas completas a ~N. Solo se vuelve al listado para recuperarse de un detalle que no se puede asociar.
-2. **Tarifas regionales en una sola página** (hecho): la grilla regional se paginaba a clicks, y cada página cuesta una petición + un re-render **en cada rule**. `loadAllRegionalRows` intenta, en orden: (a) **bridge del mundo MAIN** → le sube el `pageSize` al UI component de Magento (`uiRegistry`), una sola petición; (b) **selector de tamaño de página** del DOM (`trySetPageSize`, genérico: por id para el listado, por contenedor para la regional; si no existe el tamaño pedido toma el mayor disponible); (c) **paginador de siempre** como respaldo. La vía que funcionó queda en `detail.regionalVia` y en el registro del proceso (`[bridge:paging]`, `[page-size]`, `[pager]`), que es como se mide en vivo si la ruta rápida prendió.
-3. **Secciones colapsables en paralelo** (hecho): se clickean todas y después se espera cada una, en vez de pagar la animación de las 5 en serie por rule. Sin `sleep` fijos entre secciones: los lectores esperan sus propios selectores.
-4. ⏳ **Pedir los detalles por HTTP directo** con un pool de 3-4 (no 4 pestañas): `__extLgeCl.magento.probe()` entrega justo lo que falta para decidirlo — si las tarifas ya vienen en el data provider y contra qué endpoint las pide Magento. **Cuatro pestañas paralelas quedan como último recurso:** el run es un único objeto en storage con un solo `currentRuleIndex` y una sola rule en READING, así que exigiría coordinador en el service worker, asignación exclusiva por worker y fusión de resultados.
-
-**CSV (`csv.js`):** headers = `ID` + `Shipping Rule Name (FE)` + columnas del listado + `Detail - <label>` + `Regional - <columna>` + estado/error/URL. Una rule con N tarifas regionales genera **N filas** (las columnas de la rule se repiten); sin tarifas, una fila. `protectFormula` antepone `'` a lo que Excel ejecutaría (`=`, `+`, `@`, `-texto`), con BOM UTF-8.
-
-**Quirks (críticos):**
-- **La navegación se anuncia por storage ANTES de ocurrir (flag `navigating`):** `onListing` marca la rule READING, escribe en storage y recién después hace `location.href`. Esa escritura dispara `storage.onChanged` en **~1 ms**, mientras que el navegador tarda cientos de ms en cambiar de página: el tick resultante corre todavía en el listado, ve la rule en READING y la da por **interrumpida**. El síntoma es que TODAS las rules terminan en error. `goTo()` levanta `navigating` (que solo baja la carga del documento nuevo) y `tickIfActive` sale temprano mientras esté arriba. `goTo()` además limpia `window.onbeforeunload`, o un confirm "Changes have been made" dejaría el proceso esperando una navegación que nunca ocurre (mismo cuidado que lead-times).
-- **El ID de la columna del listado no siempre es el `entity_id` de la URL.** `findActiveRuleIndex` prueba el `id` del listado, el `entity_id` parseado del `editHref` y, como última salida, **la única rule en READING** (solo puede haber una) dejando aviso en el log. Sin esa salida el proceso rebota listado↔detalle para siempre; `MAX_DETAIL_REDIRECTS` (5) lo corta con un error legible.
-- **Magento no monta el contenido de un fieldset colapsado.** `expandDetailSections` abre las secciones de `DETAIL_SECTION_SELECTORS` + la regional antes de parsear; leer sin eso devuelve campos vacíos y la grilla regional directamente no existe. Una sección que no abre no aborta la captura.
-- **El pager se marca deshabilitado de 4 formas** (`disabled` prop, atributo `disabled`, `aria-disabled`, clase `.disabled`) según sea `<button>` o `<a>`: `isPagerDisabled` las cubre todas. Mirar solo `.disabled` deja el recorrido girando hasta el tope de páginas.
-- **Fallo de paginación ⇒ datos parciales, no cero.** Si una página no avanza (o no se puede fijar 200 por página), `collectAllRules`/`collectAllRegionalRows` avisan por `onWarn` (queda en el registro del proceso) y devuelven lo recolectado, en vez de perder el listado entero.
-- **La base del admin se deriva de la pestaña activa** (`ADMIN_BASE_RE`, igual que orden-info), con `DEFAULT_ADMIN_BASE` de respaldo; si la pestaña no parece admin de Magento, se pide confirmación antes de navegarla. En el listado se guarda la URL real (trae el token `key`).
-- **El popup no llama a un unmount:** la suscripción a storage se corta sola cuando `container.isConnected` es falso. Sin eso, volver al menú y esperar un cambio de estado revienta buscando botones que ya no existen.
-- **El bridge es una vía rápida OPCIONAL, nunca un requisito.** `content/bridge.js` corre en el mundo **MAIN** (content script propio en el manifest, `<all_urls>` + `include_globs: ["*obsadm*"]`, `all_frames:false`) porque el content aislado no ve `window.require` ni el `uiRegistry` de la página, y el CSP de Magento bloquea inyectar un `<script>` inline. Habla solo por `postMessage`, sin `chrome.*` ni imports, todo en try/catch. Es **compartido por todo el apartado Magento**, y hoy escribe dos cosas, las dos acotadas: el **tamaño de página de la grilla regional** (estado de la vista, no del formulario) y, para *Crear Softbundles*, **la opción inyectada en el selector "Main Product"** (`force-product-option`). El elemento sobre el que actúa se marca en el DOM con `BRIDGE.TARGET_ATTR` en vez de mandar un selector: el DOM es lo único que comparten los dos mundos, y en la pantalla de edición hay **dos** `[data-index="product_sku"]` (el del padre y el del modal de oferta) que un selector confundiría. `askBridge` (lado aislado) **jamás lanza** salvo cancelación: si el script no está, no encuentra el data source o no contesta en `BRIDGE.TIMEOUT_MS` (3 s), devuelve `{ok:false,reason}` y el recorrido por DOM sigue igual que antes. La forma interna del registry cambia entre versiones de Magento (`storage.data` / `storage._data` / `filter({})`) y el data source se elige por puntaje (nombre `regional`, columnas tipo `address`/`delivery_fee`, y que `totalRecords > items.length`), no por un nombre hardcodeado.
-
-**Debug `__extLgeCl.magento.`:** `diagnose()`, `listing()`, `detail()`, `expand()`, `probe()` (radiografía del `uiRegistry`: providers, filas cargadas vs `totalRecords`, endpoint), `expandRegional()`, `regional()` (deja la grilla regional en una página y dice por qué vía), `state()`, `stop()`, `reset()`, `tick()`.
-**UI popup:** aviso previo, Iniciar/Detener/Limpiar, progreso (barra + lista de rules con estado y nº de tarifas), botón **Exportar CSV** al terminar, `<details>` con los últimos 60 logs. Live vía `storage.onChanged`.
-**Tests:** `tests/unit/magento-global-shipping-rules.test.js` (CSV + `DETAIL_URL_RE`), `tests/unit/magento-run-flow.test.js` (`findActiveRuleIndex` + `isPagerDisabled`) y `tests/unit/magento-bridge.test.js` (`askBridge`: respuesta, timeout, mensajes ajenos, cancelación; + `pickPageSizeOption`).
-**Pendientes:** medir en vivo qué vía usa la grilla regional (`probe()` en una rule real) para decidir la etapa 4; no distingue múltiples tabs Magento; sin reintento por rule (marca ERROR y sigue); sin historial de corridas; el CSV crece rápido (una fila por tarifa regional).
-
----
-
-## Feature: Lead Times (Magento)
-Pantalla: **Manage Address Level 2** (`/regional_management/level2/...`). CRUD admin (no SPA): navegaciones full-page entre listing y `Edit Address Level 2`.
-```
-src/features/lead-times/
-├── constants.js   SELECTORS, STORAGE_KEYS, COMUNA_STATUS, REGION_STATUS, PAGE_TYPE, EDIT_URL_RE, TEXTS, DEFAULTS
-├── state.js       get/set/clear/update + appendLog (chrome.storage.local)
-├── debug.js
-├── content/ detector.js · parser.js · index.js · magento/{filters,grid,edit-page}.js · flows/run.js
-└── popup/   view.js · utils.js · sections/runner.js
-```
-**Estado (`chrome.storage.local["lead-times:run"]`):** `{ active, startedAt, finishedAt, finishReason?, currentRegionIndex, queue:[{ regionName, minDays, maxDays, status, error?, totalComunas?, currentComunaIndex?, comunas?:[{ id, code, name, regionName, currentMin, currentMax, editHref, status, error?, previousMin?, previousMax?, savedAt? }] }], log:[{ts,level,message}] (cap 400) }`.
-
-**Detección:** `EDIT_URL_RE` → `edit`+editId; `h1.page-title==='Manage Address Level 2'` → `listing`; resto `other`.
-
-**State machine (`flows/run.js`):** `tickIfActive()` en init (300ms tras montar grid) y en cada `storage.onChanged` del key. Solo top frame; guard `running`.
-- **onListing:** (1) comuna en RUNNING (volvimos del edit) → OK. (2) región sin comunas → openFilters/setRegionFilter/applyFilters/collectAllComunas (pagina vía `.action-next`); comunas que ya tienen los lead times deseados → **SKIPPED** (`skipReason:'already-set'`). (3) todas terminadas → `advanceRegion()`. (4) pendiente → RUNNING + `location.href=editHref`.
-- **onEdit:** verifica editId == comuna RUNNING; `openDeliveryCollapsible`; `setLeadTimes` (`input[name="delivery_leadtime_min/max"]`); `clickSave` (Magento navega solo; OK lo marca el próximo tick en listing). Error → ERROR + `leaveEditPage` (limpia `onbeforeunload` + click `#back`).
-
-**Quirks:**
-- **Botón Filters tras editar:** tras entrar a un Edit y volver, a veces no abre. `advanceRegion()` hace `location.reload()` al saltar de región (el storage persiste; el próximo tick abre limpio).
-- **Sync tras Apply Filters:** el chip `._show` aparece ~inmediato pero las filas pueden quedar viejas cientos de ms. `applyFilters()` snapshotea primer `editId` + "records found" y espera a que **uno cambie** (o lista vacía).
-- **Red anti-corrupción:** tras `collectAllComunas()`, valida que TODAS las comunas tengan `regionName` (normalizado sin acentos/lowercase) que contenga la región filtrada. Una sola que no matchee → aborta región con ERROR. Última barrera contra grids stale.
-- **Stop:** popup `active=false`+`finishReason='cancelled'`. Tick en vuelo termina su paso; el siguiente no entra. Una nav ya disparada no se cancela.
-
-**Selectores (`SELECTORS`):** `button[data-action="grid-filter-expand"]` (abre panel) · `.admin__data-grid-filters-wrap._show` (abierto) · `input[name="region_name"]` · `button[data-action="grid-filter-apply"]` · `.admin__data-grid-filters-current._show` · `tbody tr.data-row` + `.data-grid-actions-cell a[data-action="item-edit"]` · `.admin__data-grid-pager .action-next` · `[data-index="delivery"] .fieldset-wrapper-title[data-state-collapsible]` · `input[name="delivery_leadtime_min|max"]` · `#save`/`#back`.
-**MUY IMPORTANTE:** "Delete" NUNCA se toca. Solo `#save`, `#back`, `a[data-action="item-edit"]`.
-
-**Debug `__extLgeCl.leadTimes.`:** `diagnose()`, `page()`, `selectors()`, `check()`, `parseRows()`, `filters()`, `records()`, `state()`, `stop()`, `reset()`, `tick()`.
-**UI popup:** tabla regiones (name/min/max/✕) + "Agregar región", Iniciar/Detener, progreso global, stats por región, `<details>` con últimos 50 logs. Live vía `storage.onChanged`.
-**Pendientes:** no distingue múltiples tabs Magento; sin reintento (comuna falla → ERROR y sigue); sin historial de runs.
-
----
-
-## Feature: Cupones (Magento)
-Pantalla: **Cart Price Rules** (`/obsadm/sales_rule/promo_quote/index/...`) + edit (`.../edit/id/<N>/...`). Navegaciones full-page como lead-times.
-Sub-secciones: **Quitar Regla de Cupón** — elimina TODAS las condiciones del bloque "Actions" y guarda (único sub-flujo; estructura tabbed lista para más).
-```
-src/features/cupones/
-├── constants.js   SELECTORS, STORAGE_KEYS, ITEM_STATUS, SEARCH_BY, PAGE_TYPE, EDIT_URL_RE, LISTING_URL_RE
-├── state.js  debug.js
-├── content/ detector.js · parser.js · index.js · magento/{filters,edit-page}.js · flows/run.js
-└── popup/   view.js · utils.js (parseQueries: split por líneas/comas/;) · sections/remove-rule.js
-```
-**Estado (`chrome.storage.local["cupones:run"]`):** `{ active, startedAt, finishedAt, finishReason?, searchBy:'id'|'rule', currentItemIndex, items:[{ query, status:pending|searching|editing|ok|error|not-found, matchedRuleId?, matchedName?, editHref?, removedConditions?, savedAt?, error? }], log:[...] (cap 400) }`.
-
-**Detección:** `EDIT_URL_RE=/\/sales_rule\/promo_quote\/edit\/id\/(\d+)/i` → edit; `h1.page-title==='Cart Price Rules'` o URL listing+grid → listing; resto other.
-
-**State machine (`flows/run.js`):** `tickIfActive()` en init (300ms) y en `storage.onChanged`. Solo top frame; guard `running`.
-- **onListing:** (1) item EDITING (volvimos con save OK) → OK. (2) sin PENDING → `finalize('done')`. (3) siguiente PENDING → SEARCHING. (4) `waitForGridReady`→`clearFilters`→`applyFilter({searchBy,value})`. (5) `findMatchingRow`: `id` match exacto numérico (fallback: única fila); `rule` match exacto nombre case-insensitive (fallback: única fila); nada → NOT_FOUND. (6) match → guarda `matchedRuleId/Name/editHref`, EDITING, `location.href=editHref`.
-- **onEdit:** busca item EDITING con `matchedRuleId===editId`; `openActionsCollapsible()`; `removeAllConditions()` (loop: click primer `a.rule-param-remove` hasta vaciar, max 50); `clickSave()` (blur + `#save`; OK lo marca el próximo tick). Error → ERROR + `leaveEditPage()`.
-
-**Quirks grid legacy Magento:**
-- **Usar botones reales Search/Reset:** `button[data-action="grid-filter-apply"]` (`doFilter()`) y `button[data-action="grid-filter-reset"]` (`resetFilter()`); onclick inline llaman a `promo_quote_gridJsObject`. Robusto.
-- **NO Enter sintético:** handlers prototype.js verifican `event.keyCode==13` pero `KeyboardEvent` deja keyCode en 0; handler bound al form no al input. Síntoma: value escrito pero grid no recarga → NOT_FOUND.
-- **NO inyectar `<script>`:** CSP de Magento bloquea inline. El click nativo en botón existente lo sortea.
-- **Click = `el.click()` nativo, NO `dispatchEvent`:** para botones legacy con `onclick=function(){}`, `.click()` activa el handler igual que click real; `dispatchEvent` falla silencioso.
-- **AJAX vs nav full-page:** en modo nav (`setLocation` con filtro base64 en URL) el reload corta el tick dejando item en SEARCHING. `onListing` retoma `SEARCHING && !matchedRuleId`; si `isFilterAppliedFor()` (inputs ya muestran el query) → salta clear/apply y va directo a `findMatchingRow`.
-- `applyFilter()`/`clearFilters()` esperan refresh detectando cambio de snapshot `{count, firstRuleId}` (el grid legacy no tiene chip de filtro).
-
-**Búsqueda (`SEARCH_BY`):** `id` → `#promo_quote_grid_filter_rule_id` (numérico exacto); `rule` → `#promo_quote_grid_filter_name` (Magento es contains, código exige exacto case-insensitive o fallback única fila). **No mezclar** en un batch (radio + validación; si `id` y entrada no-numérica → abort con alert).
-
-**Eliminar condiciones:** árbol en `div[data-index="actions"] .rule-tree`; cada condición es `<li>` con `<a class="rule-param-remove">`. La condición fija ("If ALL...") y el "+" NO tienen `.rule-param-remove`. **Activación:** `target.click()` nativo (dispatchEvent corre el listener inconsistente). **Detección:** retener ref al `<li>` y esperar a que salga del DOM (`!document.body.contains(targetLi)`) — más confiable que contar (re-render); fallback: conteo baja vs snapshot. Anidación: `a.rule-param-remove` matchea cualquier profundidad.
-
-**Selectores (`SELECTORS`):** `h1.page-title` · `#promo_quote_grid_table` · `#promo_quote_grid_filter_rule_id`/`_name` · `button[data-action="grid-filter-apply"]` (Search) · `button[data-action="grid-filter-reset"]` (Reset) · `#promo_quote_grid_table tbody tr[data-role="row"]` · `td[data-column="rule_id"]`/`name` · `td[data-column="action"] a` (Edit) · `div[data-index="actions"]` · `div[data-index="actions"] .rule-tree a.rule-param-remove` · `#save`/`#back`.
-**MUY IMPORTANTE:** `#delete` y `#save_and_continue` NUNCA se tocan. Solo `#save`, `#back`, `rule-param-remove`.
-
-**Debug `__extLgeCl.cupones.`:** `diagnose()`, `page()`, `selectors()`, `check()`, `parseRows()`, `filters()`, `rows()`, `state()`, `stop()`, `reset()`, `tick()`.
-**UI popup:** radio `ID | Rule` + textarea cupones (línea/coma/;), Iniciar/Detener/Limpiar, progreso, lista de items + nombre real, `<details>` 50 logs. Live vía `storage.onChanged`. Persiste `{searchBy, rawQueries}`.
-**Pendientes:** no distingue múltiples tabs; sin reintento; sin historial; timeout si grid tarda >15s.
-
----
-
-## Feature: Información de Orden (Magento)
-Pantalla: detalle de una orden en el admin de Magento (`/sales/order/view/order_id/<N>`). **Read-only**: lee el DOM y lo muestra ordenado en el popup; decodifica el motivo de pagos aprobados/rechazados (Transbank/Webpay y MercadoPago).
-```
-src/features/orden-info/
-├── constants.js   STORAGE_KEYS, SEARCH_STATUS, PAGE_TYPE, MESSAGES, SELECTORS, URLs/REs, diccionarios de errores (TRANSBANK_RESPONSE_CODES/_VCI/_PAYMENT_TYPE/_STATUS, MERCADOPAGO_STATUS/_STATUS_DETAIL)
-├── state.js       get/set/clear/updateSearch + get/setLastQuery (chrome.storage.local)
-├── debug.js
-├── content/ detector.js · parser.js · index.js (handler GET_ORDER_DATA + tick) · flows/search.js
-└── popup/   view.js (sección única) · utils.js · sections/order-info.js
-```
-**Detección (`detector.js`):** `order-view` (URL `/sales/order/view/order_id/N` o presencia de `.order-information-table`), `listing` (título `Orders` o URL `/sales/order/(index|grid)` + `#fulltext`), `other`.
-
-**Display (mensaje one-shot `orden-info:get-order-data`):** el popup hace polling de la pestaña activa **+ botón Actualizar** (`#oi-refresh`, re-lee al instante si el usuario ya tiene la orden abierta); el content devuelve `{ ok, data:{ orderNumber, status, alerts[], groups[] } }`. `parser.js` arma grupos: Resumen (order-information-table + título), Cliente (order-account-information-table), Full In House (`.custom-section` `<p>`), Totales (`.order-subtotal-table`), **Información de pago** (`.order-payment-method` → `.order-payment-method-title` + `.data-table`, fuente fiable de MercadoPago), un grupo **Pago N** por nota de transacción decodificada, e Historial de notas. La UI reusa el render de grupos de LG.com (`.lg-group/.lg-field`, buscador, copiar campo/grupo/todo) + **alertas** (`.oi-alert--error/success/warning`) con el motivo del pago.
-
-**Decodificación de transacciones (`parser.js`):** parsea cada `.note-list-comment` (pares `<strong>Label</strong>: valor<br>` o JSON), detecta la pasarela y traduce con los diccionarios de `constants.js`:
-- **Transbank/Webpay:** `Código de respuesta` (0=aprobado, negativos=rechazos), `VCI` (autenticación 3DS), `Estado` (AUTHORIZED/FAILED/…), `Tipo de pago` (VD/VN/VC/SI/S2/NC/VP), `Código de autorización`. Aprobado si rc==0 / estado AUTHORIZED|CAPTURED; rechazado si rc!=0 / FAILED|NULLIFIED.
-- **MercadoPago:** `status` + `status_detail` (`cc_rejected_*`, `pending_*`, `accredited`). Aprobado/rechazado/pendiente según ambos.
-Notas sin pasarela (JSON de estado, "esperando pago") van al grupo Historial.
-
-**Búsqueda (`flows/search.js`, storage-driven):** el popup escribe `STORAGE_KEYS.SEARCH={active,orderNumber,status}` y navega la pestaña al listado (`chrome.tabs.update`, base `/obsadm` derivada del tab o `DEFAULT_ADMIN_BASE`). En el listing el content: (1) **resetea TODOS los filtros activos** (`resetAllFilters`: si hay chips `.admin__data-grid-filters-current._show`, click `button[data-action="grid-filter-reset"]`) — cualquier filtro previo (otra orden, otra columna) hace fallar la búsqueda puntual, así que se parte de cero; (2) **aplica sólo los dos filtros requeridos** — Purchase Date `created_at[from]/[to]` con ventana de `DATE_WINDOW_DAYS` (29) días en formato jQuery UI `m/dd/yy`, y **selecciona activamente** el Purchase Point `Chile Default Store View` (`ensureStoreView`: si no hay crumb `.admin__action-multiselect-crumb`, ubica el multiselect por su label "Purchase Point", lo abre, tilda la opción y cierra con "Done"; el reset pudo haberlo deseleccionado), click `button[data-action="grid-filter-apply"]`; (3) setea `#fulltext` con el número y click `button[aria-label="Search"]`; (4) **reintenta localizar la fila** (`waitForRow`, polling ~18s respetando el mask de carga; el grid recarga async y a veces tras un `400` transitorio re-renderiza recién después → NO mirar una sola vez) por `tr.data-row` (celda con texto == número; fallback: fila que lo contenga) y abre la orden (anchor `a[href*="/sales/order/view/"]` — primario; fallback `clickEl` en la celda/fila). En `order-view` marca la búsqueda `done`. **Importante:** (a) las filas del grid son `tr.data-row` (NO `tr[data-role="row"]`); (b) la búsqueda puntual REQUIERE el rango de fecha (<= 1 mes) y el Purchase Point, y NINGÚN otro filtro — sin esto el grid da error; (c) `onListing` espera `waitForGridReady()` ANTES de tocar filtros/fulltext, porque Magento restaura la última búsqueda guardada y pisaría el número nuevo si se escribe demasiado pronto; (d) la detección de la fila se reintenta varias veces (Knockout carga lento / 400 transitorio). El grid es UI-component Knockout → date inputs vía `change` (KO datepicker).
-**Debug `__extLgeCl.ordenInfo.`:** `diagnose()`, `page()`, `selectors()`, `check()`, `parse()`, `search()`, `reset()`, `tick()`.
-**Pendientes:** click de fila del grid KO sin verificar en vivo (fallback razonable); no distingue múltiples tabs; diccionarios de errores ampliables.
-
----
-
-## Feature: Starkoms
-Sitio **app.starkoms.com** (sistema logístico/despacho, **SPA Vuetify con hash routing**). Sub-sección: **Verificar órdenes y stock** (estructura tabbed lista para más).
-
-**A diferencia de Magento (Lead Times/Cupones):** la SPA navega por hash (`#/...`) **sin recargar** → el flujo async sobrevive entre rutas. Por eso usa el **patrón de Colocar TAGs** (storage-driven con flujo async continuo + `AbortController`), NO el tick-por-reload de Cupones/Lead Times.
-
-```
-src/features/starkoms/
-├── constants.js   HOST, STORAGE_KEYS, ROUTES (+builders), ROUTE_RE, PAGE_TYPE, STATUS, STEPS, TEXTS, SELECTORS, DEFAULTS, MESSAGES, LOG_CAP
-├── state.js       getRun/setRun/clearRun/updateRun(writeChain)/appendLog/makeRun/subscribeToRun + get/setLastConfig
-├── debug.js
-├── content/ detector.js · parser.js · index.js · vuetify/{select,toast,dialog,datatable,buttons}.js · flows/{navigate,orders,stock,order-state,run}.js
-└── popup/   view.js (sección única) · utils.js · run-ui.js · sections/verify.js
-```
-
-**Estado (`chrome.storage.local["starkoms:run"]`):** `{ active, claimed, startedAt, finishedAt, finishReason?, errorReason?, config:{bodega,stockValue,verifyExistence,dryRun,limit}, total, currentIndex, items:[{ orderNumber, reference, status, step?, detail?, reason?, products:[{sku,action,stock?,reason?}] }], log:[...] (cap 400) }`.
-
-**Detección (`detector.js`):** host `app.starkoms.com` + `location.hash` contra `ROUTE_RE` (más específicas primero): STOCK_EDIT → INVENTORY_PRODUCT → INVENTORY_LIST → PRODUCTS → ORDER_DETAIL → ORDERS_LIST. `detectPage()` extrae `sku`/`bodegaId`/`orderNumber` del hash.
-
-**Rutas:** `#/ordenes`, `#/ordenes/<#orden>`, `#/productos`, `#/inventario/stock/productos`, `#/inventario/stock/productos/<SKU>`, `#/inventario/stock/productos/<SKU>/<bodegaId>`. `navigate.js#gotoRoute(hash,{ready})` setea `location.hash` y espera el DOM destino.
-
-**Flujo del batch (`flows/run.js`, espejo de colocar-tags/runner.js):** el popup escribe el run; el top frame de Starkoms lo **reclama** (`claimed`) y ejecuta todo como un flujo async continuo. Por orden On Hold (Fuera de Stock): (1) `openOrder` → leer productos; (2) por producto, `checkStock` (click botón SKU → toast Bodega/Stock); (3) sin stock → opcional `verifyExists` (`#/productos`) → `remediateStock`; (4) `setOrderState` → "Cambiar estado" → diálogo "Estado del pedido"="Ingresado" → "Guardar" → FAB de persistir. **Si un producto no existe** → orden NOT_FOUND (no cambia estado; crear a mano). `reconcileOnInit` marca interrumpido si un F5 mató un run reclamado. `claimWatchdog` (3s): pestaña no-Starkoms → `not-detected`. Cancelación: popup `active=false` → `abortActiveRun()`.
-
-**`remediateStock` (clave):** el deep-link directo a `#/inventario/stock/productos/<SKU>` **NO carga las bodegas** (SPA: el route param no dispara el fetch). Hay que replicar el flujo manual con **clicks reales**: (1) ir al **listado** `#/inventario/stock/productos` y **buscar** el SKU (input + botón "Buscar"); (2) click en el ojo de Acciones del producto (`a[href$="/<SKU>"]`, sin bodegaId) → página del producto (ahí sí cargan las bodegas); (3) click en el ojo de la bodega (`.../<SKU>/<bodegaId>`) → form "Actualizar Stock"; (4) setear Cantidad (`input[type=number]`) + asegurar "Bodega TO" + "Guardar". La bodega se ubica por nombre (fallback: única fila). Las páginas con buscador (`#/productos`, listado de inventario) y el detalle de orden (`#/ordenes/<n>`) **sí** cargan por deep-link; las sub-páginas producto-específicas NO.
-
-**Helpers Vuetify (ids dinámicos → matching por estructura/texto):**
-- `select.js`: `findSelectByLabel` (label interno o span hermano) + `selectOption` (abre slot, menú teleportado por `aria-owns="list-XXXX"` con fallback `.menuable__content__active`, elige `.v-list-item` por texto). `SelectOptionNotFoundError` con muestra.
-- `toast.js`: `waitToast`/`parseToast` (filas `table tbody tr` → {bodega,stock}) / `stockForBodega` (null = sin stock) / `dismissToast` ("Ok").
-- `dialog.js`: `waitDialog`/`waitDialogClosed`/`dialogButton(text)` sobre `.v-dialog--active .v-card__actions`.
-- `datatable.js`: `headerIndexMap` (por `aria-label` o texto del th) + `rowCells` (maneja quirk `<td><td>…</td></td>` con `:scope > td`).
-- `buttons.js`: `findButtonByText` (por `.v-btn__content`) + `findFabSave` (`v-btn--fab` con `mdi-content-save`).
-
-**Quirks Starkoms:**
-- **Grilla de órdenes:** columnas `["", # de orden, Referencia, Email, Origen, Courier, Tracking, Fecha, Estado, Acciones]`. Estado = texto del `<button>` (las On Hold Fuera de Stock usan `btn-dark`). El `# de orden` (no la Referencia) es el que va en `#/ordenes/<n>`.
-- **Bodega fija configurable** (default "Bodega LG Store OBS"); el `bodegaId` se descubre en runtime del href del ojo de Acciones (`.../<SKU>/<id>`), no se hardcodea. Se ubica la fila por nombre (`rowText.includes(bodega)`).
-- **Doble guardado al cambiar estado:** diálogo "Guardar" + FAB rosa (`mdi-content-save`), según `Pedida.md`.
-- **Modo simulación (dryRun):** navega y lee pero NO clickea los "Guardar"/FAB; default OFF, recomendado para la 1ª prueba. + campo "límite de órdenes".
-
-**Debug `__extLgeCl.starkoms.`:** `diagnose()`, `page()`, `selectors()`, `parseOrders()`, `products()`, `warehouses(sku)`, `checkStock(bodega?)`, `verifyExists(sku)`, `remediate({sku,bodega?,value?,dryRun=true})`, `changeState({orderNumber,dryRun=true})`, `runOne({orderNumber,...,dryRun=true})` (1 orden end-to-end), `state()`, `config()`, `stop()`, `reset()`, `tick()`.
-**UI popup:** form (bodega, stock, límite, toggles "verificar existencia" + "modo simulación"), Iniciar/Detener/Limpiar, progreso + lista de órdenes + `<details>` 50 logs. Live vía `storage.onChanged`. Persiste config en `starkoms:last-config`.
-**Pendientes:** selectores Vuetify a afinar en vivo (menú del v-select, form de stock, secuencia de guardado); no distingue múltiples tabs; sin reintento.
-
----
-
-## Feature: LG.com
-Sitio público **www.lg.com** (a diferencia del resto, que opera sobre GP1/Magento admin). **Router de 2 niveles:** `popup/view.js` es el router de nivel superior con dos secciones (`SECTIONS`, persistido en `STORAGE_KEYS.SECTION`): **Información web** (`popup/sections/info-web.js`) y **Revisar Destacados** (`popup/sections/destacados/index.js`). Sección activa por defecto: Información web.
-
-### Información web (PDP / PLP / PBP)
-Sub-pantallas: **PDP**, **PLP**, **PBP**. `sections/info-web.js` es el sub-router: barra de tabs PDP/PLP/PBP + switch **Auto** (persistido). Cada pantalla (`SCREENS` en constants) agrupa sus operaciones y se renderiza con `popup/sections/screen.js` (genérico, parametrizado por la pantalla).
-
-**Switch "Auto" (auto-seguir pantalla):** cuando está on, la pantalla mostrada sigue a la pantalla en que está el usuario — detecta la pantalla "dueña" de la captura más reciente vía `screenForCapture(capture)` y reacciona a cambios de pestaña/ventana (`chrome.tabs.onActivated/onUpdated` + `windows.onFocusChanged`) + un timer cada 1.5s (cubre navegación same-tab). Off: queda en la pantalla elegida manualmente. Persistido en `STORAGE_KEYS.SCREEN` + `AUTO_FOLLOW`.
-
-**Distinguir PBP de PLP (`screenForCapture`):** PDP=`getPbpProduct`, PLP=`retrieveProductList` (por operación). PBP y PLP **comparten** `getProductsBySku` (capturado como `products`); la PBP pide **1 SKU** y la PLP **varios** → se desambigua por el largo de `variables.skuList` (==1 ⇒ PBP, >1 ⇒ PLP). El caso >1 cubre la **landing promocional** (PLP especial desde AEM con promotion id) que dispara un `getProductsBySku` con `operationName` explícito y varios SKUs. Las `variables` de los GET GraphQL las parsea el bridge desde el query string (no hay body).
-
-**Captura de red (reto central):** el JSON viaja por el `fetch`/XHR de **la página** (mundo MAIN); el content aislado no lo ve. Solución MV3 sin violar CSP: un **content script en `world:"MAIN"`** (`src/content/graphql-bridge.js`, `run_at:document_start`, `https://www.lg.com/*`, top frame) que parchea `window.fetch` + `XMLHttpRequest.prototype.open/send`, lee la respuesta y la reenvía por `window.postMessage({ source:'ext-lge-cl/graphql', operationName, variables, response, url, ts })`. Captura **GraphQL** (`/api/graphql`) y **REST proxy LG** (`/ncms/.../proxy/<name>`, p. ej. `retrieveProductList` de la PLP — nombre = último segmento del path). **Autocontenido, sin `chrome.*` ni imports de `shared/`, todo en try/catch** (jamás romper la web). Guard de idempotencia `window.__extLgeClGraphqlBridge`.
-
-**Recepción/almacenamiento:** `lgcom/content/index.js` (isolated, solo top frame + host lg.com) escucha `window 'message'` (valida `event.source===window` + `source` + `GRAPHQL_URL_RE`) y guarda en `capture-store.js` (Map en memoria `operationName → últimas N capturas`, `CAPTURE_CAP=5`, **volátil**, sin storage — datos grandes/efímeros, modelo SPA). One-shot al popup: `MESSAGES.GET_CAPTURES` → `{ ok, captures:[{operationName,ts,url,variables,count}] }`; `MESSAGES.GET_OPERATION {operationName}` → `{ ok, operationName, ts, url, variables, response }`.
-
-**Operaciones (`OPERATIONS` en constants):** detección genérica por `operationName`. El bridge **deriva el nombre** en dos pasos: (1) del texto del query (`query Nombre` o primer campo de la selección anónima, p. ej. `{getAddressLevel1{...}}`); (2) **fallback por respuesta** — si sigue `unknown` (típico de `fetch(new Request(...))` donde no se lee el body), usa el primer key de `response.data` (= campo raíz: `getPbpProduct`, `products`, …). Mapeadas hoy: `getPbpProduct` (PDP), `getAddressLevel1` (regiones), `getAddressLevel2` (comunas), `products` (variantes; el `getProductsBySku` anónimo de PDP/PBP/PLP cae acá vía data-key), `getProductsBySku` (cuando llega con `operationName` explícito — landing promocional: lista de SKUs que la conforman, sumada a la pantalla PLP), `retrieveProductList` (catálogo PLP, REST). En la PDP `getPbpProduct` llega varias veces (simple y rica con `delivery_coverage`/`coupon_discount`/`main_package_product`/`install`/`global_shipping_rules`); el extractor tolera todas. Operaciones sin extractor → **JSON crudo**.
-
-**Extractores (`content/extractors/`):** `index.js` = dispatcher `EXTRACTORS[operationName]` + `extract()`/`hasExtractor()`. Funciones puras `(response)→grupos|null` reusables en content y popup.
-- `pbp-product.js`: orden por importancia — **primero producto**, **envío al final**: Identificación, Precios, Cuotas, Totales, Componentes del bundle (PtoV2), Garantía, Paquetes, Suscripción, Pre-orden, Marketing, Instalación, luego Despacho (+cobertura) y Reglas de envío (`global_shipping_rules`). **Fallback `readSegments(total_segments)`** para sku/precio/descuento cuando `product` viene casi vacío (package rules, PtoV2). Maneja `product.items[]` (componentes de bundle PtoV2).
-- `address-level1.js` / `address-level2.js`: grupo "Regiones (N)" / "Comunas (N)" name→id.
-- `products.js` (`products`/`getProductsBySku` anónimo, usado por PLP y PBP): un grupo por item con sku, stock, precios, MSRP, cuotas, cheaper_price, suscripción (fairown), pre-orden y componentes si es BundleProduct.
-- `products-by-sku.js` (`getProductsBySku` explícito — landing): si la respuesta trae data rica delega en `products.js`; si solo trae SKUs (la landing), un único grupo "Productos de la landing (N)" con cada SKU copiable.
-- `retrieve-product-list.js`: un grupo por modelo de la PLP (encabezado por lista) priorizando TAGS — productTag1/2 con tipo/categoría/usuarios/vigencia, delivery tag, MSRP, estado, rating, URL.
-Todos formatean CLP/%/sí-no, omiten campos/grupos vacíos, defensivos ante nulls.
-
-**UI (`popup/sections/product-info.js`):** **auto-captura por polling** (cada 700ms, ~14s): la página dispara el GraphQL un instante tras cargar; en vez de obligar a tocar Actualizar, re-renderiza solo cuando llega una captura más nueva (compara `ts`), preservando el texto del filtro. Estados: "Esperando datos…" (lg.com sin captura aún), vacío (no lg.com / agotado). Botón **Actualizar (↻) arriba** en la toolbar (no al fondo) + indicador "auto" mientras poll. Selector de operación si hay varias. Grupos en `<details>` con buscador en vivo (`data-search`), copiar por campo / por grupo / Copiar todo / JSON. Clipboard con fallback `execCommand`. CSS `.lg-*` en `popup.css`.
-**Controles UI persistidos (`STORAGE_KEYS`):** **Auto** (`auto-follow`, en `view.js`, ver arriba) + **pantalla activa** (`screen`). **Tamaño de texto** A−/A+ (`font-scale`, índice en `FONT_SIZES`) en la toolbar de cada pantalla, aplicado por la CSS var `--lg-fs` en `.lg-view`. Ícono de copiar agrandado (16px). La pantalla hace su propio polling de auto-captura (700ms, ~14s) y filtra las capturas a las operaciones de esa pantalla; selector interno si hay más de una.
-
-**Debug `__extLgeCl.lgcom.`:** `diagnose()` (host/bridge/operaciones), `captures()`, `operation(name)`, `raw(name)`, `pbp()` (grupos de la última PDP), `extract(name)` (grupos de cualquier operación con extractor), `clear()`.
-**Sumar una operación:** crear `content/extractors/<op>.js` (función pura → grupos), registrarla en `extractors/index.js` y agregar metadata en `OPERATIONS` (constants). El popup la muestra sola.
-
-### Revisar Destacados (`popup/sections/destacados/`)
-Vigila el recuadro de **destacados** (`.c-result-area__spotlight`, 3 productos puestos a mano) de las páginas de categoría: cada destacado debe tener **tag** y **stock**. Sub-router (`index.js`) con 2 tabs (`DESTACADOS_TABS`, persistido en `STORAGE_KEYS.DESTACADOS_TAB`): **Revisión** (`review.js`) y **Configuración** (`config.js`).
-- **URLs en duro:** las categorías a revisar viven en `constants.js → DESTACADOS_URLS` (`[{label,url}]`), NO en un panel persistente (se perderían al reinstalar; ver Pedida.md). La tab Configuración las muestra read-only.
-- **Detección por render real (CLAVE):** la página de categoría usa **AEM** y arma el spotlight con **JS en el cliente** → NO está en el HTML crudo (un `fetch` devuelve la página sin el recuadro). Por eso el **service worker** (`background/destacados.js`) abre las URLs en **pestañas de fondo** (`chrome.tabs.create/update`, `active:false`) y le pide al content que lea el **DOM ya renderizado**. Al final cierra las pestañas.
-- **Pool en paralelo:** se revisan `DESTACADOS_POOL` (3) categorías a la vez. Cada "worker" tiene su pestaña y va tomando ítems de una cola compartida (`queue.next()`); reusa la pestaña navegándola (`tabs.update`) entre ítems. Mucho más rápido que una por una.
-- **Lectura del DOM vivo (`content/destacados/check.js`):** `parseSpotlight(doc)` + `waitAndParse()` (espera a `.c-result-area__spotlight .spotlight-list li` con timeout `DESTACADOS_RENDER_TIMEOUT`, hace **scroll sweep** para disparar lazy/IntersectionObserver, y un settle `DESTACADOS_SETTLE_MS` para el stock/tags asíncronos). Por producto: `sku` (`.btn-copy[data-sku]`/`.c-product-item__sku`), `modelName` (`.neo-card--ufn h3`), **hasTag** = `.neo-tag--box` tiene spans, **hasStock** = control `[data-shop-stock-status]` == `IN_STOCK` (OUT_OF_STOCK o sin control ⇒ sin stock).
-- **Mensajes:** `lgcom:run-destacados` (popup → SW, dispara la revisión, responde `{ok,run}`); `lgcom:parse-spotlight` `{expectPath}` (SW → content de la pestaña de fondo, responde `{ok,ready,hasSpotlight,products}`; `ready:false` si la pestaña aún no navegó a `expectPath` → el SW reintenta hasta `DESTACADOS_TAB_TIMEOUT`). `PRODUCT_ISSUE`: sin-tag/sin-stock. NO requiere tener lg.com abierto.
-- **Estado de la corrida persistido (`STORAGE_KEYS.DESTACADOS_RUN`):** `{active,trigger,startedAt,finishedAt,total,doneCount,items:[{label,url,status,spotlightCount?,problemCount?,products?,error?}]}`. El SW lo escribe **en cada cambio** (`patchItem` → marca `checking` al empezar cada página y el resultado al terminar). `PAGE_STATUS` incluye los transitorios `pending`/`checking` además de los terminales ok/issues/no-spotlight/error. El popup (`review.js`) **solo refleja** ese estado: barra de progreso `doneCount/total`, badge por ítem (En cola / Revisando… / Todo bien / N con problemas / Sin destacados / Error) y, al terminar, chips resumen + sello "Última revisión". Lee de storage al montar y escucha `storage.onChanged` → el estado **sobrevive a cambiar de tab o cerrar el popup**.
-- **Revisión automática de fondo (en el SW, `wireDestacadosBackground`):** config en `STORAGE_KEYS.DESTACADOS_AUTO` `{enabled,intervalMinutes}` (tab Configuración; `DESTACADOS_AUTO_DEFAULT`/MIN 5/MAX 1440 min). Usa **`chrome.alarms`** (permiso `alarms` en manifest; alarma `DESTACADOS_ALARM`, `periodInMinutes`). `reconcileAlarm()` crea/limpia la alarma según la config (escucha `storage.onChanged`). Corre aunque NO haya ninguna pestaña lg.com abierta (el SW abre la suya). Guard single-flight `running`.
-
-**Debug `__extLgeCl.lgcom.`:** además de las de captura — `destacados()` (parsea el spotlight de la página ACTUAL al instante), `destacadosLive()` (espera el render y parsea), `runDestacados()` (dispara la revisión completa en el SW).
-**Pendientes:** editor persistente de `DESTACADOS_URLS` pendiente; la revisión abre pestañas de fondo (visibles brevemente en la barra); si una categoría carga muy lento puede dar `error` por timeout; el stock/tags se leen del DOM renderizado (si AEM cambia la estructura hay que ajustar `DESTACADOS_SELECTORS`).
-
----
-
-## Feature: SellerCenter Falabella
-Sitio **Salesforce (LWC)** — página de Soporte del Seller Center. Sub-secciones: **SoporteSeller — Detalle Orden** y **Buscar caso**. Completa automáticamente el acordeón "Detalle Orden" desde un CSV.
-(Las **devoluciones** salieron de aquí a su propio apartado: ver *Feature: Devoluciones*.)
-
-**A diferencia de Magento (tick-por-reload):** el acordeón se llena sin recargas → usa el **patrón storage-driven + flujo async continuo** de starkoms (`run` en storage, el frame que detecta el form lo reclama y ejecuta con `AbortController`). LWC usa **synthetic shadow DOM** (nodos en el light DOM), así que `querySelector` global funciona. Content matchea `<all_urls>`; la detección es por DOM (no por host, que puede variar entre orgs).
-
-```
-src/features/seller-center-falabella/
-├── constants.js   STORAGE_KEYS, MESSAGES, STATUS, STEPS, TEXTS, SELECTORS, COLUMNS, LOG_CAP
-├── state.js       getRun/setRun/clearRun/updateRun(writeChain)/appendLog/makeRun/subscribeToRun + get/setDraft
-├── debug.js
-├── content/ detector.js · parser.js · index.js · flows/{accordion,run}.js
-└── popup/   view.js (sub-router) · utils.js (parseCsv/buildDetalles/splitGuias) · run-ui.js · sections/soporte-seller.js
-```
-
-**Estado (`chrome.storage.local["seller-center-falabella:run"]`):** `{ active, claimed, startedAt, finishedAt, finishReason?, errorReason?, total, currentIndex, items:[{ ordernumber, guia, cantP, status, step?, reason? }], log:[...] (cap 400) }`. El popup arma `items` (un item por guía) y los escribe ya en el run (a diferencia de starkoms que los descubre).
-
-**Detección (`detector.js`):** `isSupportSellerPage()` = componente `c-fc_lwc097_-support-center_-order-information` presente, o los 3 inputs por `name` (`ordernumber`/`nGuia`/`cantP`) + ≥1 sección. `getDetalleSections()` = `<lightning-accordion-section>` cuyo summary dice "Detalle Orden" y tiene input de orden, en orden de DOM (== índice).
-
-**CSV (`popup/utils.js`):** `parseCsv` (comillas con escape `""`, saltos de línea citados, BOM, delimitador autodetectado `,`/`;`/tab). 3 columnas EN ORDEN: Número de orden, Nro Guia, Cantidad de Paquetes (1ª fila = encabezados). `buildDetalles` descarta encabezado, valida por fila (colecciona warnings, omite filas inválidas) y aplica la **regla de múltiples guías**: `splitGuias` separa el cell de Nro Guia por espacio/`\n`/`/`/`|` (NO `,`/`;` para no chocar con el delimitador) → un "Detalle Orden" por guía, manteniendo orden y cantP.
-
-**Flujo del batch (`flows/run.js` + `flows/accordion.js`):** por cada item: `ensureSection(i)` (si falta, click "+" de la última sección y espera que aparezca) → `expandSection` (click al summary si `aria-expanded=false`) → `fillSection` (`setInputValue` en los 3 inputs + verify/retry). Si falla crear/expandir una sección, **corta** el loop (las siguientes fallarían igual) para que el usuario revise. **NUNCA toca el botón "-" (eliminar)**; sólo "+". **No guarda/envía nada**: sólo completa los campos; el usuario revisa y guarda manual. `reconcileOnInit` marca interrumpido si un reload mató un run reclamado; `claimWatchdog` (3.5s) → `not-detected` si ningún frame tiene el form.
-
-**Selectores (`SELECTORS`):** `c-fc_lwc097_-support-center_-order-information` · `.seller-accordion` · `lightning-accordion-section` · `.slds-accordion__summary-content` (título) · `button.slds-accordion__summary-action` (expandir, `aria-expanded`) · `input[name="ordernumber"|"nGuia"|"cantP"]` · `button.slds-button_neutral` (los "+"/"-" se distinguen por su texto).
-
-**UI popup (`sections/soporte-seller.js`):** toggle **Subir archivo CSV** / **Pegar texto** (con los nombres de columna explícitos), previsualización (primeras 4 filas + total de "Detalle Orden" a crear + warnings en `<details>`), Iniciar (muestra el conteo)/Detener/Limpiar, progreso en vivo + `<details>` 50 logs. Persiste borrador `{mode,text,fileName}` en `seller-center-falabella:draft`. Live vía `storage.onChanged`.
-**Debug `__extLgeCl.sellerCenterFalabella.`:** `diagnose()`, `detected()`, `selectors()`, `sections()`, `count()`, `state()`, `draft()`, `fillOne({index?,ordernumber,guia,cantP})`, `stop()`, `reset()`, `tick()`.
-**Pendientes:** no distingue múltiples tabs; sin reintento por item (corta al primer error de estructura); asume que el form arranca con 1 sección vacía.
-
----
-
-## Feature: Devoluciones
-Apartado propio (antes era una sub-sección de SellerCenter Falabella) con **una pestaña por plataforma**: hoy solo **Falabella**; Walmart y Paris aparecen deshabilitadas. El flujo de gestión es distinto en cada seller, así que la plataforma es el eje de la carpeta, no un parámetro.
-
-Trabaja con el módulo web `app/Modules/DevolucionesSeller` del proyecto **LG OBS** (repo `obs`), que es la UI real: ahí se suben los comprimidos, se ve el avance y se marca qué órdenes gestionar. La extensión aporta lo que la política de TI no le deja hacer a una web externa (**leer y escribir archivos**) y lo que ninguna web puede hacer (**operar sobre el portal del seller**).
-
-```
-src/features/devoluciones/
-├── constants.js          PLATFORMS (registro para el router del popup)
-├── trace.js              ring buffer de diagnóstico (graba solo con Modo Dev)
-├── content/index.js      init(): emparejamiento + gestión (lo llama src/content/index.js)
-├── popup/                view.js (router) · registro.js (pestaña Registro) · utils.js
-└── falabella/
-    ├── constants.js  state.js  api.js  content.js    ← puente de carga/guardado
-    ├── background/runner.js                          ← sondea /orders, baja PDFs, POST /saved
-    ├── popup/  view.js (sub-router) · panel.js (cargar) · gestion.js (gestión)
-    └── gestion/                                      ← automatización del portal
-        ├── constants.js   FASE, RESULTADO, SEL (selectores por página), MOTIVO_KEYWORDS
-        ├── state.js       run persistido (createRunStore) + makeJob/patchJob/nextPendingJob
-        ├── background/runner.js   máquina de estados (claim → pestaña → reporte)
-        └── content/  index.js (despachador) · buscar.js · apelar.js · navegacion.js · ticket.js · dom.js
-```
-
-**Emparejamiento:** la web publica `<meta name="devoluciones-pairing-token">`; `falabella/content.js` la lee y guarda `{token, base}` en storage. Todas las llamadas van con `X-Pairing-Token`, así lo que hace la extensión aparece en la sesión web del usuario. **Ojo al actualizar desde ≤4.8:** la clave del feature cambió (`seller-center-falabella:devoluciones` → `devoluciones:falabella`), así que hay que reabrir la web una vez para re-emparejar.
-
-**Gestión automática (Falabella).** La web deja la orden con gestión `PENDIENTE`; el popup lee la cola (`GET /gestiones`) y lanza el run. Por cada orden, el service worker: `POST /gestion/claim` (un 409 = otra sesión se la llevó, se salta) → abre **una** pestaña en el listado de devoluciones → el content script busca el número de orden.
-- **Aparece** → pulsa "No, rechazar", navega a `rejectAppeals`, rellena los 3 acordeones (motivo + comentario, `evidencias.pdf`, informe técnico Malo + sub-motivo) y envía → **OK**.
-- **No aparece** → hay que levantar un ticket, y ahí está la trampa: **a la mesa de ayuda no se entra por su URL** (`ayudaseller.falabella.com/s/soporteseller` pide otras credenciales). Se llega saltando por la navbar, ya con la sesión de SellerCenter puesta.
-El resultado se reporta con `POST /gestion/resultado` (eso libera los archivos retenidos en el servidor).
-
-**Copiar los resultados:** el panel de gestión trae un botón **Copiar** por orden ya resuelta y uno global **"Copiar orden y ticket"**. Copia `orden<TAB>ticket` (columna vacía si se apeló y no hubo ticket): con tabulador porque donde termina esto es en una planilla, y así cae en dos columnas.
-
-**Fases** (`FASE`, en `gestion/constants.js`) — cada salto es una navegación completa, así que cada uno es una fase persistida:
-```
-BUSCAR ──encontrada──▶ APELAR ─────────────────────────────────▶ OK
-   │
-   └─no encontrada──▶ AYUDA ────▶ SOPORTE ────▶ TICKET ────▶ CONFIRMACIÓN ──▶ TICKET n°
-                   navbar        navbar       pestaña      lee el n° de caso
-              "Ayuda > Centro   "Soporte"    "Nuevo caso"
-               de ayuda"                     (el form no existe antes)
-```
-Las ramas de `AYUDA`/`SOPORTE` miran **dónde estamos**, no solo la fase: si un clic no llegó a navegar, se reintenta desde la página actual en vez de encallar.
-
-**Número de ticket:** sale de la pantalla de confirmación, embebido en una frase ("Tu n° de caso es el 68989843 , con fecha de creación…") → `CASO_REGEX` + solo dígitos. `leerConfirmacion()` distingue tres desenlaces: número leído → `TICKET`; campos en error (`.slds-has-error`) → `ERROR` con el motivo (no se creó nada); ni una cosa ni la otra → `TICKET` con marcador `SIN-NUMERO` y aviso de buscarlo en "Casos creados". **Nunca se inventa un número ni se da por bueno un ticket sin señal de la web.** Si el envío recarga la página, la espera muere con el documento y el número lo lee la carga siguiente (fase `CONFIRMACIÓN`, anotada *antes* de pulsar Enviar).
-
-**Número de guía.** El campo del ticket es obligatorio y sin folio va `0` (`GUIA_NO_IDENTIFICADA`), la convención acordada — pero eso es el último recurso, no el plan. El servidor lo busca en las **fotos** y, si no aparece, en los **PDF** del comprimido (la guía no siempre se fotografía), y dice de dónde salió en `numero_guia_origen` (`IMAGENES` / `PDF` / `MANUAL`). Lo que aporta la extensión son las dos puntas que le faltaban:
-- **Se puede escribir a mano** desde la cola del panel de gestión: cada fila lleva su campo (editable **siempre**, también para corregir un folio mal leído) y lo guarda con `POST /orders/{id}/guia` (`setGuia` en `falabella/api.js`). Se manda lo tecleado **tal cual** —el servidor limpia los adornos ("N° 123.456" → `123456`) y responde 422 si no hay ni un dígito—; no valides aquí la forma: el filtro de "exactamente 6 dígitos" es para lo que lee el modelo, no para quien tiene el documento delante. El campo vacío borra el dato. Cubierto por `tests/unit/devoluciones-guia.test.js`.
-- **El folio se lee fresco en el `claim`**, no de la copia que se hizo al armar la cola: el usuario puede haberlo escrito (en la web o aquí) mientras la orden esperaba turno. El runner repara el job con el `numero_guia` de la respuesta del claim y, si sigue vacío, lo avisa en la bitácora antes de empezar.
-Nada de esto bloquea: se avisa en el `confirm` de "Gestionar" cuántas van sin folio y la gestión sigue con `0` si el usuario no lo tiene a mano.
-
-**Por qué el estado vive en el service worker:** el flujo cruza navegaciones (listado → formulario) y el content script muere en cada una. En cada carga pregunta `GET_JOB` y el SW le responde con el job y su fase — y **solo** a la pestaña de trabajo del run, para no automatizar pestañas que el usuario abrió por su cuenta.
-
-**Dos cosas que el portal impone al content script** (`gestion/content/index.js`):
-- **El portal monta sus pantallas en iframes `about:blank`.** El documento superior de `returns_pending_review` se titula "Seller Center" pero tiene **cero inputs y cero tablas**: la interfaz vive en iframes creados por JS, sin `src`. Y Chrome **no inyecta content scripts en `about:blank` / `about:srcdoc` / `data:` aunque el manifest diga `all_frames: true`**, porque `<all_urls>` no casa con esos esquemas — hace falta declarar **`"match_origin_as_fallback": true`** en el `content_scripts`. **No está en `manifests/manifest.base.json`**: el esquema con el que `vite-plugin-web-extension` valida el manifest aún no conoce la clave y aborta el build (`must NOT have additional properties`), y su hook `transformManifest` corre *antes* de validar, así que tampoco sirve. Se inyecta en el manifest ya emitido desde un plugin propio en `vite.config.js` (`closeBundle`), que la aplica al content script con `all_frames: true` — así la validación sigue cubriendo todo lo demás en vez de apagarla con `skipManifestValidation`. Sin esa clave, el único frame que ejecutaba el script era el de arriba, que no tiene el formulario: la gestión se quedaba callada hasta el watchdog. Como respaldo para la otra forma de encapsular, `primero()` hace una segunda pasada por los **shadow DOM abiertos**, y la radiografía cuenta `shadowRoots` para distinguir un caso del otro de un vistazo.
-
-**Corre en todos los frames, y el filtro no puede ser el host.** El módulo de devoluciones vive dentro de un **iframe que no siempre está en el mismo dominio**: el frame superior tiene la URL correcta pero no el formulario, y si `paginaRelevante()` solo mirase el host, el frame que sí lo tiene se descartaría — el síntoma es una gestión que se queda callada hasta el watchdog. Por eso también vale con que el documento **contenga** alguna de las pantallas. Cada frame espera el **anclaje** de su fase (`anclaListado` / `anclaApelacion` / `anclaTicket` / `anclaMenuAyuda`) y el que no lo encuentra sale en silencio lanzando `SinAncla`; es clave que **no reporte error**, o mataría el trabajo del frame correcto. `init()` reevalúa a los 1,5 / 4 / 10 s porque un frame puede volverse relevante después del load. Al fallar un anclaje se traza la **radiografía del documento** (iframes y sus `src`, campos presentes, título): eso convierte un "no apareció" en un diagnóstico sin otra ronda de preguntas. Las etiquetas de anclaje van **explícitas**, no por `fn.name`: el bundler las minifica (se vio un `"esperado": "np"` en un registro real).
-- **No todo cambio de pantalla es una carga nueva.** El portal es una SPA. Un latido de 1 s vigila `location.href` (un content script vive en un mundo aislado y no ve los `pushState` de la página) y vuelve a despachar, abortando con `AbortController` lo que estuviera esperando; ese abort **no** se reporta como fallo (`isAbortError`).
-
-**Medidas en vivo del formulario de apelación (Chrome DevTools, 31-jul-2026)** — para no volver a adivinar:
-- Los **tres acordeones arrancan cerrados** (`class=" off"` en `.title-box + div`) y son **mutuamente excluyentes**: abrir uno cierra el anterior. Lo escrito **y el archivo adjunto sobreviven** al cierre (`input.files` sigue en 1 y el nombre se sigue pintando).
-- `input#files` **sí cuelga de la caja "Evidencias del producto"**, con `display:none`, `multiple`, `accept="image/png, application/pdf, image/jpg, image/jpeg"`. Tras `setFiles` el portal pinta *"1 archivos adjuntos · evidencias.pdf"* dentro de la caja — esa es la señal de acuse, y **`input.files` NO se vacía** (aquí sí sirve como respaldo).
-- El botón es `button[type=submit]` con `class="submit-button "` y **`disabled` siempre `false`**: pulsarlo incompleto no hace nada y no avisa. Con el formulario completo pasa a **`submit-button-active`** (comprobado de punta a punta).
-- **Un clic sintético sin `composed` TAMBIÉN abre los acordeones**: React monta su raíz dentro del shadow root, así que la delegación funciona igual. `clickReal` se usa por consistencia y por los casos que sí cruzan la frontera, no porque el otro no funcione.
-- Opciones reales del desplegable de motivo (9): *Producto llegó sin empaque · Producto llegó con el empaque dañado o sucio · Caja vacía · Producto usado · Producto no funciona · Producto incompleto · Producto no pertenece a mi catálogo · Producto no entregado en mis bodegas · **Producto dañado*** (esta última es `DEFAULT_MOTIVO`). El `select#subStatus` ofrece `Severe damage | Slight damage | Incomplete`. Todo cuadra con `MOTIVO_KEYWORDS` y los `SUBSTATUS_*`. Al elegir, **la cabecera del desplegable pasa a mostrar el motivo**: por eso `elegirMotivoEnElFormulario` lo verifica ahí en vez de dar el clic por bueno.
-- El portal levanta a veces una **encuesta de Medallia** (`iframe#kampyleForm*`, lightbox) sobre la pantalla. No estorba a la automatización —los clics sintéticos van dirigidos al elemento, no dependen del hit-testing— pero sí tapa la vista al depurar a mano.
-
-**El listado se puede quedar muerto en "No data available", y una recarga lo cura.** Medido: entrando recién logueado, la tabla se quedó en 0 filas con el cartel de vacío **más de 15 s** (con la pestaña "Revisión pendiente 22" activa), y buscar ahí no devolvía nada; una **recarga** trajo las 10 filas en **1,5 s**. Con datos ya cargados, el filtrado por la lupa tarda ~**500 ms** (10 filas → 1). Por eso `buscarOrden` gasta **una recarga de rescate por orden** (marca en `sessionStorage`, solo en el documento superior) cuando el listado no llega a mostrar filas.
-
-**La tabla vacía MIENTRAS CARGA no es "la orden no está".** Medido en un registro real: el listado enseñaba `"No data available"` con 0 filas *antes* de escribir nada (todavía estaba trayendo los tres meses de devoluciones), se pulsaba la lupa y **1 ms después** se concluía «la orden NO está en el módulo» y se levantaba un ticket — de una devolución que podía estar perfectamente ahí. Es el error más caro del flujo, porque termina en un caso abierto en la mesa de ayuda. Ahora `buscar.js`: (1) **espera a que el listado cargue** (`esperarListado`, filas > 0) antes de tocar el buscador —además React puede descartar lo tecleado si repinta a medio montar—; (2) el veredicto de vacío exige que **se sostenga** (`VACIO_ESTABLE_MS`, ×4 si el listado nunca llegó a tener filas: es la única forma de distinguir "no está" de "sigue cargando"); (3) si no hay desenlace claro se **reintenta** la búsqueda hasta 3 veces (reescribe + vuelve a disparar) y, si aun así no lo hay, se falla con ERROR — nunca se deduce "no está" de un timeout. La lupa y el botón "No, rechazar" se pulsan con `clickReal` (composed), no con `clickEl`: viven dentro del shadow root del módulo.
-
-**Que el salto a la mesa de ayuda "prenda" no significa que el service worker sepa dónde continuar.** Otro registro real: el menú se desplegó, se pulsó "Centro de ayuda", la pestaña nueva cargó el centro de ayuda… y su content script recibió *"el service worker no asignó job a esta pestaña"* durante 4 minutos, hasta el watchdog. Adoptar solo en `chrome.tabs.onCreated` no basta: el salto pasa por el SSO, así que **al nacer la pestaña su URL todavía no es la de la mesa de ayuda**, y si el enlace va con `rel="noopener"` tampoco llega el `openerTabId`. Tres piezas lo cierran: `adoptarPorNavegacion` (en `background/runner.js`, colgado de `chrome.tabs.onUpdated`) adopta **por destino** —cualquier pestaña que entre en `HELP_HOST` mientras el job va camino del ticket, salvo que la pestaña de trabajo ya esté ahí—; el SW le manda `GESTION_MESSAGES.DISPATCH` a la pestaña recién adoptada (sin eso, una pestaña adoptada *después* de haber preguntado no vuelve a preguntar hasta que la página navegue); y el content **repregunta** hasta 12 veces cada 2,5 s, pero **solo si el run sigue activo** — dato que ahora viaja en la respuesta de `GET_JOB` (`motivo: {pestanaDelRun, runActivo, jobEnCurso}`), que además queda en la traza «Sin trabajo para esta pestaña» para no tener que cruzar dos registros a mano.
-
-**El texto del ticket es una postura, no un resumen.** El campo "Detalle" abre **siempre** con la misma frase (`DETALLE_APERTURA`: *"Se solicita rechazar devolucion porque producto fue enviado en buen estado, sin embargo retorna con …"*) y lo que se le pega son las **observaciones de posventa** tal cual llegan en "Data del ticket de reembolso" (sin el punto final, que lo pone la frase; sin observación se cierra con `DETALLE_SIN_OBSERVACION`). Debajo, los datos que identifican la orden. Y si no hubo número de guía, el detalle lleva `SIN_GUIA_DETALLE` (*"No se agrega guia porque fue enviada por currier."*): el `0` del campo obligatorio se lee como un dato mal copiado si nadie explica por qué está ahí. **La guía solo la exige el ticket** — la apelación por el módulo no la pide.
-
-**Selectores tolerantes:** los anclajes prueban varias vías en orden (`primero()`), porque el portal reordena su maquetación — apareció un `.export-search-content` envolviendo al `.search-content` y el selector estructural dejó de ser fiable. El **placeholder** ("Buscar por N° de orden") es lo más estable, porque es lo que el usuario ve.
-
-**El módulo entero vive en un shadow root — nunca uses `document.querySelector` aquí (`SEL.buscar` / `SEL.apelar`).** SellerCenter monta la micro-app de devoluciones (listado, buscador, tabla **y** formulario de apelación) dentro del **shadow root de `div#return-app-container`**: el documento de arriba tiene **0 `<input>` y 0 `<table>`**. Los selectores son correctos, pero solo encajan si se consultan atravesando el shadow. El síntoma no es un error claro sino una espera que se agota — `Timeout (15000ms) esperando la tabla de devoluciones` — con la pantalla perfectamente visible. Despistaba doblemente porque `anclaListado()` **sí** encontraba el buscador (usa `primero()`, que atraviesa) mientras todo lo demás miraba el documento pelado; la pista que lo delata es `selectorQueEncajo: null` junto a un `placeholder` correcto en la traza. Helpers en `gestion/content/dom.js`: `primero()` (uno, prioriza el documento sobre el shadow), **`todos()`** (todos, cruzando raíces — para las filas y los acordeones) y **`raizDe()`**, que devuelve la raíz que contiene la pantalla. `buscar.js` y `apelar.js` resuelven la raíz **una vez** al empezar la fase (`raizModulo()` / `raizApelacion()`) y consultan siempre contra ella: evita recorrer el árbol entero en cada vuelta de una espera y, sobre todo, mezclar elementos de dos raíces. Por lo mismo la **radiografía** de `index.js` cuenta campos y tablas cruzando el shadow (y añade `camposEnElDocumento`): antes reportaba `campos: []` / `tablas: 0` justo en la pantalla que sí tenía el formulario. Cubierto por `tests/unit/devoluciones-shadow.test.js`.
-
-**Los eventos sintéticos tienen que ir `composed: true` (`clickReal`/`pasarElRaton` en `gestion/content/dom.js`).** Un `new MouseEvent('click', {bubbles:true})` nace con `composed:false` y **no sale del shadow root** donde se despacha, así que ningún manejador de fuera (la delegación de React, la navbar de Salesforce) se entera. Los eventos de un ratón real siempre son composed. `clickReal` despacha la secuencia completa —`pointerover/mouseover/pointermove/mousemove/pointerdown/mousedown` → `focus` → `pointerup/mouseup/click`— con `composed:true` y coordenadas del `getBoundingClientRect()`; `pasarElRaton` hace solo la parte de posarse, lanzando además `mouseenter`/`pointerenter` en la cadena de ancestros (no burbujean ni los de verdad). Aviso: esto **no** activa el `:hover` de CSS — eso solo lo mueve un ratón físico; para menús que dependen de CSS puro hay que buscar su contenido en el DOM aunque esté oculto. `clickEl` (shared) se mantiene para el resto de features.
-
-**El salto al centro de ayuda es el único paso que NO deja rastro en la página, y por eso se quedaba parado.** El enlace "Centro de ayuda" tiene `href="#"` y un `onClick` de React que abre `ayudaseller` en **otra pestaña y de fondo** (medido en vivo): ni cambia la URL ni este documento se oculta (`visibilityState` sigue `"visible"`, así que **no sirve como acuse de recibo**). Si el clic no prendía, el documento se quedaba idéntico, ningún content script nuevo arrancaba y **nadie lo reintentaba** — había que abrir el menú a mano para que siguiera. `saltarAlCentroDeAyuda()` (en `gestion/content/index.js`) reintenta hasta 3 veces y usa como señal fiable al **service worker**: cuando adopta la pestaña nueva, `run.tabId` cambia y `GET_JOB` deja de dar trabajo a esta pestaña. En el último intento se pide ayuda por la bitácora en vez de rendirse. Complemento: `abrirMenuAyuda()` prueba varias formas de desplegarlo (ratón encima → clic → ratón sobre su interior → clic nativo → teclado), anota en la traza **cuál funcionó**, y busca el enlace también en **todo el documento** (el submenú podría montarse fuera del menú o solo quedar oculto por CSS). Verificado en vivo: el `.support-coachmark` solo lleva `onClick` (las clases `hover:` de la navbar únicamente pintan la barra verde) y el clic sintético lo despliega.
-
-**Si una fase falla, antes de reportar ERROR se comprueba que el trabajo siga siendo nuestro.** El content script pregunta `GET_JOB` en el `catch`: si el service worker ya no le asigna el job (el usuario dio el salto a mano, o se adoptó la pestaña de la mesa de ayuda), se calla. Reportar ahí mataría una orden que sigue viva en otra pestaña.
-
-**La mesa de ayuda abre en PESTAÑA NUEVA, y el service worker tiene que adoptarla.** El enlace "Centro de ayuda" de la navbar **no navega la pestaña actual**: abre `ayudaseller` en otra. Como el SW solo da trabajo a `run.tabId` (`jobForTab`), sin adoptarla el content script que arranca allí pregunta por su job, se le responde que no le toca, y la gestión se queda muda hasta el watchdog de 8 min. `adoptarPestanaDeAyuda()` (en `background/runner.js`, colgado de `chrome.tabs.onCreated`) reasigna `run.tabId` **solo** si la abrió la pestaña de trabajo (`openerTabId`) y el job va camino del ticket (`FASES_DE_TICKET`), con un respaldo por host de la mesa de ayuda cuando el navegador no informa del origen — así ninguna pestaña que abra el usuario le quita el puesto. El siguiente job reutiliza esa misma pestaña, porque `openTab` la navega de vuelta al listado.
-
-**El menú "Ayuda" se despliega con CLICK, no con hover.** `irACentroDeAyuda()` hacía solo `pointerover/mouseover/mouseenter` y el submenú **nunca llegaba a existir** → `Timeout (15000ms) esperando el enlace "Centro de ayuda"` y la gestión parada ahí. El `div.support-coachmark` lleva un **`onClick`** de React; las clases `hover:` de la navbar solo pintan la barra verde inferior. Ahora se hace hover **+ `clickEl(menu)`**, y solo si el submenú no estaba ya desplegado (un clic de más lo cerraría).
-
-**La mesa de ayuda usa shadow DOM NATIVO y ANIDADO — `SEL.ticket` y `SEL.navegacion` tampoco van por `document`.** Ojo con la nota de SellerCenter/SoporteSeller ("LWC usa synthetic shadow, `querySelector` global funciona"): en `ayudaseller` **no** es así. Con `document.querySelector` dan **0** el `<nav>` (`nav a[href="/s/soporteseller"]`), las pestañas `a.slds-tabs_default__link` y **todos** los campos del formulario; hay 25-50 raíces. Además el anidamiento es de varios niveles: el `button.slds-combobox__input` de un `lightning-combobox` vive en `combo.shadowRoot → lightning-base-combobox → su propio shadowRoot`, así que `combo.querySelector(...)` devuelve null — por eso `raices()` entra también en **el shadow root de la propia raíz** que recibe, y `ticket.js` usa `primero()`/`todos()` y el helper `esperarCampo()` en vez de `waitForElement`. La navbar de Salesforce tarda ~10 s en montar (cubierto por `PAGE_TIMEOUT_MS`).
-
-**Las opciones de un combobox de Salesforce tienen el `textContent` VACÍO: el rótulo está en `data-value`.** Su texto vive en otro shadow root anidado, así que `buscarPorTexto` no ve nada y la cascada no se podía elegir. `textoDeOpcion()` lee `data-value` y solo si falta baja a juntar el texto de todas las raíces; `opcionDeCombobox()` exige **coincidencia exacta primero** (si no, "Devoluciones" se la lleva "Información sobre una orden en devolución"). Cascada verificada en vivo: `Pos venta` → `Devoluciones` → `Quiero rechazar una devolución`, y los campos de orden/guía **solo montan después** de completarla.
-
-**Elegir en un combobox se VERIFICA, no se da por hecho (`elegirEnCombobox` en `gestion/content/dom.js`).** El desplegable del contacto —el primero del ticket, cuya lista trae el servidor— fallaba de vez en cuando y había que elegirlo a mano. El clic sobre la opción se daba por bueno sin mirar el resultado, y como el botón "Enviar" solo se activa con el formulario completo, el síntoma aparecía mucho después y disfrazado de *"el formulario no se dio por completo"*. Ahora: hasta 3 intentos (cerrando y reabriendo entre medias), clic con `clickReal`, y comprobación de que el botón pasó a mostrar lo elegido; si aun así no queda, se avisa por la bitácora y **se espera a que lo elija el usuario** (`esperaManualMs`, 90 s) en vez de tirar un formulario a medio llenar. Cada intento deja traza (`ambito: 'combobox'`) con las opciones que había. Dato medido en vivo: **las opciones NO se desmontan al cerrar el desplegable**, así que "¿está abierto?" se decide por `aria-expanded` del botón, nunca contando `lightning-base-combobox-item`.
-
-**La apelación se enviaba "a ciegas", y por eso una evidencia que no entraba pasaba desapercibida.** `SEL.apelar.enviar` casa con las dos clases del botón (`submit-button` y `submit-button-active`), así que se pulsaba igual estuviera activo o no: un clic sobre el botón inerte no envía nada, pero la orden se reportaba **OK** y el servidor liberaba los archivos. Ahora se espera a `SEL.apelar.enviarActivo` (`.submit-button-active`) y, si no llega, se falla con un mensaje que apunta a la causa probable («la evidencia no se adjuntó»). Junto a eso, `adjuntarEvidencias()`: busca el campo **primero en la caja y luego en toda la raíz** (el portal ha movido su maquetación), traza qué archivos mandó el service worker, y comprueba que el formulario **acuse** el adjunto — por el nombre del archivo en pantalla, no por `input.files.length`, que muchos uploaders vacían tras leerlo para permitir reelegir el mismo archivo. Los rótulos de los acordeones van por lista de candidatos (`ACORDEONES`), y todos los clics del formulario (acordeones, dropdown, radio, enviar) pasaron de `clickEl` a `clickReal`: el formulario vive en el shadow root del módulo.
-
-**Cancelar un run tiene que devolver la orden reclamada.** El `claim` es exclusivo (409 al segundo), así que un run cancelado a media faena dejaba la orden `EN_PROCESO` en el servidor para siempre: el siguiente intento recibía 409 y la web ni siquiera ofrecía reintentarla. `cancel()` ahora libera el reclamo (`liberarReclamo`, reporta ERROR) **después** de dejar el run inactivo, para que soltarla no arranque la siguiente orden de la cola. Como red de seguridad del lado servidor, una gestión reclamada que lleva `management.claim_stale_minutes` (15 min) sin dar señales se da por abandonada y vuelve a poder pedirse.
-
-**Los botones de envío son el guardia de validez (apelación y ticket).** En los dos formularios el botón solo toma su clase final cuando la pantalla se da por completa: en la apelación `submit-button` → **`submit-button-active`**, y en el ticket `readonly-button` → **`submit-button`**. Por eso `SEL.ticket.enviar` (`button.submit-button[title="Enviar"]`) no encontrarlo significa "falta un campo obligatorio", no "cambió el selector". Otros datos medidos en vivo: el comentario de la apelación corta en **500** caracteres (contador "110/500", el `.slice(0,500)` es exacto); los acordeones de la apelación son **mutuamente excluyentes** pero conservan lo escrito al cerrarse; los adjuntos del ticket aceptan `.jpg,.png,.pdf,.docx,.xlsx,.txt` (10 archivos, 3 MB) y los de la apelación `png/pdf/jpg/jpeg`; y el campo "Número de orden" del ticket **aplica máscara de miles** (`3243349573` → `3.243.349.573`), así que **nunca se compara por igualdad literal, solo por dígitos**.
-
-**La búsqueda solo se dispara con la lupa (`SEL.buscar.lupa`), no con Enter.** El campo **no está dentro de un `<form>`** y su único manejador de teclado es **`onKeyPress`** (no `onKeyDown`/`onKeyUp`), así que el `keydown`+`keyup` de Enter y `input.form?.requestSubmit?.()` no filtraban nada: la tabla seguía mostrando la primera página entera. El disparador real es el `<i>` a la derecha del input, que lleva el `onClick`. Falla de forma engañosa: si la orden está en esa primera página el flujo *parece* funcionar, y si no está da timeout. Falla del lado seguro — sin filtrar quedan filas, así que nunca se concluye "no está" ni se levanta un ticket por error (eso exige `.helper-message` "No data available" o cero filas). `dispararBusqueda()` clickea la lupa y deja como respaldo un Enter que **incluye `keypress`**. `clickEl` (dispatchEvent) sirve: React lo acepta, verificado en vivo.
-
-**Escribir en campos de React (`escribirEn` / `elegirOpcion` en `gestion/content/dom.js`) — no uses `setInputValue` aquí.** El módulo de devoluciones es React + Ant Design, y React **sombrea la propiedad `value` del elemento con una propiedad propia** que alimenta su registro interno. Con `el.value = x` la pantalla cambia pero React sigue creyendo que el campo está vacío: no dispara su `onChange` y **la búsqueda se ejecuta con el valor anterior**. Es un fallo silencioso — el formulario se ve correcto — así que hay que escribir por el **setter nativo del prototipo** (`Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set`), que React interpreta como tecleado por una persona. Aplica a `input`, `textarea` y también `select` (React rastrea los tres). En páginas sin React es idéntico a la asignación normal, por eso vale igual para los campos LWC del ticket. Cubierto por `tests/unit/devoluciones-campos.test.js`.
-
-**Archivos:** los PDF se bajan de la API en el momento de subirlos y viajan al content en **base64** (`chrome.runtime` no serializa `File`/`Blob`); se reconstruyen con `base64ToFile` y se meten al `<input type=file>` vía `DataTransfer` (`setFiles`). No tocan storage ni disco: son evidencias de devoluciones.
-
-**Decisiones que toma la IA-menos:** el motivo de apelación y el sub-motivo salen de la observación de posventa por palabras clave (`MOTIVO_KEYWORDS`); sin match se cae a "Producto dañado" / "Daños severos", que es la postura que conviene al seller. Está en `apelar.js` y cubierto por `tests/unit/devoluciones-gestion.test.js`.
-
-**Salvaguardas:** requiere sesión ya iniciada en SellerCenter (la extensión no se loguea por nadie; a la mesa de ayuda entra con esa misma sesión vía navbar); **modo prueba** que rellena sin enviar; confirmación antes de un run real; watchdog de 8 min por orden (si no avanza → ERROR y sigue con la siguiente); un timeout buscando la orden **no** se interpreta como "no está" (levantaría un ticket por error).
-
-### Registro / diagnóstico (`trace.js` + pestaña "Registro")
-La gestión corre repartida entre **popup, service worker y el content script de cada frame** del portal, así que cuando algo se queda a medias no hay una sola consola donde mirar — y la bitácora del run solo cuenta los hitos, no qué selector encontró qué. `trace.js` es un ring buffer (400 entradas, `devoluciones:trace`) que junta el paso a paso de los tres contextos y lo publica en la pestaña **Registro** del apartado (filtro por texto/nivel/ámbito/contexto, orden, copiar y limpiar; el interruptor de Modo Dev está ahí mismo).
-
-**Graba solo con el Modo Dev activo** (`shared/dev-mode`): en uso normal no cuesta nada. Cada entrada lleva `{contexto, ambito, evento, datos, url, frame}` — el `frame` es clave con portales que montan el módulo en un iframe. Lo instrumentado responde a las preguntas que de verdad se hacen al depurar: cuántos frames despertaron y cuál tenía la pantalla, qué selector de la lista encajó, **qué quedó realmente en el campo tras escribir** (delata el problema del `value` de React), cómo fue cambiando la tabla mientras se esperaba el resultado, y por qué el service worker no dio trabajo a una pestaña. Cubierto por `tests/unit/devoluciones-trace.test.js`.
-
----
-
-## Feature: E-promoters
-Apartado para los e-promoters. **NO opera sobre una pestaña** (no tiene content script ni detector): es un procesador de datos puro que corre en el **service worker** y entrega un archivo. Sub-seccion actual: **Informe ordenes** (estructura tabbed lista para sumar mas).
-
-### Informe ordenes
-Toma el informe de ordenes de Magento (desde la **API** o un **archivo CSV cargado**), filtra las ordenes a **recuperar**, quita canceladas duplicadas, recorta a las columnas que los e-promoters necesitan y **descarga el CSV automaticamente**. El peor caso de entrada ronda ~15-37 MB.
-```
-src/features/e-promoters/
-├── constants.js   STORAGE_KEYS, MESSAGES, SOURCE, PHASE(+LABEL), FINISH_REASON, KEEP_STATUSES, CANCELLED_STATUSES, OUTPUT_COLUMNS, DEDUPE_KEYS, API, DATE_COLUMN
-├── state.js       run store (createRunStore) + makeRun + getResult/setResult + getDraft/setDraft
-├── debug.js       __extLgeCl.epromoters.* (registrado en el SW)
-├── shared/        csv.js (parseCsvMatrix/parseCsvRecords/buildCsv) · report.js (pipeline puro processReport)
-├── background/    informe.js (orquestador en el SW: fetch API / parse CSV → filtros → CSV → chrome.downloads)
-└── popup/         view.js (sub-router) · utils.js (fechas, downloadText) · sections/informe-ordenes.js
-```
-**Procesamiento en segundo plano (clave):** todo corre en el **service worker** (no en el popup), asi la tarea sobrevive a cerrar el panel / cambiar de pestaña. El popup escribe el `run` arrancando via mensaje `e-promoters:informe:start` y SOLO refleja el estado via `storage.onChanged`. El SW publica `phase` (downloading/parsing/filtering/deduping/building/saving/done) + `stats` + log en cada paso → indicador "que esta haciendo" en vivo.
-
-**Estado (`chrome.storage.local["e-promoters:informe:run"]`):** `{ active, startedAt, finishedAt, finishReason?:'done'|'cancelled'|'error', errorReason?, source:'api'|'csv', from, to, phase, stats?:{totalRows,afterDate,afterStatus,removedDuplicates,finalRows,byStatus}, result?:{filename,rows,bytes,ready}, log:[...] (cap 400) }`. El **CSV generado** va aparte en `e-promoters:informe:result` (`{filename,csv}`) para no inflar el run; el boton "Descargar de nuevo" lo lee y hace Blob+anchor en el popup (sin permisos). Config del form persiste en `e-promoters:informe:draft` (`{source,from,to}` — el texto del CSV NUNCA se persiste, puede pesar mucho).
-
-**Pipeline (`shared/report.js#processReport`, puro/testeable):** (1) **filtro por fecha** sobre la columna `Local Time` ("YYYY-MM-DD HH:MM:SS", se compara solo la fecha, ambos extremos inclusive); (2) **filtro por estado** — conserva `KEEP_STATUSES` (payment_declined, transaction_expired, canceled, customer_canceled); (3) **dedupe de canceladas** — solo entre `CANCELLED_STATUSES` (canceled+customer_canceled), por `Customer Email`+`Bill-to Name` (normalizado), conserva la 1a ocurrencia; las no canceladas no se tocan; (4) **recorte** a `OUTPUT_COLUMNS` (14, en orden). Lookup de encabezados **tolerante** a mayusculas/espacios (`makeFieldGetter`), por eso el origen `Warehouse Code` mapea al header de salida `WareHouse Code`. Columnas de salida: Local Time, ID, Bill-to Name, Customer Email, User Phone (Shipping), SKU PRICE, SKU Without Prefix, Grand Total (Base), Coupon Code, Coupon Rule, Discount Amount, Status, Qty Ordered, WareHouse Code.
-
-**API Magento (`background/informe.js`):** `GET https://147.93.176.66/api/magento/orders?from&to&format=json&limit=50000` con header `X-Api-Token` (mismas credenciales que el PowerQuery de Excel, hardcodeadas en `constants.js#API`). El server filtra por `order_date` (timestamp en OTRA zona horaria, ~5h de desfase), asi que se pide una ventana **mas ancha** (+-1 dia, `WINDOW_PAD_DAYS`) y el filtro **exacto por `Local Time`** lo hace el cliente. La API entrega JSON o CSV con las mismas keys; usamos JSON. Cancelacion via `AbortController` + mensaje `e-promoters:informe:cancel`.
-**CSV cargado:** el popup lee el archivo a texto (`FileReader`) y lo manda al SW en el payload del mensaje; el SW lo parsea con `parseCsvRecords` (NO se guarda en storage por tamaño).
-
-**Descarga:** el SW arma un `data:text/csv;base64,...` (BOM UTF-8 para Excel) y dispara `chrome.downloads.download` (permiso `downloads` agregado al manifest). Re-descarga desde el popup via Blob del CSV guardado en `:result`.
-
-**UI popup (`sections/informe-ordenes.js`):** toggle origen **Desde la API** / **Subir CSV**, selector de rango `<input type="date">` Desde/Hasta (dia/mes/año, default ultimos 7 dias, max=hoy), `<details>` con los estados que se conservan, **Generar informe** / Cancelar / Limpiar. Progreso: titulo + spinner + fase actual, barra por fase, tarjeta de resultado (descargado + boton re-descargar / aviso "sin filas" / error), grilla de stats (leidas → en rango → por estado → duplicadas quitadas → finales) + desglose por estado, `<details>` 50 logs. Todo en vivo via `storage.onChanged`.
-**Debug `__extLgeCl.epromoters.` (en el SW):** `run({from,to})` (desde API), `runCsv({text,from,to})`, `process({records,from,to})` (pipeline puro), `cancel()`, `state()`, `result()`, `reset()`.
-**Pendientes/limitaciones:** el `fetch` a la API es a una **IP con cert propio** — si el navegador rechaza el certificado el fetch falla (las extensiones no pueden saltarse errores TLS); en ese caso usar la carga por CSV o aceptar el cert visitando la URL una vez. No distingue multiples corridas en paralelo (guard `running` en el SW); sin reintento de la API.
-
----
-
-## Feature: GATO (tic-tac-toe secreto)
-Easter egg multijugador. **Feature SOLO de popup** (sin content script ni detector): el matchmaking y la partida corren mientras el popup/sidepanel esta abierto, contra **Firebase Realtime Database** via su **API REST** (NO el SDK: el CSP `script-src 'self'` lo bloquearia e inflaria el bundle).
-
-**Desbloqueo (en `src/popup/popup.js`):** tocar el toggle de tema **`UNLOCK_CLICKS` (10) veces seguidas** (clics dentro de `UNLOCK_WINDOW_MS`=1500ms entre si). Flag persistido en `localStorage["ext:gato-unlocked"]`. Al desbloquear: el "logo" (la `.header-accent-bar` del header) se convierte en un **gatito** (SVG Twemoji limpio, `catSvg()` en constants) con animacion `gato-pop`, y la feature aparece en el home. Las features con `secret:true` (en `features.js`) se filtran via `visibleFeatures()` hasta el desbloqueo.
-
-```
-src/features/gato/
-├── constants.js   RTDB_BASE, STORAGE_KEYS, UNLOCK_*, PHASE (idle/searching/challenged/playing/finished/leaderboard/ai), GAME_STATUS, WINNER, ROLE, AI_ROLE/AI_NAME, WIN_LINES, TURN_MS, POLL/PRESENCE/SEARCHERS timings, LEADERBOARD_PATH, CAT_SVG_PATHS + catSvg()
-├── game.js        Logica pura: board/findWinner/isFull/otherRole/rolesFromUids/pairId/roleForUid + normalizeName/nameKey (ranking) + aiPickMove (IA defensiva)
-├── ai-game.js     Partida local contra la IA (sin Firebase, NO puntua): makeAiGame/humanMove/cpuMove/passHuman
-├── net.js         Presencia + matchmaking por reto + ranking + jugadas contra Firebase (usa shared/rtdb)
-├── state.js       run store (gato:run) + draft (gato:draft, nombre) + getUid() (localStorage)
-├── debug.js       __extLgeCl.gato.* (registrado desde view.js, contexto popup)
-├── shared/rtdb.js Cliente REST minimo: rget/rset/rupdate/rpush/rremove + rgetWithEtag/rsetIfMatch (concurrencia optimista)
-└── popup/ view.js (router 1 seccion + side-effect import de debug.js) · sections/play.js (toda la maquina de estados/UI)
-```
-
-**Identidad:** `getUid()` genera un uid estable (base36, seguro como key Firebase) en `localStorage["ext:gato-uid"]`. Roles deterministas: **P1 = uid menor** (marca **ROJO** `✕`), **P2 = uid mayor** (marca **NEGRO** `○`).
-
-**Maquina de estados (`PHASE`, persistida en `gato:run` para restaurar al reabrir):** `idle` (nombre + jugadores activos + **Buscar partida / Jugar contra la IA / Clasificaciones**) → `searching` (lista de rivales para retar) → `challenged` ("X te ha retado", forzado) → `playing` (tablero) → `finished` (Ganador/Empate); ademas `leaderboard` (ranking) y `ai` (partida local). El "puntero" (phase+gameId+role o la partida IA en `run.ai`) vive en storage; la **verdad de la partida multijugador vive en Firebase** y se sondea por **polling** (`POLL_MS`=1s, sin SDK ni SSE).
-
-**Presencia (`net.js`):** heartbeat `presence/$uid={name,ts}` cada `PRESENCE_BEAT_MS`; "activo" = ts dentro de `PRESENCE_FRESH_MS` (30s). `countActivePlayers` excluye al propio uid. Sin `onDisconnect` (feature del SDK) → presencia best-effort por frescura de ts.
-
-**Matchmaking POR RETO (reemplaza el emparejamiento aleatorio):** se escribe un ticket `matchmaking/$uid={uid,name,ts,gameId,challenge}`. Mientras buscas, `listSearchers` muestra a los demas con ticket fresco y sin partida; **retas** a uno (`challengePlayer`). El retado queda **obligado** (`pollTicket` ve su `gameId`+`challenge` → fase `challenged` → "X te ha retado" → tablero). **Concurrencia (clave):** para que dos retos simultaneos al mismo rival no se pisen, el reclamo del slot del rival y del propio es **atomico via ETags** (`rgetWithEtag` + `rsetIfMatch`, `if-match`): si el slot ya esta tomado → `busy`; si me retaron a mi a la vez → `already-matched` (con rollback del reclamo del rival). El `gameId` es simetrico (`pairId`), asi que un reto mutuo converge a la **misma** partida.
-
-**Partida (`games/$gameId`, gameId = `pairId` = uids ordenados con `__`):** `{ players:{P1,P2:{uid,name}}, board[9], turn, status, winner, moveDeadline, rematch:{P1,P2}, leaver, score:{P1,P2}, startedAt }`. **gameId determinista por par** ⇒ el **marcador de victorias sobrevive** entre revanchas y reconexiones. **Quien parte se elige al azar**. `ensureGame` preserva `score` existente y no pisa una partida en curso.
-
-**Reloj (`TURN_MS`=10s):** tick local cada 250ms muestra el restante de `moveDeadline`. **Solo el jugador en turno escribe** sus jugadas (`makeMove`) y, si se agota su tiempo, **pasa su propio turno** (`passTurn`, una vez por deadline). `makeMove` resuelve ganador (3 en raya, `findWinner`) o empate, suma al marcador de la partida y, si hay ganador, **incrementa el ranking global** (lo hace solo quien cierra la jugada → un unico incremento).
-
-**Clasificaciones / ranking global (`leaderboard/$nameKey={name,wins}`):** persistente y visible para todos. La key es el **nombre normalizado** (`nameKey`: minusculas, sin acentos, sanitizado para Firebase) ⇒ **case-insensitive** ("Pedro08" == "pedro08"). El incremento usa el **server value atomico** `{".sv":{"increment":1}}` (sin transacciones, sin perder cuentas en finales simultaneos). La vista lista nombre + victorias, orden desc.
-
-**Jugar contra la IA (`ai-game.js`, local, NO puntua):** partida sin Firebase persistida en `run.ai`. Humano = P1 (ROJO), IA = P2 (NEGRO), quien parte al azar, mismo reloj de 10s. **IA defensiva (`aiPickMove`):** NO juega para ganar sino para **evitar perder** — si el humano amenaza con cerrar un 3 en linea (dos suyas + la tercera libre), tapa esa casilla; si hay varias amenazas tapa una; si no hay amenazas juega **al azar**. Defensiva ante tablero lleno/invalido (devuelve -1). La jugada de la IA se agenda con `AI_THINK_MS` de pausa.
-
-**Revancha/salida:** multijugador → "Volver a jugar" marca `rematch/$role`; cuando ambos aceptan, **el host (P1) reinicia** preservando el marcador. IA → reinicia al instante preservando el marcador local. "Salir" (`leaveGame`): MP marca `leaver` (best-effort, el rival ve "abandono") + saca el ticket; IA limpia `run.ai`; ambos vuelven a `idle`. Navegar fuera dispara teardown via `aliveAndAttached()` (el popup no llama unmount): limpia timers, presencia y, si estaba `searching`, el ticket.
-
-**UI (`sections/play.js`):** idle con 3 botones; searching con lista de rivales + botones "Retar" (deshabilitados durante el reto) + mensajes inline; reto recibido; ranking; tablero compartido MP/IA (topbar rival+reloj, turno, tablero 3×3 `border-radius:12px`/`aspect-ratio:1`, marcador, resultado). CSS `.gato-*` y `.header-accent-bar--cat/--pop` en `popup.css`.
-**Debug `__extLgeCl.gato.`:** `uid()`, `state()`, `active()`, `searchers()`, `leaderboard()`, `game(id)`, `leave()`, `reset()`.
-
-**Reglas RTDB (agregar `leaderboard`):**
-```json
-{ "rules": {
-  "presence":    { "$uid": { ".read": true, ".write": true } },
-  "matchmaking": { ".read": true, ".write": true },
-  "games":       { "$gameId": { ".read": true, ".write": true } },
-  "leaderboard": { ".read": true, ".write": true }
-} }
-```
-**Pendientes/limitaciones:** la partida MP solo avanza con el popup abierto (persiste el estado, no el juego de fondo); si el jugador en turno cierra el popup nadie pasa su turno; matchmaking por reto sin transacciones reales (mitigado con ETags); reglas RTDB abiertas (sin auth); colisiones raras de `nameKey` si dos nombres distintos normalizan igual.
-
----
-
-## Feature: PIM
-Pantalla de PIM (Marketing Info / Model Grid): buscador por SKU (`#productId` + botón SEARCH `#search_sales_model_code`) + grilla de resultados **TUI Grid** con pestañas **STG/PROD** (`#ModelGridTab`, `#stg-tab`/`#prod-tab`). Sub-sección: **Creación de producto** (estructura tabbed lista para más). **Read-only:** solo usa el buscador en **Staging (STG)**; NO toca PROD ni ningún botón de guardado.
-
-**Objetivo:** verificar si uno o varios SKU **existen en PIM**. Por cada SKU: selecciona STG, escribe el SKU, click SEARCH, y espera a que la grilla resuelva → arroja `SKU/YES` (existe) o `SKU/NO` (no existe). Copiable + descargable como CSV.
-
-**A diferencia de Magento (tick-por-reload):** la grilla busca sin recargar la página → usa el **patrón storage-driven + flujo async continuo** de starkoms/seller-center (`run` en storage, el frame que detecta el buscador lo reclama y ejecuta con `AbortController`). Content matchea `<all_urls>`; detección por DOM (no por host).
-```
-src/features/pim/
-├── constants.js   STORAGE_KEYS, MESSAGES, STATUS, STEPS, EXISTS, SELECTORS, DEFAULTS, LOG_CAP
-├── state.js       run store (createRunStore) + makeRun + draft
-├── debug.js       __extLgeCl.pim.*
-├── content/ detector.js · parser.js · index.js · flows/{search,run}.js
-└── popup/   view.js (sub-router) · utils.js (parseSkus/buildCsv/buildCopyText/copyToClipboard/downloadText) · run-ui.js · sections/creacion-producto.js
-```
-**Estado (`chrome.storage.local["pim:run"]`):** `{ active, claimed, startedAt, finishedAt, finishReason?:'done'|'cancelled'|'error'|'not-detected', errorReason?, total, currentIndex, items:[{ sku, status:pending|running|ok|error, step?, found?:boolean, specAssign?:string|null, reason? }], log:[...] (cap 400) }`. El popup arma `items` desde el textarea (`parseSkus` dedupe + preserva orden) y los escribe en el run.
-
-**Detección (`detector.js`):** `isPimPage()` = presencia de `#productId` + `#search_sales_model_code` + `#ModelGridTab`.
-
-**Búsqueda por SKU (`flows/search.js`):** `ensureStgTab` (click `#stg-tab` nativo si no tiene clase `active`) → `setInputValue(#productId, sku)` → `#search_sales_model_code.click()` (nativo, botón legacy con `onclick`) → **`waitForSearchToStart`** (gate anti-stale, ver quirk) → `waitFor(resolveResult().result !== 'pending')` (timeout `DEFAULTS.searchTimeoutMs`=15s) → si `found`, **`readSpecAssignScrolled(sku)`** (ver quirk de virtualización). Devuelve `{ found, specAssign }`.
-
-**Resolución del resultado (`parser.js#resolveResult`):** ámbito = pestaña `#stg` (fallback `document`). Devuelve `{ result }`. `'found'` si alguna fila `.tui-grid-rside-area ... tbody tr` tiene una celda `.tui-grid-cell-content` que matchea el SKU (== `Sales Model Code`, o `SKU (Product ID)` empieza por `SKU.`); `'not-found'` si la capa `.tui-grid-layer-state` está visible con texto "No data." y ninguna fila matchea; si no, `'pending'`. Matchear la fila por el SKU evita leer resultados de la búsqueda anterior (grillas stale). El **Spec Assign NO se lee acá** (su columna está virtualizada fuera del DOM).
-
-**Quirks del grid (críticos):**
-- **Gate anti-stale (`waitForSearchToStart` + `isGridLoading`):** tras click en SEARCH, el grid conserva el `.tui-grid-layer-state` "No data." del SKU **anterior** hasta que arranca el nuevo fetch. Sin gate, `resolveResult` del SKU nuevo lee ese "No data." viejo **al instante** → cascada de falsos **NO** (avanza rapidísimo). El gate espera (tope `DEFAULTS.searchSettleMs`=4s) a que el grid entre en **carga** (`isGridLoading`: capa visible con spinner `.tui-grid-layer-state-loading` o texto "loading") o a que ya aparezca la fila del SKU; recién entonces confía en el resultado. Si nunca se ve loading (respuesta instantánea), el tope deja seguir.
-- **Spec Assign — virtualización de columnas (CLAVE):** TUI Grid **virtualiza columnas horizontalmente**: el `<tbody>` del rside sólo renderiza las columnas visibles en el viewport (las de la izquierda: Platform…Sub Category). La columna **"Spec Assign"** (`specAssignmentCode`, índice ~17, muy a la derecha) **NO existe en el DOM** hasta scrollear. Leerla directo da siempre `null` → "—" en todos. Fix (`readSpecAssignScrolled`): (1) capturar el `data-row-key` de la fila con las columnas del SKU aún visibles (`getRowKeyForSku`); (2) `scrollGridX(-1)` (setea `scrollLeft` de `.tui-grid-rside-area .tui-grid-body-area` al máximo + dispara `scroll` → TUI re-renderiza esas columnas); (3) `waitFor(readSpecByRowKey(rowKey))` hasta `specSettleMs`=2s (celda `td[data-column-name="specAssignmentCode"]` por row-key, en lside/rside); (4) `scrollGridX(0)` para volver a la izquierda (si no, el próximo SKU no matchea sus columnas base). Vacío tras el tope = producto sin Spec Assign real. **Nota:** tras scrollear a la derecha, las columnas del SKU se virtualizan fuera del DOM, por eso hay que identificar la fila por `data-row-key` (no por SKU) al leer el spec.
-
-**Batch (`flows/run.js`):** espejo de seller-center pero **cada SKU es independiente** → un error de SKU se registra y se continúa con el siguiente (no corta el loop). `reconcileOnInit` marca interrumpido si un reload mató un run reclamado; `claimWatchdog` (3.5s) → `not-detected`.
-
-**UI popup (`sections/creacion-producto.js`):** textarea de SKU (uno por línea o separados por coma/`;`/espacio), previsualización del conteo, Iniciar/Detener/Limpiar. Progreso en vivo (barra, badge YES/NO por SKU + línea "Spec Assign" por producto encontrado, `<details>` 50 logs) + al finalizar botones **Copiar resultados** (`SKU/YES/Assigned` por línea) y **Descargar CSV** (`SKU,Existe en PIM,Spec Assign`, con BOM UTF-8). Persiste borrador `{text}` en `pim:draft`. Live vía `storage.onChanged`.
-**Debug `__extLgeCl.pim.`:** `diagnose()`, `detected()`, `selectors()`, `result(sku)` (found/not-found/pending), `specAssign(sku)` (lee "Spec Assign" — requiere columna renderizada, usar tras `scrollRight()`), `loading()`, `scrollRight()`/`scrollLeft()`, `check(sku)` (verifica 1 SKU end-to-end → true si existe), `state()`, `draft()`, `stop()`, `reset()`, `tick()`.
-**Pendientes/limitaciones:** solo STG; no distingue múltiples tabs; si el grid tarda >15s el SKU queda ERROR (se continúa); el scope de la grilla asume la pestaña `#stg` (fallback `document`) — afinar en vivo si el DOM de PROD confunde.
-
----
-
-## Feature: SoloTodo
-Backoffice de **SoloTodo** — página **Precios actuales** (`https://backoffice.solotodo.com/reports/current_prices`, SPA React, **Material UI**). Automatiza: clickear **Exportar** → abrir el formulario de export → llenar los campos de la categoría → click en **Generar** (el reporte llega por correo). Sub-sección: **Generar reporte** (estructura de sub-router lista para más).
-
-**A diferencia de Magento (tick-por-reload):** el form se llena sin recargas → usa el **patrón storage-driven + flujo async continuo** de starkoms/seller-center (`run` en storage, el frame que detecta el form lo reclama y ejecuta con `AbortController`). Content matchea `<all_urls>`; **detección por URL + DOM**: `isSolotodoReportPage()` = `isCurrentPricesUrl()` (`HOST` + `REPORT_PATH`) **o** `hasExportForm()` (filename + label Categoría) **o** botón "Exportar" presente.
-```
-src/features/solotodo/
-├── constants.js   HOST, REPORT_PATH/URL, STORAGE_KEYS, MESSAGES, STATUS, FINISH_REASON, LABELS, SELECTORS, STEP, CATEGORIES (presets), getCategory, DEFAULT_CATEGORY_ID
-├── state.js       run store (createRunStore) + makeRun + buildSteps + draft
-├── debug.js       __extLgeCl.solotodo.*
-├── content/ detector.js · parser.js · mui.js (helpers MUI) · flows/{fill,run}.js · index.js
-└── popup/   view.js (sub-router) · run-ui.js · utils.js (buildFilename/todayStamp) · sections/reporte.js
-```
-**Estado (`chrome.storage.local["solotodo:run"]`):** `{ active, claimed, startedAt, finishedAt, finishReason?:'done'|'cancelled'|'error'|'not-detected', errorReason?, config:{ categoryId, categoryLabel, category, currency, stores[], countries[], filename, dryRun }, total, currentIndex, items:[{ key, label, status, detail?, reason? }], log:[...] (cap 400) }`. Los `items` son los **pasos** (export, categoria, moneda, tiendas, paises, filename, generar), armados por `buildSteps(config)`; dan la barra de progreso.
-
-**Presets por categoría (`CATEGORIES` en constants):** cada preset define qué se elige en cada campo. Hoy solo **TV** (`id:'tv'`, label "Televisores"): category "Televisores", currency "Chilean peso", 40 tiendas (orden fijo), países ["Chile"], `filenamePrefix:'TV-SOLOTODO'`. El nombre de archivo se arma en el popup con la fecha de hoy: `buildFilename(prefix)` → `TV-SOLOTODO-YYYY-MM-DD`. **Escalable:** sumar otra categoría = otra entrada en `CATEGORIES`.
-
-**Helpers MUI (`content/mui.js`) — ids dinámicos (`_R_xxx_`), matching por label/estructura:**
-- **React controlled inputs:** asignar `input.value=x` NO dispara el onChange de React. `setReactInputValue` usa el **setter nativo** del prototype (`HTMLInputElement.prototype.value`) + despacha `input` event (igual patrón que seller-center/accordion.js).
-- `findLabel(text)` / `findAutocompleteByLabel(text)`: ubican el campo por el TEXTO del `<label>` MUI; resuelven el input por el `for`/id del label (fallback: input dentro del mismo `.MuiFormControl-root`).
-- `selectAutocompleteOption(input, optionText)`: enfoca/abre, escribe para filtrar, espera el **listbox** (teletransportado al `<body>` en `.MuiAutocomplete-popper`; se ubica por `input aria-controls` con fallback `ul[role="listbox"]`), y **clickea la `<li role="option">` que matchea EXACTO** (fallback: case-insensitive exacto, luego contains). El **match exacto es clave** para no confundir "Falabella"/"Falabella Marketplace", "Lider"/"Lider Marketplace", "Paris"/"Paris Marketplace", "Ripley"/"Ripley Marketplace", "Mercado Libre"/"Mercado Libre LG", "Tecno Mas"/"Tecno Master". `ComboboxOptionNotFound` → error con muestra de opciones.
-- `findGenerarButton()`: `button[type="submit"]`/`button.MuiButton-root` cuyo texto == "Generar". `findExportButton()`: `button`/`a[role=button]`/`.MuiButtonBase-root` cuyo texto == "Exportar". `hasExportForm()`: filename input + label Categoría presentes.
-
-**Llenado (`flows/fill.js`):** `openExportForm` (si el form no está visible, clickea "Exportar" y espera a que monten los campos —tope 10s—; si ya está, no hace nada), `selectSingle` (Categoría/Moneda; si ya tiene el valor deseado, no toca), `selectMultiple` (Tiendas/Países; una opción por vez, `onProgress(done,total,name)` para el detalle en vivo, cierra el popper al terminar con Escape), `fillFilename` (input de texto React + `change`/`blur`), `clickGenerar`.
-
-**Runner (`flows/run.js`):** espejo de seller-center. `runStep(key,config)` despacha por `STEP`. El primer paso **export** abre el form; el paso **generar** respeta `dryRun` (modo simulación: llena todo pero NO clickea Generar). Un paso caído **corta** el loop (el form quedaría a medias). `reconcileOnInit` marca interrumpido si un reload mató un run reclamado; `claimWatchdog` (3.5s) → `not-detected` si ningún frame tiene la página/form.
-
-**UI popup (`sections/reporte.js`):** `<select>` de categoría (solo TV por ahora), resumen de lo que se seleccionará (con el filename calculado), toggle **Modo simulación**, Iniciar/Detener/Limpiar, progreso por paso + `<details>` 50 logs. Persiste borrador `{categoryId,dryRun}` en `solotodo:draft`. Live vía `storage.onChanged`.
-**Debug `__extLgeCl.solotodo.`:** `diagnose()`, `detected()`, `selectors()`, `labels()`, `categories()`, `form()` (estado actual del form), `openExportForm()`, `selectSingle({label,value})`, `selectMultiple({label,values})`, `fillFilename({value})`, `clickGenerar()`, `runCategory({categoryId?,dryRun=true})` (llenado completo end-to-end sin run store), `state()`, `draft()`, `stop()`, `reset()`, `tick()`.
-**Pendientes/limitaciones:** solo la categoría TV; no distingue múltiples tabs; sin reintento por paso (corta al primer error); las opciones de los Autocomplete se asumen presentes (si SoloTodo cambia nombres de tiendas, el match exacto fallará y se reporta con muestra); tras Generar no se verifica el envío (queda a cargo del correo).
-
----
-
-## Probar la extensión en un navegador real (`npm run browser`)
-Dos scripts: **`scripts/dev-browser.mjs`** levanta un navegador con la extensión del build ya cargada y el puerto de depuración abierto, y **`scripts/browser-eval.mjs`** ejecuta código dentro de él y devuelve el resultado por stdout. Con eso se conduce la extensión sin tocar nada a mano (y es también lo que el **MCP de chrome-devtools** necesita: el MCP **no lanza navegador**, se conecta por CDP a uno que ya esté corriendo — si ese navegador se abrió sin la extensión, no hay forma de instalarla desde una sesión de depuración).
-
-```bash
-npm run browser                 # Chrome for Testing en el 9222
-npm run browser:edge            # Edge del sistema en el 9223
-npm run browser -- --restart    # rebuild + reiniciar el que ya esté abierto
-npm run browser -- --no-build   # sin rebuild, entre pruebas
-npm run browser -- --url=https://shop.lg.com/obsadm
-
-npm run browser:eval -- --expr="return __extLgeCl.help()"
-npm run browser:eval -- --storage                          # índice del storage
-npm run browser:eval -- --storage=magento:softbundles:run  # un run completo
-npm run browser:eval -- --page=active --expr="return __extLgeCl.magentoSoftbundles.diagnose()"
-npm run browser:eval -- --file=scripts/snippets/abrir-softbundles.js --keep
-npm run browser:eval -- --port=9223 --close                # cerrar el navegador
-```
-Cada navegador tiene **su puerto y su perfil** (Chrome 9222, Edge 9223), así que pueden convivir levantados. `browser-eval` habla con el que le digas por `--port`.
-
-### Chrome y Edge no se comportan igual (medido en vivo el 10-09-2026)
-- **Edge 152 estable SÍ acepta `--load-extension`** → se usa el Edge del sistema tal cual.
-- **Chrome 152 estable lo IGNORA** (el switch se retiró por seguridad). Se probó además con `--disable-features=DisableLoadExtensionCommandLineSwitch` y con `--enable-unsafe-extension-debugging`: la página de la extensión seguía dando `ERR_BLOCKED_BY_CLIENT`. `Extensions.loadUnpacked` por CDP devuelve un id pero **tampoco** la deja utilizable, ni manteniendo viva la sesión. Por eso para Chrome se usa **Chrome for Testing**, un binario aparte sin esas restricciones, que `npm run browser` descarga solo la primera vez a `.browsers/` (vía `npx @puppeteer/browsers`).
-- El equipo tiene además política corporativa en `HKLM\SOFTWARE\Policies\Google\Chrome` (`ExtensionInstallForcelist` → `aljopfonbkkdpndlpgghhfdjkcekjfhn` desde `file:///C:/ProgramData/EXT_LGE_CL/update.xml`). Eso instala **el .crx que esté en ProgramData**, no el build de trabajo, así que no sirve para probar cambios; y `--disable-extensions-except` la desactiva. `npm run browser -- --system` levanta el Chrome del sistema para mirar justamente esa.
-
-### Cosas que no son opcionales
-- Desde Chrome 136 el puerto de depuración **se ignora sobre el perfil por defecto** → cada navegador usa su `--user-data-dir` propio (`.browser-profile-<navegador>/`, gitignored).
-- Ese perfil es **persistente a propósito**: se inicia sesión en Magento (con su 2FA) **una sola vez** y queda para todas las corridas. Es lo que hace viable probar contra el admin real.
-- **Para aplicar un rebuild hay que reiniciar el navegador** (`npm run browser -- --restart`). NO existe un `--reload`: `chrome.runtime.reload()` **descarga** una extensión cargada con `--load-extension` y no la vuelve a cargar — queda `ERR_BLOCKED_BY_CLIENT` y sin service worker. El reinicio conserva el perfil, así que no se pierde la sesión.
-
-### En qué mundo se evalúa (`--world`), y por qué importa
-- **`isolated`** — el del content script, donde vive `window.__extLgeCl` con los comandos de las features (`magentoSoftbundles`, `colocarTags`, …). Es el **defecto para URLs http(s)**.
-- **`main`** — el de la página. Es lo que hace `evaluate_script` del MCP, y **por eso desde el MCP no se ve la Debug API del content script**.
-- Las páginas de la extensión (`--page=popup|options`) tienen un solo mundo: ahí están la Debug API del popup y `chrome.storage.local`, que es donde vive el estado de cada run.
-
-### Detalles de implementación que cuestan de redescubrir
-- **El id de la extensión se anota al levantar** (`.browsers/session-<puerto>.json`). Buscarlo por CDP solo funciona recién arrancado: el **service worker MV3 se duerme a los pocos segundos** y desaparece de `/json/list`, y entonces no queda ningún target por el que preguntar.
-- Al buscarlo por CDP se filtra por la ruta del service worker del proyecto (`/src/background/service-worker.js`). Sin ese filtro se toma la primera `chrome-extension://` que aparezca, que suelen ser las que el navegador trae de fábrica (se llegó a reportar el id de Google Docs Offline).
-- **Una pestaña del popup se reutiliza solo si su contexto sigue vivo**, y la comprobación es `chrome.runtime.id`: la pantalla de error de Chrome tiene contexto JS y responde a cualquier evaluación trivial, así que un `return 1` la daba por buena y todo fallaba después con un `__extLgeCl is not defined` sin explicación.
-- El home del popup son `<li>`, no `<button>`: para abrir una feature, `document.querySelectorAll('.feature-name')` y `closest('li').click()`.
-- Los ids de la extensión difieren por navegador (los manifests llevan `key` distinta): Chrome `mmefiaddcabbgpgdloaobejomgjpllad`, Edge `hoijmcmfjdpbhonmeobanfgjbicgnbeo`. No hace falta saberlos: los scripts los resuelven solos.
-
-**Pendiente:** no hay E2E automatizado todavía. Las dos capas que faltan son (a) unit con jsdom sobre los fragmentos DOM reales de `Pedida.md` (selectores y parsers, sin navegador) y (b) E2E con fixtures locales servidas en rutas que imiten las de Magento — el content script matchea `<all_urls>`, así que corre igual en `localhost`, pero las fixtures son HTML estático **sin el JS de Magento**: los widgets Knockout (el multiselect que busca por AJAX, la tabla de precios, el modal que cierra al guardar) necesitarían mocks propios para comportarse como en producción.
-
 ## Distribución a otras PC corporativas
-`npm run installer:build` → `build/EXT_LGE_CL-installer-<version>.zip` (~22 KB) autocontenido: `extension-<version>.crx` (firmado) + `Install.cmd`/`Uninstall.cmd` + `install.ps1` (auto-eleva, copia a `C:\ProgramData\EXT_LGE_CL`, genera update.xml con paths reales, aplica política, reinicia Edge, abre `edge://extensions` + `edge://policy`) + `README.txt`. El destinatario solo necesita Windows + Edge + admin local.
+`npm run installer:build` → `build/EXT_LGE_CL-installer-<version>.zip` (~22 KB) autocontenido: `.crx` firmado + `Install.cmd`/`Uninstall.cmd` + `install.ps1` (auto-eleva, copia a `C:\ProgramData\EXT_LGE_CL`, genera update.xml con paths reales, aplica política, reinicia Edge, abre `edge://extensions` + `edge://policy`) + `README.txt`. El destinatario solo necesita Windows + Edge + admin local.
 **Update:** subir `version` en `manifest.base.json` → `installer:build` → enviar ZIP → correr `Install.cmd` de nuevo.
 
 ## Decisiones tomadas
-- **Vite sobre Webpack:** config simple, mejor HMR, builds rápidos (Rolldown/Vite 8).
-- **MV3 solo:** Chrome elimina MV2 en jun 2026 (Chrome 139).
+- **Vite sobre Webpack:** config simple, builds rápidos (Rolldown/Vite 8). **MV3 solo:** Chrome elimina MV2 en jun 2026. **ESM en todo.**
 - **Manifests separados Chrome/Edge:** las stores requieren IDs distintos.
-- **ESM en todo:** soportado nativo por Vite/Node 22/MV3.
-- **Force-install vía política local (no Web Store):** el entorno corporativo bloquea DLP/drag&drop de `.crx`/carga manual (`CRX_REQUIRED_PROOF_MISSING`). Política en `HKLM\SOFTWARE\Policies\Microsoft\Edge` es la única vía.
-- **`.pem` local, ID estable:** el ID deriva del SHA-256 del SPKI de la pública. Inyectamos `key` en el manifest para ID estable también en "unpacked".
-- **`all_frames: true`:** GP1 carga módulos en iframes.
-- **Logger vía localStorage:** sobrevive reloads.
-- **Content script `world:"MAIN"` para captar GraphQL (LG.com):** única forma de observar el `fetch`/XHR de la página sin inyectar inline scripts (bloqueado por CSP). El bridge solo `postMessage` (sin `chrome.*`). Requiere Chromium 111+ (Edge moderno OK).
+- **Force-install vía política local (no Web Store):** el entorno corporativo bloquea DLP/drag&drop de `.crx` y la carga manual (`CRX_REQUIRED_PROOF_MISSING`). Política en `HKLM\SOFTWARE\Policies\Microsoft\Edge` es la única vía.
+- **`.pem` local, ID estable:** el ID deriva del SHA-256 del SPKI de la pública; se inyecta `key` en el manifest para ID estable también en "unpacked".
+- **`all_frames: true`:** GP1 carga módulos en iframes. **Logger vía localStorage:** sobrevive reloads.
+- **Content script `world:"MAIN"` para captar GraphQL (LG.com):** única forma de observar el `fetch`/XHR de la página sin inyectar inline scripts (bloqueado por CSP). El bridge solo `postMessage`. Requiere Chromium 111+.
+
+## Estado del proyecto
+Scaffolding + CI completos. Pipeline release corporativo (.crx firmado + política + ZIP). Debug API modular + logger persistente. Errores centralizados (`shared/errors`) + Modo Dev + ring buffer con captura global. Content multi-frame con resolución de carrera. Capa `shared/dom`. Driver GP1 L-* (modal/messagebox/combobox).
+⏳ Pendiente: más tests en `tests/unit/*.test.js` (hoy `devoluciones-*.test.js` y `magento-*.test.js`); sin E2E automatizado. Ya hay unit con DOM real vía happy-dom (`magento-informacion-de-orden-*.test.js`).
+
+## Features (detalle en `docs/features/`)
+| Feature | Qué hace | Patrón | Doc |
+|---|---|---|---|
+| Colocar TAGs | GP1 Marketing Info Mapping: Lectura, Tag Delivery, Quitar Delivery, Tag Producto, Tag Oferta (batch por SKU) | SPA + ports | `colocar-tags.md` |
+| Magento · Buscar orden | Encontrar la orden por los datos del pago (read-only, CSV) | tick-por-reload | `magento-buscar-orden.md` |
+| Magento · Informacion de Orden | Entra a la ficha de cada orden de un rango (o de una lista) y exporta lo que hay ahi a CSV, una fila por orden (read-only) | storage-driven async | `magento-informacion-de-orden.md` |
+| Magento · Crear Softbundles | Package rules en lote (padre + hijos); único módulo con acción destructiva opcional | tick-por-reload | `magento-softbundles.md` |
+| Magento · Global Shipping Rules | Recorre las rules y exporta CSV (read-only) | tick-por-reload | `magento-global-shipping-rules.md` |
+| Lead Times | Manage Address Level 2: lead times por región/comuna | tick-por-reload | `lead-times.md` |
+| Cupones | Cart Price Rules: quitar las condiciones del bloque Actions | tick-por-reload | `cupones.md` |
+| Información de Orden | Detalle de orden + decodificación de pagos Transbank/MercadoPago (read-only) | one-shot + búsqueda | `orden-info.md` |
+| Starkoms | Verificar órdenes y stock (SPA Vuetify, hash routing) | storage-driven async | `starkoms.md` |
+| LG.com | Información web (captura GraphQL/REST en PDP/PLP/PBP) + Revisar Destacados (SW + pestañas de fondo + alarms) | bridge MAIN + SW | `lgcom.md` |
+| SellerCenter Falabella | SoporteSeller — Detalle Orden desde CSV; Buscar caso (Salesforce LWC) | storage-driven async | `seller-center-falabella.md` |
+| Devoluciones | Falabella: cargar/guardar evidencias + gestión automática (apelar o levantar ticket). Walmart/Paris pendientes | SW + content multi-frame | `devoluciones.md` |
+| E-promoters | Informe ordenes: API/CSV → filtrado → CSV. Corre entero en el service worker | SW puro | `e-promoters.md` |
+| PIM | Creación de producto: verificar si un SKU existe en PIM/STG (+ Spec Assign) | storage-driven async | `pim.md` |
+| SoloTodo | Generar reporte de export en el backoffice (React/MUI) | storage-driven async | `solotodo.md` |
+| GATO | Tic-tac-toe multijugador secreto (Firebase REST); solo popup | popup-only | `gato.md` |
+
+Los tres módulos de **Magento** comparten router, wiring y bridge: eso está en **`docs/features/magento.md`** (leerlo antes de sumar un módulo nuevo).
+
+Otros docs: **`docs/browser-testing.md`** (probar en un navegador real: `npm run browser` / `browser:eval`, diferencias Chrome/Edge, mundos de evaluación) · **`src/features/magento/softbundles/docs/flujo.md`** (recorrido medido contra el admin real; ignorar su §2 de red/túnel).

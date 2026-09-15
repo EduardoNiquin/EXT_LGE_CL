@@ -1,6 +1,7 @@
 import { toMessage } from '../../../shared/errors/index.js';
 import * as buscarOrden from '../buscar-orden/popup/section.js';
 import * as globalShippingRules from './sections/global-shipping-rules.js';
+import * as informacionDeOrden from '../informacion_de_orden/popup/section.js';
 import * as softbundles from '../softbundles/popup/section.js';
 import { escapeHtml } from './utils.js';
 
@@ -11,6 +12,13 @@ const MODULES = [
     description: 'Encontrar la orden a partir de los datos del pago',
     abbr: 'BO',
     render: buscarOrden.render,
+  },
+  {
+    id: 'informacion-de-orden',
+    name: 'Informacion de Orden',
+    description: 'Capturar la data interna de las ordenes de un rango en un CSV',
+    abbr: 'IO',
+    render: informacionDeOrden.render,
   },
   {
     id: 'softbundles',

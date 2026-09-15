@@ -1,0 +1,31 @@
+# PIM
+Pantalla de PIM (Marketing Info / Model Grid): buscador por SKU (`#productId` + botón SEARCH `#search_sales_model_code`) + grilla de resultados **TUI Grid** con pestañas **STG/PROD** (`#ModelGridTab`, `#stg-tab`/`#prod-tab`). Sub-sección: **Creación de producto** (estructura tabbed lista para más). **Read-only:** solo usa el buscador en **Staging (STG)**; NO toca PROD ni ningún botón de guardado.
+
+**Objetivo:** verificar si uno o varios SKU **existen en PIM**. Por cada SKU: selecciona STG, escribe el SKU, click SEARCH, y espera a que la grilla resuelva → arroja `SKU/YES` (existe) o `SKU/NO` (no existe). Copiable + descargable como CSV.
+
+**A diferencia de Magento (tick-por-reload):** la grilla busca sin recargar la página → usa el **patrón storage-driven + flujo async continuo** de starkoms/seller-center (`run` en storage, el frame que detecta el buscador lo reclama y ejecuta con `AbortController`). Content matchea `<all_urls>`; detección por DOM (no por host).
+```
+src/features/pim/
+├── constants.js   STORAGE_KEYS, MESSAGES, STATUS, STEPS, EXISTS, SELECTORS, DEFAULTS, LOG_CAP
+├── state.js       run store (createRunStore) + makeRun + draft
+├── debug.js       __extLgeCl.pim.*
+├── content/ detector.js · parser.js · index.js · flows/{search,run}.js
+└── popup/   view.js (sub-router) · utils.js (parseSkus/buildCsv/buildCopyText/copyToClipboard/downloadText) · run-ui.js · sections/creacion-producto.js
+```
+**Estado (`chrome.storage.local["pim:run"]`):** `{ active, claimed, startedAt, finishedAt, finishReason?:'done'|'cancelled'|'error'|'not-detected', errorReason?, total, currentIndex, items:[{ sku, status:pending|running|ok|error, step?, found?:boolean, specAssign?:string|null, reason? }], log:[...] (cap 400) }`. El popup arma `items` desde el textarea (`parseSkus` dedupe + preserva orden) y los escribe en el run.
+
+**Detección (`detector.js`):** `isPimPage()` = presencia de `#productId` + `#search_sales_model_code` + `#ModelGridTab`.
+
+**Búsqueda por SKU (`flows/search.js`):** `ensureStgTab` (click `#stg-tab` nativo si no tiene clase `active`) → `setInputValue(#productId, sku)` → `#search_sales_model_code.click()` (nativo, botón legacy con `onclick`) → **`waitForSearchToStart`** (gate anti-stale, ver quirk) → `waitFor(resolveResult().result !== 'pending')` (timeout `DEFAULTS.searchTimeoutMs`=15s) → si `found`, **`readSpecAssignScrolled(sku)`** (ver quirk de virtualización). Devuelve `{ found, specAssign }`.
+
+**Resolución del resultado (`parser.js#resolveResult`):** ámbito = pestaña `#stg` (fallback `document`). Devuelve `{ result }`. `'found'` si alguna fila `.tui-grid-rside-area ... tbody tr` tiene una celda `.tui-grid-cell-content` que matchea el SKU (== `Sales Model Code`, o `SKU (Product ID)` empieza por `SKU.`); `'not-found'` si la capa `.tui-grid-layer-state` está visible con texto "No data." y ninguna fila matchea; si no, `'pending'`. Matchear la fila por el SKU evita leer resultados de la búsqueda anterior (grillas stale). El **Spec Assign NO se lee acá** (su columna está virtualizada fuera del DOM).
+
+**Quirks del grid (críticos):**
+- **Gate anti-stale (`waitForSearchToStart` + `isGridLoading`):** tras click en SEARCH, el grid conserva el `.tui-grid-layer-state` "No data." del SKU **anterior** hasta que arranca el nuevo fetch. Sin gate, `resolveResult` del SKU nuevo lee ese "No data." viejo **al instante** → cascada de falsos **NO** (avanza rapidísimo). El gate espera (tope `DEFAULTS.searchSettleMs`=4s) a que el grid entre en **carga** (`isGridLoading`: capa visible con spinner `.tui-grid-layer-state-loading` o texto "loading") o a que ya aparezca la fila del SKU; recién entonces confía en el resultado. Si nunca se ve loading (respuesta instantánea), el tope deja seguir.
+- **Spec Assign — virtualización de columnas (CLAVE):** TUI Grid **virtualiza columnas horizontalmente**: el `<tbody>` del rside sólo renderiza las columnas visibles en el viewport (las de la izquierda: Platform…Sub Category). La columna **"Spec Assign"** (`specAssignmentCode`, índice ~17, muy a la derecha) **NO existe en el DOM** hasta scrollear. Leerla directo da siempre `null` → "—" en todos. Fix (`readSpecAssignScrolled`): (1) capturar el `data-row-key` de la fila con las columnas del SKU aún visibles (`getRowKeyForSku`); (2) `scrollGridX(-1)` (setea `scrollLeft` de `.tui-grid-rside-area .tui-grid-body-area` al máximo + dispara `scroll` → TUI re-renderiza esas columnas); (3) `waitFor(readSpecByRowKey(rowKey))` hasta `specSettleMs`=2s (celda `td[data-column-name="specAssignmentCode"]` por row-key, en lside/rside); (4) `scrollGridX(0)` para volver a la izquierda (si no, el próximo SKU no matchea sus columnas base). Vacío tras el tope = producto sin Spec Assign real. **Nota:** tras scrollear a la derecha, las columnas del SKU se virtualizan fuera del DOM, por eso hay que identificar la fila por `data-row-key` (no por SKU) al leer el spec.
+
+**Batch (`flows/run.js`):** espejo de seller-center pero **cada SKU es independiente** → un error de SKU se registra y se continúa con el siguiente (no corta el loop). `reconcileOnInit` marca interrumpido si un reload mató un run reclamado; `claimWatchdog` (3.5s) → `not-detected`.
+
+**UI popup (`sections/creacion-producto.js`):** textarea de SKU (uno por línea o separados por coma/`;`/espacio), previsualización del conteo, Iniciar/Detener/Limpiar. Progreso en vivo (barra, badge YES/NO por SKU + línea "Spec Assign" por producto encontrado, `<details>` 50 logs) + al finalizar botones **Copiar resultados** (`SKU/YES/Assigned` por línea) y **Descargar CSV** (`SKU,Existe en PIM,Spec Assign`, con BOM UTF-8). Persiste borrador `{text}` en `pim:draft`. Live vía `storage.onChanged`.
+**Debug `__extLgeCl.pim.`:** `diagnose()`, `detected()`, `selectors()`, `result(sku)` (found/not-found/pending), `specAssign(sku)` (lee "Spec Assign" — requiere columna renderizada, usar tras `scrollRight()`), `loading()`, `scrollRight()`/`scrollLeft()`, `check(sku)` (verifica 1 SKU end-to-end → true si existe), `state()`, `draft()`, `stop()`, `reset()`, `tick()`.
+**Pendientes/limitaciones:** solo STG; no distingue múltiples tabs; si el grid tarda >15s el SKU queda ERROR (se continúa); el scope de la grilla asume la pestaña `#stg` (fallback `document`) — afinar en vivo si el DOM de PROD confunde.

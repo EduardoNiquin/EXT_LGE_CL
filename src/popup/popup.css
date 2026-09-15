@@ -2481,3 +2481,80 @@ mark {
   color: var(--danger);
   border-color: var(--danger-border);
 }
+
+
+/* === Magento - Informacion de Orden === */
+.io-view .lt-form-card { gap: 8px; }
+.io-hint--error { color: var(--danger); }
+
+/* El modo decide si el formulario pide una lista de ordenes o se lleva el rango
+   entero; el bloque de la lista solo aparece cuando hace falta. */
+.io-modes { display: flex; gap: 14px; flex-wrap: wrap; margin: 2px 0 4px; }
+.io-list-block {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.io-list-block.hidden { display: none; }
+.io-textarea { resize: vertical; min-height: 60px; font-family: var(--font-mono, monospace); }
+.io-file-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.io-file-btn { padding: 4px 10px; font-size: 11px; cursor: pointer; }
+.io-file-row .lt-hint { margin: 0; }
+
+/* El volcado crudo arrastra datos personales sin enmascarar: el aviso tiene que
+   verse, no esconderse entre los hints. */
+.io-raw-warning {
+  padding: 6px 8px;
+  border-left: 2px solid var(--danger);
+  background: var(--danger-bg);
+  color: var(--danger);
+}
+.io-raw-warning.hidden { display: none; }
+
+.io-results-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 10px 0 6px;
+  flex-wrap: wrap;
+}
+.io-results-head .lt-hint { margin: 0; }
+.io-results-actions { display: flex; gap: 6px; }
+.io-results-actions .ct-btn { padding: 5px 10px; font-size: 11px; }
+
+/* La tabla replica el CSV: decenas de columnas, asi que scrollea en los dos
+   ejes dentro de su caja en vez de estirar el popup. */
+.io-table-wrap {
+  max-height: 260px;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+.io-table-wrap .ct-empty { margin: 0; padding: 14px; }
+.io-table { border-collapse: collapse; font-size: 11px; white-space: nowrap; }
+.io-table th,
+.io-table td {
+  border-bottom: 1px solid var(--border-soft);
+  border-right: 1px solid var(--border-soft);
+  padding: 4px 6px;
+  text-align: left;
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.io-table th {
+  position: sticky;
+  top: 0;
+  background: var(--surface-3);
+  color: var(--text);
+  font-weight: 700;
+  z-index: 1;
+}
+.io-table td { color: var(--text-secondary); }
+.io-table tbody tr:hover td { background: var(--surface-2); }

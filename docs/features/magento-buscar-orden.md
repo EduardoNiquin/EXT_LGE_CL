@@ -1,0 +1,29 @@
+# Magento — Buscar orden
+Pantalla: listado de **órdenes** del admin (`/sales/order/index`) + el detalle de cada orden (`/sales/order/view/order_id/<N>`). **Read-only.** Responde la pregunta inversa a la de *Información de Orden*: teniendo los **datos del pago** (código de autorización, monto, ID de sesión, payment_id de MercadoPago…) pero no el número de orden, recorre las órdenes del rango de fechas, decodifica las notas de transacción de cada una y marca las que coinciden. Todo lo capturado sale como **CSV** aunque el proceso se detenga a medias.
+```
+src/features/magento/buscar-orden/
+├── constants.js   MODULE_ID, STORAGE_KEYS, PAGE_TYPE, ORDER_STATUS, RUN_PHASE, FINISH_REASON, GATEWAY(+LABEL), SEARCH_FIELDS, MAX_RANGE_DAYS(28)/DEFAULT_RANGE_DAYS(7), STORE_VIEW_LABEL, LISTING/ORDER_VIEW REs, LISTING_COLUMNS, PAGE_SIZE, SELECTORS
+├── state.js       run store (createRunStore) + makeRun + draft
+├── transactions.js  puro: parseNoteComment (pares "Label: valor" o JSON) · detectGateway · buildTransaction · readField · normalizeKey
+├── match.js         puro: buildCriteria · describeCriteria · valueMatches · transactionMatches · evaluateOrder
+├── csv.js           buildMatrix (misma matriz para la tabla del popup y el CSV) · matrixToCsv
+├── debug.js       __extLgeCl.magentoBuscarOrden.*
+├── content/ detector.js · parser.js · grid.js · index.js · flows/run.js
+└── popup/   section.js (formulario + progreso + tabla de resultados)
+```
+**Estado (`chrome.storage.local["magento:buscar-orden:run"]`):** `{ active, phase, startedAt, finishedAt, finishReason?:done|cancelled|error|limit|first-match, error?, config:{from,to,gateways[],fields{},maxOrders,stopOnFirstMatch}, listingUrl, currentIndex, detailRedirects, matches, items:[{ incrementId, entityId, viewHref, summary, status:pending|reading|ok|error, matched, matchedIndexes[], transactions:[{gateway,when,noteStatus,title,order[],values{}}], error? }], log:[...] (cap 400) }`. El borrador del formulario vive en `magento:buscar-orden:draft`.
+
+**Patrón:** tick-por-reload (`wireReloadTickLifecycle`, delay 600), igual que el resto de Magento. **onListing:** orden en READING → interrumpida; sin items → aplicar filtros + recorrer TODAS las páginas y armar la cola; siguiente PENDING → READING + navegar a su detalle. **onOrderView:** casar la URL con la orden en READING, leer las notas, evaluarlas contra los criterios y **saltar directo al detalle siguiente** (volver al listado por cada orden duplicaría las navegaciones). Flag `navigating` + `goTo()` que limpia `onbeforeunload`, mismo cuidado que en Global Shipping Rules.
+
+**Lo que el grid de órdenes impone** (mismas reglas que la búsqueda de *Información de Orden*, que es el flujo probado):
+- **Solo los dos filtros que Magento exige:** rango de **Purchase Date** (≤ 1 mes; la UI corta en `MAX_RANGE_DAYS`=28) y **Purchase Point** = "Chile Default Store View". Cualquier filtro heredado hace fallar la consulta ⇒ primero `resetAllFilters`, después esos dos. El reset puede deseleccionar el Purchase Point: `ensureStoreView` lo vuelve a tildar.
+- **Esperar a que el grid esté listo ANTES de tocar nada:** es Knockout y restaura la última búsqueda guardada al montar; escribir antes es escribir para que Magento lo pise.
+- **El chip de filtro aparece antes que las filas nuevas.** Tras Apply/Reset, `clickAndSettle` espera a que arranque el mask de carga o cambie la huella de la tabla (`gridSnapshot`: nº de filas + primera fila + "records found") y recién ahí recolecta. Sin eso se recorre el listado **sin filtrar** — miles de órdenes equivocadas, y el síntoma es "tarda infinito", no un error. Si después de aplicar no queda ningún chip activo, se avisa en el registro.
+- Filas por `tr.data-row` (se acepta también `tr[data-role="row"]`); el **ID de la columna es el increment id**, y el que va en la URL del detalle es el **entity_id** que sale del propio link "View". `PAGE_SIZE` 200 por página, con caída al mayor tamaño disponible (`pickPageSizeOption`).
+
+**Criterios (`match.js`, puro):** una pasarela tildada sin ningún campo = "todas las transacciones de esa pasarela"; ninguna pasarela = capturar todo el rango. La comparación es tolerante a propósito (el dato se pega de una planilla): exacta → solo dígitos si ambos lados son numéricos (ignorando ceros a la izquierda, `002187`) → contiene. Las notas **sin pasarela** (historial de Magento, "esperando pago") se descartan antes de guardar: no son datos de transacción y duplicarían el storage.
+
+**UI popup (`popup/section.js`):** rango Desde/Hasta con aviso del tope de Magento, una tarjeta plegable por pasarela con sus campos, "Máximo de órdenes" y "Detener en la 1ª coincidencia", Iniciar/Detener/Limpiar, progreso en vivo, tabla de resultados (la **misma matriz** que el CSV, así lo que se ve es lo que se exporta) con toggle "Solo coincidencias", Copiar CSV / Descargar CSV y `<details>` con el registro. Si la pestaña ya está en el listado no se la navega (se conservan los filtros); si no, se pide confirmación. Estilos `.bo-*` en `popup.css`.
+**Debug `__extLgeCl.magentoBuscarOrden.`:** `diagnose()`, `rows()`, `records()`, `transactions()`, `evaluate()`, `dates()`, `csv(onlyMatches?)`, `state()`, `draft()`, `stop()`, `reset()`, `tick()`.
+**Tests:** `tests/unit/magento-buscar-orden.test.js` (nota → pares, detección de pasarela, comparación tolerante, matriz del CSV, formato de fechas del datepicker, `pickPageSizeOption`, `rangeDays`).
+**Pendientes/limitaciones:** entra a **una orden por navegación**, así que un rango ancho son miles de cargas — conviene acotar el rango, el "Máximo de órdenes" o parar en la 1ª coincidencia; una mejora clara sería descartar en el listado por la columna "Grand Total (Base)" cuando se busca por monto. No distingue múltiples tabs de Magento y no impide correrlo junto a Global Shipping Rules en la misma pestaña (se pelearían por la navegación); sin reintento por orden.
