@@ -18,6 +18,14 @@ import {
 import { normalizePayment } from '../../src/features/magento/informacion_de_orden/payment.js';
 import { parseOrderNumbers } from '../../src/features/magento/informacion_de_orden/parse-input.js';
 import { GATEWAY, clampConcurrency } from '../../src/features/magento/informacion_de_orden/constants.js';
+import {
+  addTiming,
+  describeSummary,
+  emptyStats,
+  formatDuration,
+  formatMs,
+  summarizeRun,
+} from '../../src/features/magento/informacion_de_orden/stats.js';
 
 const GRID_KEY_URL = 'https://shop.lg.com/obsadm/mui/index/render/key/0e4ffabc123/';
 
@@ -379,8 +387,58 @@ describe('clampConcurrency', () => {
     expect(clampConcurrency(8)).toBe(8);
     expect(clampConcurrency(0)).toBe(1);
     expect(clampConcurrency(99)).toBe(99);
-    expect(clampConcurrency('x')).toBe(4);
-    expect(clampConcurrency(undefined)).toBe(4);
-    expect(clampConcurrency('')).toBe(4);
+    expect(clampConcurrency('x')).toBe(6);
+    expect(clampConcurrency(undefined)).toBe(6);
+    expect(clampConcurrency('')).toBe(6);
+  });
+});
+
+describe('stats: donde se va el tiempo', () => {
+  const timing = { ttfbMs: 2000, downloadMs: 400, parseMs: 30, logsMs: 900, bytes: 400 * 1024, requests: 3, retries: 1 };
+
+  it('acumula los tiempos de cada ficha sin mutar el anterior', () => {
+    const base = emptyStats();
+    const once = addTiming(base, timing);
+    const twice = addTiming(once, timing);
+    expect(base.count).toBe(0);
+    expect(once.count).toBe(1);
+    expect(twice).toMatchObject({ count: 2, requests: 6, retries: 2, ttfbMs: 4000, downloadMs: 800, bytes: 800 * 1024 });
+    // Un run viejo sin stats no revienta.
+    expect(addTiming(undefined, timing).count).toBe(1);
+    expect(addTiming(once, null)).toBe(once);
+  });
+
+  it('resume ritmo, lo que falta y los promedios por ficha', () => {
+    const run = {
+      active: true,
+      total: 100,
+      doneCount: 20,
+      fetchStartedAt: 1000,
+      stats: addTiming(addTiming(emptyStats(), timing), timing),
+    };
+    const summary = summarizeRun(run, 1000 + 60000);
+    expect(summary.perMinute).toBe(20);
+    expect(summary.pending).toBe(80);
+    expect(summary.etaMs).toBe(4 * 60000);
+    expect(summary).toMatchObject({ avgTtfbMs: 2000, avgDownloadMs: 400, avgLogsMs: 900, kbPerOrder: 400, retries: 2 });
+    expect(describeSummary(summary)).toBe('20,0 fichas/min - espera 2,0 s y descarga 400 ms por ficha - logs 900 ms mas - 400 KB por ficha - 2 reintento(s)');
+  });
+
+  it('sin fichas entradas no hay resumen, y terminado se mide hasta finishedAt', () => {
+    expect(summarizeRun(null)).toBeNull();
+    expect(summarizeRun({ active: true, doneCount: 0, fetchStartedAt: 1 })).toBeNull();
+    expect(summarizeRun({ active: true, doneCount: 3 })).toBeNull();
+    const done = summarizeRun({ active: false, doneCount: 30, total: 30, fetchStartedAt: 10000, finishedAt: 130000, stats: emptyStats() }, 999999);
+    expect(done.elapsedMs).toBe(120000);
+    expect(done.perMinute).toBe(15);
+    expect(done.pending).toBe(0);
+  });
+
+  it('formatea duraciones y milisegundos para leerlos', () => {
+    expect(formatDuration(45000)).toBe('45 s');
+    expect(formatDuration(750000)).toBe('12 min 30 s');
+    expect(formatDuration(3900000)).toBe('1 h 05 min');
+    expect(formatMs(350)).toBe('350 ms');
+    expect(formatMs(2840)).toBe('2,8 s');
   });
 });

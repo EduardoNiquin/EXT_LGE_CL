@@ -10,7 +10,7 @@
 // se puede leer por posicion ni dar por presente.
 
 import { describe, expect, it } from 'vitest';
-import { parseOrderDetail } from '../../src/features/magento/informacion_de_orden/detail-parse.js';
+import { mainContentOf, parseOrderDetail } from '../../src/features/magento/informacion_de_orden/detail-parse.js';
 import { buildMatrix, buildRecord, makeMissingRecord } from '../../src/features/magento/informacion_de_orden/csv.js';
 import { DEFAULT_SECTIONS, ESSENTIAL_COLUMNS, expandSections } from '../../src/features/magento/informacion_de_orden/constants.js';
 import { readField } from '../../src/features/magento/buscar-orden/transactions.js';
@@ -396,5 +396,83 @@ describe('el perfil corto de columnas', () => {
     expect(rows[0][0]).toBe('123001427999');
     expect(rows[0][headers.length - 2]).toBe('Error');
     expect(rows[0][headers.length - 1]).toBe('La ficha respondio 500.');
+  });
+});
+
+describe('recorte del HTML al contenido principal', () => {
+  it('se queda con <main id="anchor-content"> y deja fuera el menu del admin', () => {
+    const menu = '<li>menu</li>'.repeat(50);
+    const html = `<html><body><nav class="admin__menu">${menu}</nav>
+      <main id="anchor-content" class="page-content">${FICHA}</main>
+      <footer>pie</footer><script>var x = 1;</script></body></html>`;
+    const trimmed = mainContentOf(html);
+    expect(trimmed.startsWith('<main')).toBe(true);
+    expect(trimmed.endsWith('</main>')).toBe(true);
+    expect(trimmed).not.toContain('admin__menu');
+    expect(trimmed).not.toContain('<footer>');
+    // Lo que importa sigue ahi y se parsea igual que entero.
+    expect(parse(trimmed).orderNumber).toBe('123001427905');
+    expect(parse(trimmed).fields.length).toBe(parse(html).fields.length);
+  });
+
+  it('sin el marcador devuelve el HTML entero (login, otro layout)', () => {
+    const login = '<html><body><div class="login-container">Sign in</div></body></html>';
+    expect(mainContentOf(login)).toBe(login);
+    expect(mainContentOf('')).toBe('');
+    expect(mainContentOf(null)).toBe('');
+  });
+});
+
+describe('el log del ERP con el markup real (labels, no tabla)', () => {
+  // Tal como lo sirve el admin (16-09-2026), embebido en la ficha.
+  const LOGS_REALES = `
+    <section class="admin__page-section gerp-export-log">
+      <div class="gerp-export-log-item" style="margin: 0 0 5rem">
+        <h3>ERP Export Log #8474172</h3>
+        <label class="title">Action Type: </label> <span style="font-weight: bold">order</span> <br>
+        <label class="title">Cust PO NO: </label> <span style="font-weight: bold">ORDER_123001428405</span> <br>
+        <label class="title">Status: </label> <span class="export-success-status-detail">success</span> <br>
+        <label class="title">Created At: </label> <span> Sep 15, 2026, 3:13:50 AM</span> <br>
+        <label class="title">Request Body: </label> <span><textarea name="request_body" disabled>{ "header": { "SYSTEM_CODE": "OBS" } }</textarea></span>
+      </div>
+      <div class="gerp-export-log-item">
+        <h3>ERP Export Log #8474200</h3>
+        <label class="title">Action Type: </label> <span>cancel</span> <br>
+        <label class="title">Status: </label> <span>fail</span> <br>
+      </div>
+    </section>
+    <section class="admin__page-section osms-export-log">
+      <h3 style="text-align: center">No Data Found</h3>
+    </section>`;
+
+  // La ficha de prueba trae su propio bloque ERP en tabla: se saca para probar el real.
+  const SIN_TABLA = FICHA.replace(/<div class="gerp-export-log">[\s\S]*?<\/table>\s*<\/div>/, '');
+  const detail = parse(`${SIN_TABLA}${LOGS_REALES}`);
+  const field = (section, label) => detail.fields.find((f) => f.section === section && f.label === label)?.value;
+
+  it('casa cada label con su valor, incluido el JSON del textarea', () => {
+    expect(field('ERP', 'Log')).toBe('#8474172');
+    expect(field('ERP', 'Action Type')).toBe('order');
+    expect(field('ERP', 'Status')).toBe('success');
+    expect(field('ERP', 'Created At')).toBe('Sep 15, 2026, 3:13:50 AM');
+    expect(field('ERP', 'Request Body')).toBe('{ "header": { "SYSTEM_CODE": "OBS" } }');
+  });
+
+  it('un segundo envio al ERP no pisa al primero: va con sufijo', () => {
+    expect(field('ERP', 'Log (2)')).toBe('#8474200');
+    expect(field('ERP', 'Action Type (2)')).toBe('cancel');
+    expect(field('ERP', 'Status (2)')).toBe('fail');
+  });
+
+  it('el OSMS sin datos dice que se miro y no habia nada', () => {
+    expect(field('OSMS', 'Log')).toBe('No Data Found');
+    expect(detail.logsEmbedded).toEqual({ erp: true, osms: true });
+  });
+
+  it('la ficha de prueba con tabla sigue leyendo el log por la tabla', () => {
+    const conTabla = parse(FICHA);
+    const erp = (label) => conTabla.fields.find((f) => f.section === 'ERP' && f.label === label)?.value;
+    expect(erp('Status')).toBe('success');
+    expect(conTabla.logsEmbedded.erp).toBe(true);
   });
 });

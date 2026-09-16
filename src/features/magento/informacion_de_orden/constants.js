@@ -78,10 +78,14 @@ export const MAX_ORDERS = 5000; // tope duro de fichas por corrida
 // que se garantiza es que sea un entero >= 1, porque con 0 el pool no arrancaria
 // ningun worker y la corrida quedaria colgada sin pedir nada.
 export const CONCURRENCY_MIN = 1;
-export const CONCURRENCY_DEFAULT = 4;
-// A partir de aca el popup avisa (no bloquea): son peticiones simultaneas contra
-// el admin de produccion con la sesion del operador.
-export const CONCURRENCY_WARN = 12;
+// Medido el 16-09-2026 contra el admin real por la VPN: el tunel satura en
+// ~320 KB/s y cada ficha pesa ~600 KB sin comprimir, asi que con 4-6 carriles
+// la tuberia ya va llena (6 carriles: 330 KB/s; 12 carriles: 313 KB/s, con las
+// descargas estiradas a 15 s). Mas carriles no suman fichas por minuto.
+export const CONCURRENCY_DEFAULT = 6;
+// A partir de aca el popup avisa (no bloquea): por encima solo se alargan las
+// descargas y se acercan al timeout.
+export const CONCURRENCY_WARN = 10;
 
 /** Normaliza el paralelismo a un entero >= 1 (fallback al valor por defecto). */
 export function clampConcurrency(value) {
@@ -104,6 +108,18 @@ export const GRID_ENDPOINT_RE = /https?:\/\/[^"'\s\\]*\/mui\/index\/render\/key\
 
 export const ENDPOINT_TIMEOUT_MS = 30000;
 export const CLAIM_WATCHDOG_MS = 3500;
+// Reclamar el run no es atomico (dos pestanas del admin leen `claimed:false` a
+// la vez y las dos escriben). Cada frame escribe SU token, espera esto, relee
+// y solo sigue si el token sigue siendo el suyo. Medido 16-09-2026: con dos
+// pestanas abiertas las dos capturaban las 182 ordenes a la vez.
+export const CLAIM_SETTLE_MS = 250;
+// El frame que corre renueva `heartbeatAt` cada tanto. Un content script que
+// arranca (otra pestana del admin, o la misma recargada) NO puede dar por
+// interrumpido un run solo porque este reclamado: otra pestana puede seguir
+// viva. Solo si el latido lleva mas de STALE sin renovarse. Medido 16-09-2026:
+// navegar una segunda pestana del admin cortaba la corrida de la primera.
+export const HEARTBEAT_MS = 5000;
+export const HEARTBEAT_STALE_MS = 20000;
 
 // -----------------------------------------------------------------------------
 // Metodos de pago (docs/intrucciones.md seccion 6)
@@ -178,7 +194,7 @@ export const DETAIL_SECTION_CHOICES = [
   {
     key: DETAIL_SECTION.LOGS,
     label: 'Logs ERP / OSMS y facturacion',
-    hint: 'ERP y OSMS Export Log y Full In House. Suman una peticion extra por orden.',
+    hint: 'ERP y OSMS Export Log y Full In House. Vienen dentro de la misma ficha; solo se piden aparte si la ficha no los trae.',
     implies: [],
   },
 ];
@@ -247,12 +263,46 @@ export const DETAIL_SELECTORS = {
 
 // Pestanas que Magento carga por AJAX con su propia key y form_key: la URL se
 // saca del HTML de la ficha, no se arma a mano (la key cambia por sesion).
+// En la ficha real el enlace es ABSOLUTO (`https://shop.lg.com/obsadm/sales/...`):
+// se captura entero. Capturar solo desde `/sales/` y resolverlo contra la ficha
+// perdia el `/obsadm` y daba un 404 de 141 KB por pestana (medido 16-09-2026).
 export const TAB_URL_RE = {
-  gerp: /\/sales\/order\/gerpExportLog\/[^"'\\\s<>]+/i,
-  osms: /\/sales\/order\/osmsExportLog\/[^"'\\\s<>]+/i,
+  gerp: /(?:https?:\/\/[^"'\\\s<>]+)?\/sales\/order\/gerpExportLog\/[^"'\\\s<>]+/i,
+  osms: /(?:https?:\/\/[^"'\\\s<>]+)?\/sales\/order\/osmsExportLog\/[^"'\\\s<>]+/i,
 };
 
-export const DETAIL_TIMEOUT_MS = 45000;
+// Con el tunel saturado, N carriles reparten ~320 KB/s: la descarga de una
+// ficha de 600 KB tarda ~N x 1,9 s. Con 45 s, 20 carriles ya daban timeouts
+// falsos (y reintentos que empeoran la saturacion).
+export const DETAIL_TIMEOUT_MS = 90000;
+
+// Reintentos de una peticion a la ficha. A traves del tunel una peticion se
+// cae de vez en cuando (corte de red, 502 del proxy, timeout) y perder la orden
+// por eso sale caro: se vuelve a intentar una vez, solo ante fallos transitorios
+// (red, timeout, 5xx, 429). Un 401/403/404 o una ficha vacia no se reintentan.
+export const DETAIL_RETRY_ATTEMPTS = 2; // intentos totales por peticion
+export const DETAIL_RETRY_DELAY_MS = 1500;
+
+// El HTML de la ficha trae el menu completo del admin y sus scripts, que no
+// aportan nada y cuestan parsear: se recorta al contenido principal antes del
+// DOMParser. Si no aparece se parsea entero (login, layout distinto).
+export const MAIN_CONTENT_RE = /<main\b[^>]*\bid=["']anchor-content["'][^>]*>[\s\S]*?<\/main>/i;
+
+// Volcado del resultado a storage: escribir TODOS los registros en cada volcado
+// es O(N), asi que a medida que el resultado crece se vuelca menos seguido
+// (`RESULT_FLUSH_PER_RECORD_MS` por registro acumulado), entre un minimo y un
+// maximo. Lo que se arriesga al cerrar la pestana es lo capturado desde el
+// ultimo volcado: como mucho `RESULT_FLUSH_MAX_MS`.
+export const RESULT_FLUSH_MIN_MS = 1500;
+export const RESULT_FLUSH_PER_RECORD_MS = 3;
+export const RESULT_FLUSH_MAX_MS = 15000;
+
+// Solo para el comando de diagnostico `restProbe`: la API REST de Magento
+// devolveria la orden entera en JSON (items, direcciones, pago, historial) por
+// una fraccion del costo de la ficha, y hasta 200 por consulta. No se usa en la
+// corrida porque la cookie del admin va con path `/obsadm` y en principio no
+// viaja a `/rest/`; el comando existe para comprobarlo contra el servidor real.
+export const REST_ORDER_PATH = '/rest/V1/orders/';
 
 // -----------------------------------------------------------------------------
 // Columnas del CSV (una fila por orden)

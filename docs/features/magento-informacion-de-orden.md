@@ -33,6 +33,7 @@ src/features/magento/informacion_de_orden/
 ├── payment.js       puro: normalizePayment(item del grid) → modelo único de pago
 ├── parse-input.js   puro: parseOrderNumbers(text) → { numbers, warnings }
 ├── csv.js           buildRecord · makeMissingRecord · buildMatrix · matrixToCsv
+├── stats.js         puro: emptyStats · addTiming · summarizeRun · describeSummary · formatDuration · formatMs
 ├── state.js         run store + makeRun + draft + resultado aparte (get/set/subscribe)
 ├── debug.js         __extLgeCl.magentoInformacionDeOrden.*
 ├── content/ detector.js · endpoint.js · client.js (grid) · order-page.js (ficha) · index.js · flows/run.js
@@ -58,7 +59,9 @@ bloque por bloque en fila india.
 **`chrome.storage.local["magento:informacion-de-orden:run"]`** — solo progreso:
 `{ active, claimed, phase, startedAt, finishedAt, finishReason?, error?, config:{from,to,mode,
 orderNumbers[],concurrency,sections{}}, endpoint, totalRecords, total, doneCount, okCount,
-notFoundCount, errorCount, log:[...] (cap 400) }`.
+notFoundCount, errorCount, fetchStartedAt, stats:{count,requests,retries,bytes,ttfbMs,downloadMs,
+parseMs,logsMs}, log:[...] (cap 400) }`. `fetchStartedAt` marca desde cuando se entran fichas
+(el ritmo no cuenta el descubrimiento) y `stats` acumula el `timing` de cada ficha (`stats.js`).
 
 **`…:result`** — los registros: `{ generatedAt, records:[{ incrementId, entityId, viewHref, status,
 error, fixed:[...], extra:[...], detail:{"<sección> - <etiqueta>": valor}, items:{}, history:{} }] }`.
@@ -75,6 +78,83 @@ del admin **reclama** el run (`claimed`) y lo ejecuta; `claimWatchdog` (3,5 s) t
 `not-detected` si la pestaña no es el admin. Cancelar ⇒ `active:false` ⇒ `abortActiveRun()` ⇒ el
 `AbortController` corta entre peticiones.
 
+**El reclamo es con token, no con `true`** (medido 16-09-2026: con dos pestañas del admin abiertas
+las dos leian `claimed:false` a la vez, las dos capturaban las 182 ordenes en paralelo y la que
+terminaba primero dejaba a la otra "cancelada"). Cada frame escribe **su token** en `claimed`,
+espera `CLAIM_SETTLE_MS` (250 ms), relee y solo sigue si el token sigue siendo el suyo. Si durante
+la corrida llega por `storage.onChanged` un run con otro token (`wireAsyncRunLifecycle` ahora pasa
+el run a `tickIfActive`), el frame **suelta sin finalizar** (`released`): el que escribio ultimo es
+el que corre y el que finaliza. **`activeToken` se fija recien al confirmar**: mientras se espera, el
+token del otro frame llega por `storage.onChanged` y no debe hacer soltar (la primera version
+soltaba ahi, los DOS cedian y el run quedaba reclamado sin nadie corriendo).
+
+**Latido (`heartbeatAt`, cada `HEARTBEAT_MS` = 5 s):** un content script que arranca (otra pestaña
+del admin que navega, o la misma recargada) no puede dar por interrumpido un run solo porque este
+reclamado: `reconcileOnInit` solo finaliza si el latido lleva mas de `HEARTBEAT_STALE_MS` (20 s)
+sin renovarse, y si estaba fresco vuelve a mirar pasado ese plazo (por si la que recargo era la
+dueña). Medido 16-09-2026: navegar una segunda pestaña del admin cortaba la corrida de la primera
+con "La pagina se recargo a mitad de la captura". El run guarda `claimedFrom` (la URL de la pestaña
+que corre) y lo dice en el registro ("Corriendo desde ..."): **esa pestaña no se navega ni se
+cierra** hasta que termine; cualquier otra del admin se puede usar con libertad.
+
+## Donde se va el tiempo (medido el 16-09-2026 contra el admin real, por la VPN)
+
+La corrida es **una ficha por orden**. Cada ficha es la pagina completa del admin y sale por el
+tunel de la VPN. Lo que se midio con `benchmark()` y Resource Timing, y que conviene no
+re-descubrir:
+
+| Hecho | Numero | Consecuencia |
+|---|---|---|
+| La ficha pesa **606 KB y viaja SIN comprimir** (`encodedBodySize == decodedBodySize`; tampoco el grid, 433 KB) | 254 KB son el menu del admin antes de `<main>`, 349 KB el contenido, 2 KB despues | No hay nada que cortar por streaming ni con `Range` (el servidor lo ignora: 200 entero) ni con `isAjax=true` (mismo tamano). `Accept-Encoding` lo manda el navegador y el servidor elige identidad |
+| El servidor tarda **~4,3 s** en armar una ficha sola | Con 12 a la vez, la espera tope fue 7,2 s | Atiende **en paralelo** (no serializa la sesion), va por **HTTP/2** (sin tope de 6 conexiones) |
+| **El tunel satura en ~320 KB/s** | 6 carriles: 330 KB/s; 12 carriles: 313 KB/s, con descargas de hasta 15 s | El techo es **~32 fichas/min** con fichas de 600 KB, se pongan los carriles que se pongan. Entre 4 y 8 rinde lo mismo; por encima solo se alargan las descargas y se acercan al timeout (por eso `DETAIL_TIMEOUT_MS` = 90 s y `CONCURRENCY_WARN` = 10) |
+| **Los logs ERP y OSMS vienen embebidos en la ficha** (`.gerp-export-log` con el log completo, `.osms-export-log` con "No Data Found") | Antes se pedian igual: 2 peticiones y ~280 KB mas por orden, y encima a una URL sin `/obsadm` (404 de 141 KB cada una) | Ya no se piden salvo que el contenedor falte (`logsEmbedded`), y la URL se toma absoluta tal como viene |
+| La API REST con la sesion del admin | `401 The consumer isn't authorized` (contexto invitado) | Cerrada, como se esperaba por el path de la cookie |
+
+**Corrida real de referencia (14-09-2026, 182 ordenes, 6 carriles, las cuatro casillas):** 3 min
+39 s, **49,8 fichas/min**, espera 5,8 s y descarga 1,2 s por ficha, 570 KB por ficha, una peticion
+por orden, 0 errores, 0 reintentos, 89 columnas dinamicas; con cuatro pestañas del admin abiertas
+y una navegada a mitad de camino. Antes de estos cambios la misma corrida hacia 3 peticiones y
+~850 KB por orden (los dos logs iban a un 404 de 141 KB) y no traia ningun campo ERP.
+
+**Lectura:** el limite lo ponen los bytes por el tunel, no el servidor ni esta maquina (parseo
+~7 ms por ficha). Lo unico que acelera mas es **bajar bytes por orden** o traer los datos por
+otra via (ver Pendientes).
+
+Tres sintomas y como distinguirlos con lo que mide el motor:
+
+| Sintoma | Causa | Que hacer |
+|---|---|---|
+| Subir "Consultas simultaneas" no cambia las fichas/min y la **espera** crece escalonada | Magento atiende las peticiones de una misma sesion **de a una** | Dejar 2-3 carriles, pedir menos |
+| La **descarga** por ficha se estira con los carriles y los KB/s del lote no suben | Ancho de banda del tunel (**el caso real de LG**) | Entre 4 y 8 carriles; el costo es por byte |
+| Espera y descarga cortas pero fichas/min bajas | CPU de esta maquina (parseo) o volcado del resultado | Ya se recorta el HTML al `<main>` y el volcado se espacia solo; revisar `parseMs` |
+
+**Lo que mide el motor** (`order-page.js` → `detail.timing` → `run.stats`): por ficha, `ttfbMs` (desde
+que se pide hasta que llega la cabecera: cola del navegador + tunel + lo que tarda el servidor en
+armar la pagina), `downloadMs` (bajar el cuerpo), `parseMs`, `logsMs` (las dos pestanas, en
+paralelo), `bytes`, `requests` y `retries`. El popup muestra en vivo **fichas/min, la espera y
+descarga medias, KB por ficha y cuanto falta**; al terminar queda una linea de resumen en el
+registro. Comparar dos corridas con distinta concurrencia es la prueba mas simple: si el ritmo no
+cambia, el servidor serializa.
+
+**`benchmark({lanes})`** (debug) es la prueba controlada: pide una ficha sola y despues `lanes` a la
+vez, y compara las esperas. Escalonadas (1x, 2x, 3x la base) ⇒ serializa. Ademas devuelve el
+Resource Timing del navegador (cola, servidor, descarga, si vino comprimido).
+
+**`restProbe(entityId)`** (debug) comprueba si `/rest/V1/orders/<id>` acepta la sesion del admin.
+Respondio 401 el 16-09-2026 (contexto invitado): la cookie del admin va con path `/obsadm` y no
+viaja a `/rest/`. Si alguna vez respondiera 200 con JSON, la captura entera podria pasar a REST
+(la orden completa en JSON, hasta 200 por consulta).
+
+**Lo que ya se hizo para no gastar de mas:** los logs se leen **de la ficha** y solo se pide una
+pestana si su bloque falta (y entonces las que falten, a la vez); el HTML se **recorta a
+`<main id="anchor-content">`** antes del DOMParser (fuera queda el menu del admin y sus scripts;
+sin marcador se parsea entero); un fallo **transitorio se reintenta una vez** (red, timeout, 5xx,
+429; nunca 401/403/404 ni ficha vacia) para no perder la orden por un corte del tunel; el
+**volcado del resultado se espacia a medida que crece** (cada volcado reescribe todo: con
+intervalo fijo una corrida larga gastaba mas en serializar que en pedir); y el popup **repinta la
+tabla como mucho cada 2 s** y, con el perfil corto, matriza solo las filas que muestra.
+
 ## Qué se lee de la ficha (`detail-parse.js`)
 
 Cuatro casillas en el popup, todas activas por defecto (`DETAIL_SECTION_CHOICES`):
@@ -84,7 +164,7 @@ Cuatro casillas en el popup, todas activas por defecto (`DETAIL_SECTION_CHOICES`
 | Orden, cuenta y direcciones | `order-information-table` + `order-account-information-table` + las **direcciones completas** de facturación y envío |
 | Pago, envío y totales | `.order-payment-method` (título + sus tablas), `.order-shipping-method` y `.order-totals` |
 | Historial y transacciones | `.note-list-item` con su fecha y estado, y las notas de Transbank/MercadoPago **decodificadas** |
-| Logs ERP / OSMS y facturación | `.gerp-export-log`, `.osms-export-log` y `Full In House Information`. Suman una petición extra por orden |
+| Logs ERP / OSMS y facturación | `.gerp-export-log`, `.osms-export-log` y `Full In House Information`. Vienen en la misma ficha; solo se pide una pestaña aparte si su bloque falta |
 
 Los **ítems** (`table.edit-order-table`) van siempre: son el cuerpo de la orden.
 
@@ -117,10 +197,30 @@ puro y ya probado) en vez de duplicar 130 líneas de parseo de notas de pasarela
 - **La ficha sin sesión devuelve el login con HTTP 200**, no un 401: si no aparece ni el número de
   orden ni un solo campo, se falla con "puede haber caducado la sesión" en vez de emitir una fila
   vacía.
-- **ERP y OSMS Export Log se cargan por AJAX con su propia key y form_key** (doc §5.5): la URL se
-  **busca dentro del HTML de la ficha** (`TAB_URL_RE`), no se arma a mano. Si ya vinieron embebidos
-  no se pide nada. Un log que no se puede traer **no invalida la orden**: se anota el motivo en su
-  propia columna (`ERP - Error`) y se sigue.
+- **ERP y OSMS Export Log vienen embebidos en la ficha** (`.gerp-export-log` / `.osms-export-log`,
+  dentro de `<main>`; medido 16-09-2026). `parseOrderDetail` los lee de ahi y reporta
+  `logsEmbedded`; **solo si un contenedor falta** se pide su pestana AJAX (doc §5.5), con la URL
+  **tomada del HTML tal como viene** (`TAB_URL_RE` captura el enlace absoluto). Ojo: capturar solo
+  desde `/sales/` y resolverlo contra la ficha con `new URL` **perdia el `/obsadm`** y daba un 404
+  de 141 KB por pestana y por orden; `absolute()` cuelga una ruta relativa de la base del admin.
+  Un log que no se puede traer **no invalida la orden**: se anota el motivo en su propia columna
+  (`ERP - Error`) y se sigue.
+- **El log del ERP NO es una tabla** (medido 16-09-2026; la primera version lo esperaba en tabla y
+  no sacaba nada): es `<h3>ERP Export Log #N</h3>` y pares `<label class="title">X: </label><span>`,
+  con el JSON enviado al ERP dentro de un `<textarea>`. `labeledPairs` casa cada label con el
+  elemento que le sigue (`ERP - Log`, `ERP - Action Type`, `ERP - Status`, `ERP - Created At`,
+  `ERP - Request Body`...). Con mas de un `.gerp-export-log-item` (varios envios) las etiquetas del
+  segundo en adelante llevan sufijo ` (2)`. El OSMS sin datos (`<h3>No Data Found</h3>`) sale como
+  `OSMS - Log = No Data Found`, para que se vea que se miro. Si el bloque trae tablas se leen
+  primero, como antes.
+- **Una peticion caida por algo transitorio se reintenta una vez** (`DETAIL_RETRY_ATTEMPTS`, pausa
+  `DETAIL_RETRY_DELAY_MS`): fallo de red (`TypeError` de `fetch`), timeout propio
+  (`IO_DETAIL_TIMEOUT`, distinto de la cancelacion del usuario), 5xx o 429. Un 401/403/404 o una
+  ficha vacia suben a la primera: reintentar no los cambia. Los reintentos se cuentan en `stats`.
+- **El HTML de la ficha se recorta a `<main id="anchor-content">`** (`mainContentOf`, `MAIN_CONTENT_RE`)
+  antes del DOMParser: el menu del admin y los scripts son buena parte del documento y no traen
+  nada de la orden. Si el marcador no aparece se parsea entero, para no perder nada por un recorte
+  fallido. Las URLs de las pestanas AJAX se buscan en el HTML **completo**, no en el recorte.
 - **`ORDER_FILTER_ERROR` llega con HTTP 200 y `Content-Type: text/html`** (doc §4.4): se detecta por
   el **contenido**, nunca por el status, y se traduce a los tres casos reales (falta el rango, falta
   el Purchase Point, el rango supera 1 mes).
@@ -147,9 +247,11 @@ puro y ya probado) en vez de duplicar 130 líneas de parseo de notas de pasarela
   localmente. Lo que no aparece sale en el CSV como `No encontrada`, no se descarta en silencio.
 - **Una ficha caída no tira el recorrido:** esa orden sale con lo que el grid ya sabía de ella y con
   el motivo del fallo en su fila. Lo mismo con una página del listado.
-- **El resultado se vuelca a storage cada ~1,5 s y al terminar**, no en cada orden: escribir miles de
-  filas por orden sería carísimo, y no volcar nunca perdería todo si se cierra la pestaña. Una
-  corrida detenida a medias conserva lo capturado.
+- **El resultado se vuelca a storage cada tanto y al terminar**, no en cada orden: escribir miles de
+  filas por orden sería carísimo, y no volcar nunca perdería todo si se cierra la pestaña. Como cada
+  volcado reescribe **todo** el resultado, el intervalo **crece con lo ya guardado**
+  (`flushIntervalFor`: 1,5 s + 3 ms por registro, tope 15 s). Una corrida detenida a medias
+  conserva lo capturado hasta el ultimo volcado.
 - **Un reload mata el flujo async:** `reconcileOnInit` marca el run interrumpido y avisa que se
   conserva lo que alcanzó a guardarse.
 
@@ -223,8 +325,10 @@ Rango Desde/Hasta con aviso de la division automatica en ventanas · radio **Tod
 (textarea + **Subir CSV**, ambos por el mismo parser) · **Consultas simultaneas**: campo numerico
 **sin tope**, 4 por defecto, que se normaliza al salir del campo (vacio o 0 dejarian el pool sin
 carriles) y avisa a partir de `CONCURRENCY_WARN` (12) sin bloquear · las cuatro
-casillas de secciones con su explicación · Iniciar/Detener/Limpiar · progreso en vivo · tabla de
-resultados con **la misma matriz que el CSV** (primeras 150 filas) · casilla **Todas las columnas**
+casillas de secciones con su explicación · Iniciar/Detener/Limpiar · progreso en vivo (contadores y,
+debajo, **fichas/min, espera y descarga medias, KB por ficha, reintentos y cuanto falta**) · tabla de
+resultados con **la misma matriz que el CSV** (primeras 150 filas; se repinta como mucho cada 2 s
+y con el perfil corto solo matriza esas filas) · casilla **Todas las columnas**
 (perfil de columnas; se guarda en el borrador y repinta la tabla en el acto) · Copiar/Descargar CSV ·
 `<details>` con el registro. Estilos `.io-*` en `popup.css`.
 
@@ -233,24 +337,29 @@ resultados con **la misma matriz que el CSV** (primeras 150 filas) · casilla **
 `diagnose()` · `endpoint()` · `resetEndpoint()` · `probe({from,to})` (cuántas órdenes hay, bloque por bloque si el rango es largo) ·
 **`link(orden,{from,to})`** (resuelve el enlace) · **`detail(url|entityId)`** (lee una ficha) ·
 **`parseCurrent()`** (parsea la ficha abierta en esta pestaña, sin red) · **`order(orden,{from,to})`**
-(enlace + ficha + la fila que saldría en el CSV) · `csv()` / `csv(true)` (perfil corto / completo)
+(enlace + ficha + la fila que saldría en el CSV) · **`benchmark({lanes:4}|{href,lanes})`** (una ficha
+sola y N a la vez, con veredicto: ¿el servidor serializa?) · **`restProbe(entityId)`** (¿acepta
+`/rest/V1/orders/<id>` la sesion del admin?) · `csv()` / `csv(true)` (perfil corto / completo)
 · `result()` · `state()` · `draft()` ·
 `stop()` · `reset()` · `tick()`.
 
 ## Tests
 
-Cuatro archivos, 90 casos. Los dos que tocan DOM usan **happy-dom** (`@vitest-environment happy-dom`),
+Cuatro archivos, 109 casos. Los dos que tocan DOM usan **happy-dom** (`@vitest-environment happy-dom`),
 agregado al proyecto para esto.
 
 - `magento-informacion-de-orden.test.js` — lo puro: fecha y filtros obligatorios del grid, los tres
   `ORDER_FILTER_ERROR`, extracción del JSON y del `update_url`, `stripHtml`/`moneyValue`,
   `normalizePayment` × 6 (Webpay VN y SI, MP pasarela, MP `account_money` con `card: []`, MP
-  incrustado, marketplace, método desconocido), `parseOrderNumbers` y `clampConcurrency`.
+  incrustado, marketplace, método desconocido), `parseOrderNumbers`, `clampConcurrency` y
+  `stats.js` (acumulacion inmutable, resumen con ritmo/ETA/promedios, formato de duraciones).
 - `magento-informacion-de-orden-ficha.test.js` — el parser de la ficha sobre HTML real: las dos
   tablas de cabecera por etiqueta, direcciones completas, pago y envío, totales con el nombre de la
   promoción, ítems por `tbody`, historial con la nota decodificada, Full In House y log del ERP,
   secciones apagadas, **la ficha de marketplace sin IP ni tabla de pago**, un HTML que no es una
-  ficha, y el CSV en sus dos perfiles (columnas dinámicas, ítems en JSON alineado, historial en
+  ficha, el recorte a `<main id="anchor-content">` (y que sin marcador vuelva entero), **el log del ERP
+  con el markup real** (labels + textarea, dos envios con sufijo, OSMS "No Data Found", `logsEmbedded`),
+  y el CSV en sus dos perfiles (columnas dinámicas, ítems en JSON alineado, historial en
   JSON, dos órdenes con campos distintos que no se corren, una ficha fallida que sale marcada, y que
   el perfil corto emita `ESSENTIAL_COLUMNS` completo aunque falten datos).
 - `magento-informacion-de-orden-format.test.js` — `format.js`: la ambigüedad del punto en los
@@ -263,14 +372,23 @@ agregado al proyecto para esto.
   concurrencia mayor a 8 y el tope de carriles respetado, una
   ficha caída, una ficha vacía por sesión caída, una página del listado caída, rango vacío,
   `ORDER_FILTER_ERROR`, los logs AJAX solo si la sección está activa (y que un log inaccesible no
-  invalide la orden), el modo lista con su `not-found`, y el ciclo de vida (fuera del admin, ya
-  reclamado, cancelar, reconcile).
+  invalide la orden), **los dos logs pedidos a la vez cuando faltan, ninguno cuando vienen embebidos,
+  y la URL absoluta conservada (con `/obsadm`)**, **el reintento** (503 y `TypeError` se
+  reintentan una vez, 403 no), **los tiempos por ficha y la linea de resumen** en el registro (sin
+  colarse en el registro de la orden), el espaciado del volcado, el modo lista con su `not-found`,
+  el ciclo de vida (fuera del admin, ya reclamado, cancelar, reconcile) y **dos pestañas a la vez**
+  (dos instancias del modulo sobre el mismo storage: solo una captura; y si otro token pisa el
+  reclamo a mitad de camino, el frame cede sin marcar el run como cancelado).
 
 ## Pendientes / limitaciones
 
-- **Una petición por orden** (dos si se piden los logs): un rango ancho son miles. El pool ayuda —y
-  ahora se puede subir todo lo que aguante el Magento del operador—, pero el tope de la corrida
-  sigue siendo `MAX_ORDERS` (5000) fichas.
+- **Una petición de ~600 KB por orden y un tunel de ~320 KB/s**: el techo es ~32 fichas/min
+  (un mes de ~5000 ordenes, unas 2,5 h). Ni mas carriles ni el servidor lo cambian. Lo unico que
+  lo cambiaria es traer los datos por otra via: la REST esta cerrada a la sesion (401), la
+  exportacion CSV del grid (doc §4.9) trae las columnas del grid (enmascaradas, sin items ni
+  historial), y queda por evaluar el API del VPS (`/api/magento/orders`, ya usado desde otro
+  proyecto) si sus campos cubren lo que se necesita de la ficha.
+- El tope de la corrida sigue siendo `MAX_ORDERS` (5000) fichas.
 - El rango es obligatorio; cada consulta cubre hasta 29 dias de calendario y los mayores se
   segmentan solos.
 - **En modo lista cada numero se busca bloque por bloque**: con un rango de un año y 100 ordenes eso
@@ -280,5 +398,6 @@ agregado al proyecto para esto.
 - Requiere sesión de admin iniciada y una pestaña en el admin; si se cierra a media corrida se
   conserva lo del último volcado.
 - Solo el store view de Chile (`STORE_ID = 123`).
-- No distingue múltiples pestañas de Magento (el flag `claimed` evita que dos frames corran a la vez)
-  ni impide correrlo junto a otro módulo del apartado; sin reintento por orden.
+- Con varias pestañas del admin abiertas corre en **una sola** (reclamo con token; ver "Patrón"),
+  pero no impide correrlo junto a otro módulo del apartado. El reintento por orden es de un solo
+  intento extra.

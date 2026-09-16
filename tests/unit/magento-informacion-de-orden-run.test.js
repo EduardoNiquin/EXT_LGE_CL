@@ -526,7 +526,7 @@ describe('ciclo de vida', () => {
     seedRun(rangeConfig({ concurrency: 2 }));
     const { abortActiveRun, tickIfActive } = await loadRun();
     const pending = tickIfActive();
-    await sleep(60);
+    await sleep(450); // el reclamo tarda CLAIM_SETTLE_MS en confirmarse; despues ya capturo algo
     abortActiveRun();
     await pending;
 
@@ -547,5 +547,275 @@ describe('ciclo de vida', () => {
     expect(run.active).toBe(false);
     expect(run.finishReason).toBe('error');
     expect(run.error).toContain('recargo');
+  });
+
+  it('otra pestana que arranca NO mata una corrida con latido fresco; si el latido se apaga, si', async () => {
+    vi.useFakeTimers();
+    try {
+      seedRun(rangeConfig());
+      currentRun().claimed = 'pestana-viva';
+      currentRun().heartbeatAt = Date.now();
+      const { reconcileOnInit } = await loadRun();
+      await reconcileOnInit();
+      expect(currentRun().active).toBe(true);
+
+      // La otra pestana sigue latiendo: al volver a mirar, tampoco se toca.
+      await vi.advanceTimersByTimeAsync(15000);
+      currentRun().heartbeatAt = Date.now();
+      await vi.advanceTimersByTimeAsync(6000);
+      expect(currentRun().active).toBe(true);
+
+      // Ahora era ESTA pestana la que se recargo: el latido no se renueva mas.
+      const again = await loadRun();
+      await again.reconcileOnInit();
+      expect(currentRun().active).toBe(true);
+      await vi.advanceTimersByTimeAsync(21000);
+      expect(currentRun().active).toBe(false);
+      expect(currentRun().error).toContain('recargo');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
+
+describe('donde se va el tiempo', () => {
+  /** Ficha con las DOS pestanas AJAX. */
+  const detailWithBothLogs = (n) => ({
+    ok: true,
+    status: 200,
+    text: async () => `${await detailResponse(n).text()}
+      <a href="/obsadm/sales/order/osmsExportLog/key/kk/order_id/e${n}/form_key/ff/">OSMS log</a>`,
+  });
+
+  it('pide los logs ERP y OSMS a la vez, no uno despues del otro', async () => {
+    let liveLogs = 0;
+    let peakLogs = 0;
+    globalThis.fetch = vi.fn(async (url) => {
+      if (isLog(url)) {
+        liveLogs += 1;
+        peakLogs = Math.max(peakLogs, liveLogs);
+        await sleep(15);
+        liveLogs -= 1;
+        return logResponse();
+      }
+      if (isDetail(url)) return detailWithBothLogs(orderOf(url));
+      return gridResponse([order(1)], 1);
+    });
+
+    seedRun(rangeConfig({ concurrency: 1, sections: { info: true, payment: true, history: true, logs: true } }));
+    const { tickIfActive } = await loadRun();
+    await tickIfActive();
+
+    expect(peakLogs).toBe(2);
+    const record = records()[0];
+    expect(record.detail['ERP - Status']).toBe('success');
+    expect(record.detail['OSMS - Status']).toBe('success');
+    expect(currentRun().stats.requests).toBe(3);
+  });
+
+  it('reintenta una vez ante un fallo transitorio y no ante uno definitivo', async () => {
+    const attempts = {};
+    globalThis.fetch = vi.fn(async (url) => {
+      if (!isDetail(url)) return gridResponse([order(1), order(2), order(3)], 3);
+      const n = orderOf(url);
+      attempts[n] = (attempts[n] || 0) + 1;
+      if (n === '1' && attempts[n] === 1) return { ok: false, status: 503, text: async () => '' };
+      if (n === '2' && attempts[n] === 1) throw new TypeError('Failed to fetch');
+      if (n === '3') return { ok: false, status: 403, text: async () => '' };
+      return detailResponse(n);
+    });
+
+    seedRun(rangeConfig({ concurrency: 3 }));
+    const { tickIfActive } = await loadRun();
+    await tickIfActive();
+
+    expect(attempts).toEqual({ 1: 2, 2: 2, 3: 1 });
+    const run = currentRun();
+    expect(run.okCount).toBe(2);
+    expect(run.errorCount).toBe(1);
+    expect(run.stats.retries).toBe(2);
+    expect(records()[2].error).toContain('403');
+  }, 15000);
+
+  it('mide cada ficha y deja el resumen en el registro', async () => {
+    globalThis.fetch = vi.fn(async (url) => {
+      if (!isDetail(url)) return gridResponse([order(1), order(2)], 2);
+      return detailResponse(orderOf(url));
+    });
+
+    seedRun(rangeConfig({ concurrency: 2 }));
+    const { tickIfActive } = await loadRun();
+    await tickIfActive();
+
+    const run = currentRun();
+    expect(run.fetchStartedAt).toBeGreaterThan(0);
+    expect(run.stats.count).toBe(2);
+    expect(run.stats.requests).toBe(2);
+    expect(run.stats.bytes).toBeGreaterThan(0);
+    // Los tiempos no se cuelan en el registro de la orden.
+    expect(records()[0].timing).toBeUndefined();
+    const summary = run.log.find((entry) => entry.message.includes('fichas/min'));
+    expect(summary).toBeTruthy();
+    expect(summary.message.startsWith('2 ficha(s) en ')).toBe(true);
+  });
+
+  it('el volcado del resultado se espacia a medida que crece', async () => {
+    const { flushIntervalFor } = await loadRun();
+    expect(flushIntervalFor(0)).toBe(1500);
+    expect(flushIntervalFor(500)).toBe(3000);
+    expect(flushIntervalFor(100000)).toBe(15000);
+  });
+});
+
+describe('los logs que ya vienen en la ficha', () => {
+  /** Ficha real: los dos bloques embebidos y los enlaces ABSOLUTOS a las pestanas. */
+  const detailWithEmbeddedLogs = (n) => ({
+    ok: true,
+    status: 200,
+    text: async () => `${await detailResponse(n).text()}
+      <a href="https://shop.lg.com/obsadm/sales/order/gerpExportLog/key/kk/order_id/e${n}/form_key/ff/">ERP</a>
+      <a href="https://shop.lg.com/obsadm/sales/order/osmsExportLog/key/kk/order_id/e${n}/form_key/ff/">OSMS</a>
+      <section class="gerp-export-log"><table><thead><tr><th>Status</th></tr></thead><tbody><tr><td>embebido</td></tr></tbody></table></section>
+      <section class="osms-export-log">No Data Found</section>`,
+  });
+
+  it('no pide las pestanas si sus bloques ya estan en la ficha', async () => {
+    const pedidas = [];
+    globalThis.fetch = vi.fn(async (url) => {
+      pedidas.push(String(url));
+      if (isLog(url)) return logResponse();
+      if (isDetail(url)) return detailWithEmbeddedLogs(orderOf(url));
+      return gridResponse([order(1)], 1);
+    });
+
+    seedRun(rangeConfig({ concurrency: 1, sections: { info: true, payment: true, history: true, logs: true } }));
+    const { tickIfActive } = await loadRun();
+    await tickIfActive();
+
+    expect(pedidas.some(isLog)).toBe(false);
+    expect(records()[0].detail['ERP - Status']).toBe('embebido');
+    expect(currentRun().stats.requests).toBe(1);
+  });
+
+  it('si falta un bloque pide SOLO ese, con la URL absoluta tal cual (conserva /obsadm)', async () => {
+    const pedidas = [];
+    globalThis.fetch = vi.fn(async (url) => {
+      pedidas.push(String(url));
+      if (isLog(url)) return logResponse();
+      if (isDetail(url)) {
+        return {
+          ok: true,
+          status: 200,
+          text: async () => `${await detailResponse(orderOf(url)).text()}
+            <a href="https://shop.lg.com/obsadm/sales/order/osmsExportLog/key/kk/order_id/e1/form_key/ff/">OSMS</a>
+            <section class="gerp-export-log"><table><tr><th>Status</th><td>embebido</td></tr></table></section>`,
+        };
+      }
+      return gridResponse([order(1)], 1);
+    });
+
+    seedRun(rangeConfig({ concurrency: 1, sections: { info: true, payment: true, history: true, logs: true } }));
+    const { tickIfActive } = await loadRun();
+    await tickIfActive();
+
+    const logs = pedidas.filter(isLog);
+    expect(logs).toHaveLength(1);
+    expect(logs[0]).toBe('https://shop.lg.com/obsadm/sales/order/osmsExportLog/key/kk/order_id/e1/form_key/ff/');
+    expect(records()[0].detail['OSMS - Status']).toBe('success');
+  });
+
+  it('una ruta relativa sin /obsadm se cuelga de la base del admin, no del origen', async () => {
+    const pedidas = [];
+    globalThis.fetch = vi.fn(async (url) => {
+      pedidas.push(String(url));
+      if (isLog(url)) return logResponse();
+      if (isDetail(url)) {
+        return {
+          ok: true,
+          status: 200,
+          text: async () => `${await detailResponse(orderOf(url)).text()}
+            <a href="/sales/order/osmsExportLog/key/kk/order_id/e1/form_key/ff/">OSMS</a>`,
+        };
+      }
+      return gridResponse([order(1)], 1);
+    });
+
+    seedRun(rangeConfig({ concurrency: 1, sections: { info: true, payment: true, history: true, logs: true } }));
+    const { tickIfActive } = await loadRun();
+    await tickIfActive();
+
+    const logs = pedidas.filter(isLog);
+    expect(logs.some((u) => u.includes('/obsadm/sales/order/osmsExportLog/'))).toBe(true);
+    expect(logs.some((u) => u.startsWith('https://shop.lg.com/sales/'))).toBe(false);
+  });
+});
+
+describe('dos pestanas del admin a la vez', () => {
+  /** Dos instancias del modulo = dos content scripts con el mismo storage. */
+  async function loadTwo() {
+    vi.resetModules();
+    const a = await import('../../src/features/magento/informacion_de_orden/content/flows/run.js');
+    vi.resetModules();
+    const b = await import('../../src/features/magento/informacion_de_orden/content/flows/run.js');
+    return [a, b];
+  }
+
+  it('solo una captura: la otra ve el token ajeno y se retira', async () => {
+    const detalles = [];
+    globalThis.fetch = vi.fn(async (url) => {
+      if (!isDetail(url)) return gridResponse([1, 2, 3].map(order), 3);
+      detalles.push(orderOf(url));
+      await sleep(5);
+      return detailResponse(orderOf(url));
+    });
+
+    seedRun(rangeConfig({ concurrency: 2 }));
+    const [a, b] = await loadTwo();
+    // Como el ciclo de vida real: cada cambio del run le llega a los dos frames.
+    // Sin esto no se reproduce el fallo medido (el token del otro llegaba antes
+    // de confirmar el propio y los DOS soltaban).
+    const wire = (mod) => chrome.storage.onChanged.addListener((changes, area) => {
+      if (area === 'local' && changes[RUN_KEY]?.newValue?.active) mod.tickIfActive(changes[RUN_KEY].newValue);
+    });
+    wire(a);
+    wire(b);
+    await Promise.all([a.tickIfActive(), b.tickIfActive()]);
+
+    const run = currentRun();
+    expect(run.finishReason).toBe('done');
+    expect(run.okCount).toBe(3);
+    expect(detalles).toHaveLength(3);
+    expect(records()).toHaveLength(3);
+    expect(run.heartbeatAt).toBeGreaterThan(0);
+    expect(run.claimedFrom).toContain('shop.lg.com/obsadm');
+    expect(run.log.some((entry) => entry.message.startsWith('Corriendo desde '))).toBe(true);
+  });
+
+  it('si el otro frame reclama a mitad de camino, este cede sin marcar cancelado', async () => {
+    globalThis.fetch = vi.fn(async (url) => {
+      if (!isDetail(url)) return gridResponse(Array.from({ length: 12 }, (_, i) => order(i + 1)), 12);
+      await sleep(15);
+      return detailResponse(orderOf(url));
+    });
+
+    seedRun(rangeConfig({ concurrency: 1 }));
+    const [a, b] = await loadTwo();
+    const running = a.tickIfActive();
+    await sleep(400); // ya reclamo y esta capturando
+    expect(currentRun().claimed).toBeTruthy();
+
+    // Otro frame pisa el reclamo (llega por storage.onChanged con el run nuevo).
+    const ajeno = { ...currentRun(), claimed: 'otro-frame' };
+    store.set(RUN_KEY, ajeno);
+    await a.tickIfActive(ajeno);
+    await running;
+
+    // El run sigue activo y con el token ajeno: a no lo finalizo ni lo cancelo.
+    expect(currentRun().active).toBe(true);
+    expect(currentRun().claimed).toBe('otro-frame');
+    expect(currentRun().finishReason).toBeFalsy();
+    // Y b no arranca sobre un run ya reclamado.
+    await b.tickIfActive();
+    expect(currentRun().claimed).toBe('otro-frame');
   });
 });

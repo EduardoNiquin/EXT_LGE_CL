@@ -1,5 +1,6 @@
 import { createPersistedValue, createRunStore } from '../../../shared/run-store/index.js';
 import { LOG_CAP, RUN_PHASE, STORAGE_KEYS } from './constants.js';
+import { emptyStats } from './stats.js';
 
 const store = createRunStore({ key: STORAGE_KEYS.RUN, logCap: LOG_CAP });
 
@@ -55,6 +56,8 @@ export function makeRun({ config }) {
     okCount: 0,
     notFoundCount: 0,
     errorCount: 0,
+    fetchStartedAt: null, // desde cuando se entran fichas (para el ritmo)
+    stats: emptyStats(), // tiempos acumulados por ficha (stats.js)
     log: [{ ts: Date.now(), level: 'info', message: 'Preparando la captura de ordenes' }],
   };
 }

@@ -33,6 +33,7 @@ import {
   updateRun,
 } from '../state.js';
 import { buildMatrix, matrixToCsv } from '../csv.js';
+import { describeSummary, formatDuration, summarizeRun } from '../stats.js';
 import { downloadText, escapeHtml, formatTime } from '../../popup/utils.js';
 import { getActiveTab } from '../../../../shared/messaging/messaging.js';
 import { logger } from '../../../../shared/utils/logger.js';
@@ -44,6 +45,12 @@ const log = logger('magento/popup');
 
 let unsubscribeRun = null;
 let unsubscribeResult = null;
+let resultsTimer = null;
+
+// El resultado se vuelca varias veces por minuto y cada volcado trae TODOS los
+// registros: repintar la tabla en cada uno era leer y matrizar miles de filas
+// por cada avance. Se repinta como mucho cada tanto, leyendo lo ultimo.
+const RESULTS_RENDER_THROTTLE_MS = 2000;
 
 const PHASE_TITLE = {
   [RUN_PHASE.STARTING]: 'Preparando...',
@@ -152,6 +159,7 @@ export async function render(container) {
         </div>
         <div id="io-progress-bar" class="lt-progress-bar"><span></span></div>
         <p id="io-progress-detail" class="lt-hint"></p>
+        <p id="io-progress-timing" class="lt-hint"></p>
 
         <div class="io-results-head">
           <span class="lt-hint" id="io-results-summary"></span>
@@ -202,8 +210,16 @@ export async function render(container) {
 
   unsubscribeResult = subscribeToResult(() => {
     if (!alive(container)) return;
-    renderResults(container);
+    scheduleRenderResults(container);
   });
+}
+
+function scheduleRenderResults(container) {
+  if (resultsTimer) return;
+  resultsTimer = setTimeout(() => {
+    resultsTimer = null;
+    if (alive(container)) renderResults(container);
+  }, RESULTS_RENDER_THROTTLE_MS);
 }
 
 function alive(container) {
@@ -337,8 +353,8 @@ function updateConcurrencyHint(container) {
   const high = value >= CONCURRENCY_WARN;
   hint.classList.toggle('io-hint--warn', high);
   hint.textContent = high
-    ? `${value} peticiones a la vez contra el admin: si Magento empieza a rechazarlas o a ir lento, bajalo.`
-    : `Sin tope; ${CONCURRENCY_DEFAULT} por defecto. Cuantas fichas se piden en paralelo.`;
+    ? `${value} a la vez: por encima de ${CONCURRENCY_WARN - 1} el tunel de la VPN ya va lleno y solo se alargan las descargas (medido: 6 y 12 carriles rinden igual). Bajalo.`
+    : `Sin tope; ${CONCURRENCY_DEFAULT} por defecto. El limite es el tunel de la VPN (~320 KB/s con fichas de ~600 KB), asi que entre 4 y 8 rinde lo mismo: unas 30 fichas por minuto.`;
 }
 
 function updateOrdersHint(container) {
@@ -498,7 +514,21 @@ function renderProgress(container, run) {
   if (bar) bar.style.width = `${pct}%`;
 
   container.querySelector('#io-progress-detail').textContent = progressDetail(run);
+  container.querySelector('#io-progress-timing').textContent = progressTiming(run);
   renderLog(container.querySelector('#io-log'), run.log || []);
+}
+
+/** Ritmo, lo que falta y donde se va el tiempo de cada ficha. */
+function progressTiming(run) {
+  const summary = summarizeRun(run);
+  if (!summary) return '';
+  const parts = [describeSummary(summary)];
+  if (run.active && summary.pending && summary.etaMs != null) {
+    parts.push(`faltan ~${formatDuration(summary.etaMs)}`);
+  } else if (!run.active) {
+    parts.push(`en ${formatDuration(summary.elapsedMs)}`);
+  }
+  return parts.join(' - ');
 }
 
 function progressTitle(run) {
@@ -531,8 +561,11 @@ async function renderResults(container) {
     return;
   }
 
-  // La misma matriz que el CSV: lo que se ve es lo que se exporta.
-  const { headers, rows } = buildMatrix(records, { allColumns: readAllColumns(container) });
+  // La misma matriz que el CSV: lo que se ve es lo que se exporta. Con el
+  // perfil corto las columnas son fijas, asi que alcanza con matrizar las filas
+  // que se muestran; la union completa solo hace falta con todas las columnas.
+  const allColumns = readAllColumns(container);
+  const { headers, rows } = buildMatrix(allColumns ? records : records.slice(0, PREVIEW_ROWS), { allColumns });
   const visible = rows.slice(0, PREVIEW_ROWS);
   wrap.innerHTML = `
     <table class="io-table">
@@ -542,9 +575,9 @@ async function renderResults(container) {
       </tbody>
     </table>`;
   if (summary) {
-    summary.textContent = rows.length > visible.length
-      ? `Se muestran ${visible.length} de ${rows.length} filas.`
-      : `${rows.length} fila(s).`;
+    summary.textContent = records.length > visible.length
+      ? `Se muestran ${visible.length} de ${records.length} filas.`
+      : `${records.length} fila(s).`;
   }
 }
 

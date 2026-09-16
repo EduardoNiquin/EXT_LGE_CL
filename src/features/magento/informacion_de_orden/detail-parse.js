@@ -14,6 +14,7 @@
 import {
   DETAIL_SECTION,
   DETAIL_SELECTORS,
+  MAIN_CONTENT_RE,
   SECTION_LABEL,
   SHIPPING_LABEL,
   SHIPPING_TITLE_RE,
@@ -23,6 +24,21 @@ import { buildTransaction } from '../buscar-orden/transactions.js';
 // -----------------------------------------------------------------------------
 // API principal
 // -----------------------------------------------------------------------------
+
+/**
+ * Recorta el HTML de la ficha a su contenido principal (`<main id="anchor-content">`)
+ * antes de parsearlo: el resto es el menu del admin, la cabecera y los scripts,
+ * que no traen nada de la orden y son buena parte del documento. Si el marcador
+ * no esta (login, layout distinto) se devuelve el HTML entero, para no perder
+ * nada por un recorte fallido.
+ * @param {string} html
+ * @returns {string}
+ */
+export function mainContentOf(html) {
+  const source = String(html || '');
+  const match = MAIN_CONTENT_RE.exec(source);
+  return match ? match[0] : source;
+}
 
 /**
  * @param {Document} doc
@@ -60,8 +76,15 @@ export function parseOrderDetail(doc, { sections = {} } = {}) {
     parseTotals(doc).forEach(([label, value]) => push(SECTION_LABEL.totales, label, value));
   }
 
+  // Los logs vienen EMBEBIDOS en la ficha real (medido 16-09-2026: el bloque
+  // `.gerp-export-log` con el log completo y `.osms-export-log` con "No Data
+  // Found"). `logsEmbedded` dice si el contenedor esta, aunque venga vacio:
+  // solo si falta vale la pena pedir la pestana por AJAX.
+  const logsEmbedded = { erp: false, osms: false };
   if (wanted(DETAIL_SECTION.LOGS)) {
     parseCustomSection(doc).forEach(([label, value]) => push(SECTION_LABEL.inHouse, label, value));
+    logsEmbedded.erp = !!query(doc, DETAIL_SELECTORS.gerpLog);
+    logsEmbedded.osms = !!query(doc, DETAIL_SELECTORS.osmsLog);
     parseLogSection(doc, DETAIL_SELECTORS.gerpLog).forEach(([label, value]) => push(SECTION_LABEL.erp, label, value));
     parseLogSection(doc, DETAIL_SELECTORS.osmsLog).forEach(([label, value]) => push(SECTION_LABEL.osms, label, value));
   }
@@ -78,6 +101,7 @@ export function parseOrderDetail(doc, { sections = {} } = {}) {
     items: parseItems(doc),
     notes,
     transactions,
+    logsEmbedded,
   };
 }
 
@@ -189,7 +213,43 @@ function parseCustomSection(doc) {
 function parseLogSection(doc, selector) {
   const root = query(doc, selector);
   if (!root) return [];
-  return tablesToPairs(root);
+  const fromTables = tablesToPairs(root);
+  return fromTables.length ? fromTables : labeledPairs(root);
+}
+
+/**
+ * El markup REAL del ERP Export Log (medido 16-09-2026) no es una tabla:
+ *
+ *   <div class="gerp-export-log-item">
+ *     <h3>ERP Export Log #8474172</h3>
+ *     <label class="title">Status: </label><span>success</span><br>
+ *     <label class="title">Request Body: </label><span><textarea>{json}</textarea></span>
+ *
+ * Cada label se casa con el elemento que le sigue (el valor puede venir dentro
+ * de un textarea: el JSON que se le mando al ERP). Una orden puede tener mas
+ * de un item (varios envios al ERP): del segundo en adelante las etiquetas
+ * llevan sufijo, para no pisarse. Un bloque sin items (OSMS: <h3>No Data
+ * Found</h3>) emite solo su titulo, asi la columna dice que se miro y no
+ * habia nada, en vez de quedar vacia sin explicacion.
+ */
+function labeledPairs(root) {
+  const items = [...root.querySelectorAll('.gerp-export-log-item, .osms-export-log-item')];
+  const groups = items.length ? items : [root];
+  const pairs = [];
+  groups.forEach((group, index) => {
+    const suffix = index ? ` (${index + 1})` : '';
+    const title = cleanText(group.querySelector('h3')?.textContent);
+    if (title) pairs.push([`Log${suffix}`, title.replace(/^.*?(#\S+)$/, '$1')]);
+    group.querySelectorAll('label').forEach((label) => {
+      const key = cleanText(label.textContent).replace(/:$/, '');
+      const valueEl = label.nextElementSibling;
+      if (!key || !valueEl || valueEl.tagName === 'LABEL') return;
+      const textarea = valueEl.matches('textarea') ? valueEl : valueEl.querySelector('textarea');
+      const value = textarea ? String(textarea.textContent || '').trim() : cleanText(valueEl.textContent);
+      if (value) pairs.push([`${key}${suffix}`, value]);
+    });
+  });
+  return pairs;
 }
 
 /**

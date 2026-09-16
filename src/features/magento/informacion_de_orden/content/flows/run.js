@@ -18,19 +18,26 @@
 // Read-only: solo se piden paginas. No se toca ningun boton ni se navega.
 
 import {
+  CLAIM_SETTLE_MS,
   CLAIM_WATCHDOG_MS,
   FINISH_REASON,
+  HEARTBEAT_MS,
+  HEARTBEAT_STALE_MS,
   MAX_ORDERS,
   MAX_PAGES,
   MAX_RANGE_DAYS,
   ORDER_STATUS,
   ORDER_VIEW_PATH,
   PAGE_SIZE,
+  RESULT_FLUSH_MAX_MS,
+  RESULT_FLUSH_MIN_MS,
+  RESULT_FLUSH_PER_RECORD_MS,
   RUN_PHASE,
   SOURCE_MODE,
   clampConcurrency,
   expandSections,
 } from '../../constants.js';
+import { addTiming, describeSummary, formatDuration, summarizeRun } from '../../stats.js';
 import { appendLog, getRun, setResult, updateRun } from '../../state.js';
 import { buildRecord, makeMissingRecord } from '../../csv.js';
 import { adminBaseFrom, isAdminPage } from '../detector.js';
@@ -39,24 +46,39 @@ import { fetchOrderDetail } from '../order-page.js';
 import { ExtError, isAbortError, toMessage } from '../../../../../shared/errors/index.js';
 import { logger } from '../../../../../shared/utils/logger.js';
 import { resolveGridEndpoint } from '../endpoint.js';
+import { sleep } from '../../../../../shared/dom/wait.js';
 import { stripHtml } from '../../grid-parse.js';
 import { splitDateRange } from '../../grid-request.js';
 
 const log = logger('magento/informacion-de-orden');
 
-const FLUSH_INTERVAL_MS = 1500;
-
 let running = false;
 let activeCtrl = null;
+let activeToken = null; // el token con el que ESTE frame reclamo el run
+let released = false; // true si otro frame lo reclamo despues y este cedio
 let claimWatchdog = null;
 
 // ---------------------------------------------------------------------------
 // API publica (la usa content/index.js)
 // ---------------------------------------------------------------------------
 
-export async function tickIfActive() {
-  if (running) return;
-  const run = await getRun();
+/**
+ * @param {object|null} [latest]  el run tal como llego por storage.onChanged
+ *   (ahorra una lectura); sin el se lee de storage.
+ */
+export async function tickIfActive(latest = null) {
+  if (running) {
+    // Otro frame pudo reclamar la corrida DESPUES que este (dos pestanas del
+    // admin leyendo `claimed:false` a la vez). El que escribio ultimo gana;
+    // este suelta en silencio, sin marcar el run como cancelado.
+    const current = latest || await getRun();
+    if (current?.active && activeToken && current.claimed && current.claimed !== activeToken) {
+      log.warn('otro frame reclamo la corrida; este frame la suelta');
+      releaseActiveRun();
+    }
+    return;
+  }
+  const run = latest || await getRun();
   if (!run || !run.active) return;
 
   // Solo el frame que esta en el admin trabaja. Si ninguno lo esta, el top
@@ -68,17 +90,45 @@ export async function tickIfActive() {
   if (run.claimed) return;
 
   running = true;
+  released = false;
   cancelClaimWatchdog();
   const ctrl = new AbortController();
   activeCtrl = ctrl;
+  const token = makeClaimToken();
+  let heartbeat = null;
   try {
-    await updateRun((current) => ({ ...current, claimed: true }));
+    // Reclamo verificable: se escribe el token, se deja pasar un instante y se
+    // relee. Si otro frame escribio el suyo entre medio, gana el y este sale.
+    // `activeToken` recien se fija al confirmar: mientras se espera, el token
+    // del otro frame llega por storage.onChanged y NO debe hacer soltar (si no,
+    // los dos sueltan y el run queda reclamado sin nadie corriendo).
+    await updateRun((current) => ({ ...current, claimed: token, heartbeatAt: Date.now() }));
+    await sleep(CLAIM_SETTLE_MS, ctrl.signal);
+    const check = await getRun();
+    if (!check?.active) return;
+    if (check.claimed !== token) {
+      log.info('la corrida la reclamo otro frame');
+      return;
+    }
+    activeToken = token;
+    // Desde que pestana corre: con varias del admin abiertas no hay otra forma
+    // de saber cual no hay que cerrar ni navegar.
+    await patch({ claimedFrom: location.href });
+    await appendLog({ level: 'info', message: `Corriendo desde ${location.href}` });
+    // Latido: es lo que le dice a un content script recien arrancado (otra
+    // pestana, o esta recargada) que la corrida sigue viva en algun lado.
+    heartbeat = setInterval(() => {
+      patch({ heartbeatAt: Date.now() }).catch(() => { /* logueado en storage */ });
+    }, HEARTBEAT_MS);
     await runCapture({ run, signal: ctrl.signal });
+    if (released) return;
     // Cancelar aborta el signal y los workers salen en silencio: sin este
     // chequeo la corrida detenida quedaria marcada como terminada.
     await finalize(ctrl.signal.aborted ? FINISH_REASON.CANCELLED : FINISH_REASON.DONE);
   } catch (err) {
-    if (isAbortError(err, ctrl.signal)) {
+    if (released) {
+      log.info('corrida cedida a otro frame');
+    } else if (isAbortError(err, ctrl.signal)) {
       log.info('captura detenida');
       await finalize(FINISH_REASON.CANCELLED);
     } else {
@@ -86,8 +136,24 @@ export async function tickIfActive() {
       await finalize(FINISH_REASON.ERROR, toMessage(err));
     }
   } finally {
+    if (heartbeat) clearInterval(heartbeat);
     activeCtrl = null;
+    activeToken = null;
     running = false;
+  }
+}
+
+function makeClaimToken() {
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+/** Suelta la corrida porque la reclamo otro frame: aborta sin finalizar. */
+function releaseActiveRun() {
+  released = true;
+  try {
+    activeCtrl?.abort();
+  } catch {
+    /* no-op */
   }
 }
 
@@ -106,10 +172,34 @@ export function abortActiveRun() {
 /**
  * Un reload mata el flujo async y los registros que todavia no se volcaron.
  * Lo capturado hasta el ultimo volcado sigue en storage.
+ *
+ * Pero un content script que arranca no sabe si el run reclamado es de ESTA
+ * pestana (que se recargo) o de otra que sigue viva: lo decide el latido. Si
+ * esta fresco, se vuelve a mirar cuando ya deberia haberse renovado; recien
+ * si sigue viejo se da por interrumpido.
  */
 export async function reconcileOnInit() {
   const run = await getRun();
   if (!run?.active || !run.claimed) return;
+  if (heartbeatStale(run)) {
+    await finalizeInterrupted();
+    return;
+  }
+  setTimeout(async () => {
+    try {
+      const again = await getRun();
+      if (again?.active && again.claimed && heartbeatStale(again)) await finalizeInterrupted();
+    } catch (err) {
+      log.warn('no se pudo revisar el latido de la corrida', { error: toMessage(err) });
+    }
+  }, HEARTBEAT_STALE_MS);
+}
+
+function heartbeatStale(run) {
+  return Date.now() - (Number(run.heartbeatAt) || 0) > HEARTBEAT_STALE_MS;
+}
+
+async function finalizeInterrupted() {
   log.warn('la captura quedo interrumpida por una recarga');
   await finalize(
     FINISH_REASON.ERROR,
@@ -158,7 +248,9 @@ async function runCapture({ run, signal }) {
   });
 
   const pending = targets.filter((target) => !target.missing).length;
-  await patch({ phase: RUN_PHASE.FETCHING, total: targets.length });
+  // `fetchStartedAt` es desde donde se mide el ritmo: el descubrimiento no
+  // cuenta, que son otras peticiones y otro costo.
+  await patch({ phase: RUN_PHASE.FETCHING, total: targets.length, fetchStartedAt: Date.now() });
   await appendLog({
     level: 'info',
     message: `Entrando a ${pending} ficha(s) de orden; ${concurrency} a la vez.`,
@@ -185,7 +277,7 @@ async function captureTarget({ target, index, collector, sections, signal }) {
   try {
     const detail = await fetchOrderDetail({ href: target.viewHref, sections, signal });
     collector.setSlot(index, buildRecord({ item: target.item, detail, viewHref: target.viewHref }));
-    await bumpProgress({ ok: 1 });
+    await bumpProgress({ ok: 1, timing: detail.timing });
     await collector.flush();
   } catch (err) {
     if (isAbortError(err, signal)) return;
@@ -410,11 +502,17 @@ function toTarget(item) {
  * miles de filas en cada orden seria carisimo, y no volcar nunca perderia todo
  * si el usuario cierra la pestana. Los slots mantienen el orden del listado
  * aunque los workers terminen desordenados.
+ *
+ * Cada volcado escribe el resultado ENTERO (chrome.storage no sabe de
+ * "agregar"), asi que su costo crece con lo capturado: con un intervalo fijo,
+ * una corrida larga terminaba gastando mas en serializar que en pedir fichas.
+ * El intervalo crece con el numero de registros (`flushIntervalFor`).
  */
 function createCollector({ signal }) {
   const slots = [];
   let lastFlush = 0;
   let pending = false;
+  let stored = 0;
 
   const flatten = () => slots.filter(Boolean);
 
@@ -426,11 +524,13 @@ function createCollector({ signal }) {
     async flush(force = false) {
       if (!pending && !force) return;
       const now = Date.now();
-      if (!force && now - lastFlush < FLUSH_INTERVAL_MS) return;
+      if (!force && now - lastFlush < flushIntervalFor(stored)) return;
       lastFlush = now;
       pending = false;
       try {
-        await setResult({ generatedAt: now, records: flatten() });
+        const records = flatten();
+        await setResult({ generatedAt: now, records });
+        stored = records.length;
       } catch (err) {
         if (isAbortError(err, signal)) throw err;
         log.warn('no se pudo guardar el resultado', { error: toMessage(err) });
@@ -443,6 +543,12 @@ function createCollector({ signal }) {
   };
 }
 
+/** Cada cuanto volcar segun cuantos registros ya se escribieron. */
+export function flushIntervalFor(records) {
+  const scaled = RESULT_FLUSH_MIN_MS + Math.max(0, records) * RESULT_FLUSH_PER_RECORD_MS;
+  return Math.min(RESULT_FLUSH_MAX_MS, scaled);
+}
+
 // ---------------------------------------------------------------------------
 // Estado
 // ---------------------------------------------------------------------------
@@ -451,13 +557,14 @@ function patch(fields) {
   return updateRun((run) => ({ ...run, ...fields }));
 }
 
-function bumpProgress({ ok = 0, notFound = 0, error = 0 }) {
+function bumpProgress({ ok = 0, notFound = 0, error = 0, timing = null }) {
   return updateRun((run) => ({
     ...run,
     doneCount: (run.doneCount || 0) + 1,
     okCount: (run.okCount || 0) + ok,
     notFoundCount: (run.notFoundCount || 0) + notFound,
     errorCount: (run.errorCount || 0) + error,
+    stats: timing ? addTiming(run.stats, timing) : run.stats,
   }));
 }
 
@@ -476,6 +583,15 @@ async function finalize(reason, error = '') {
     ? `Captura terminada con error: ${error}`
     : `Captura terminada (${run.okCount || 0} ficha(s) leidas).`;
   await appendLog({ level: error ? 'error' : 'info', message });
+
+  // Donde se fue el tiempo, para que la proxima corrida no se configure a ciegas.
+  const summary = summarizeRun(run);
+  if (summary) {
+    await appendLog({
+      level: 'info',
+      message: `${summary.done} ficha(s) en ${formatDuration(summary.elapsedMs)}: ${describeSummary(summary)}.`,
+    });
+  }
 }
 
 // ---------------------------------------------------------------------------

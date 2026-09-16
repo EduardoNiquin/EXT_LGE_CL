@@ -161,7 +161,9 @@ export function wireAsyncRunLifecycle({
 
   subscribeToRun((run) => {
     if (run && run.active) {
-      Promise.resolve(tickIfActive()).catch((err) => log.error?.('tickIfActive falló', err));
+      // Se pasa el run recien llegado: quien lo quiera se ahorra la lectura
+      // (Informacion de Orden lo usa para detectar que otro frame lo reclamo).
+      Promise.resolve(tickIfActive(run)).catch((err) => log.error?.('tickIfActive falló', err));
     } else if (abortActiveRun) {
       abortActiveRun();
     }
