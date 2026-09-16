@@ -75,14 +75,16 @@ export const MAX_ORDERS = 5000; // tope duro de fichas por corrida
 // -----------------------------------------------------------------------------
 
 export const CONCURRENCY_MIN = 1;
-export const CONCURRENCY_MAX = 8;
 export const CONCURRENCY_DEFAULT = 4;
+
+
 
 /** Restringe el paralelismo al rango permitido (fallback al valor por defecto). */
 export function clampConcurrency(value) {
+  if (String(value ?? '').trim() === '') return CONCURRENCY_DEFAULT;
   const n = Math.round(Number(value));
   if (!Number.isFinite(n)) return CONCURRENCY_DEFAULT;
-  return Math.max(CONCURRENCY_MIN, Math.min(CONCURRENCY_MAX, n));
+  return Math.max(CONCURRENCY_MIN, n);
 }
 
 // -----------------------------------------------------------------------------

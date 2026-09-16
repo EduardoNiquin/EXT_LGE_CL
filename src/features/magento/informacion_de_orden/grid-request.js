@@ -5,7 +5,7 @@
 // servidor contesta 200 con un cuerpo `ORDER_FILTER_ERROR`. Por eso van siempre,
 // aunque lo que se busque sea una sola orden.
 
-import { GRID_NAMESPACE, LIST_PAGE_SIZE, PAGE_SIZE, STORE_ID } from './constants.js';
+import { GRID_NAMESPACE, LIST_PAGE_SIZE, MAX_RANGE_DAYS, PAGE_SIZE, STORE_ID } from './constants.js';
 
 /**
  * Fecha del datepicker del grid: M/DD/YYYY, con el mes SIN cero a la izquierda.
@@ -60,10 +60,38 @@ export function buildGridUrl(endpoint, options) {
   return `${base}${base.includes('?') ? '&' : '?'}${buildGridParams(options).toString()}`;
 }
 
+const DAY_MS = 86400000;
+
+function isoTimestamp(value) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(value || '').trim());
+  if (!match) return NaN;
+  const [, year, month, day] = match;
+  const time = Date.UTC(Number(year), Number(month) - 1, Number(day));
+  return new Date(time).toISOString().slice(0, 10) === `${year}-${month}-${day}` ? time : NaN;
+}
+
 /** Dias que abarca un rango (ambos extremos ISO). NaN si alguno es invalido. */
 export function rangeDays(from, to) {
-  const start = Date.parse(`${from}T00:00:00`);
-  const end = Date.parse(`${to}T00:00:00`);
+  const start = isoTimestamp(from);
+  const end = isoTimestamp(to);
   if (Number.isNaN(start) || Number.isNaN(end)) return NaN;
-  return Math.round((end - start) / 86400000);
+  return Math.round((end - start) / DAY_MS);
+}
+
+export function splitDateRange(from, to, maxDays = MAX_RANGE_DAYS) {
+  const start = isoTimestamp(from);
+  const end = isoTimestamp(to);
+  const span = Math.floor(Number(maxDays));
+  if (Number.isNaN(start) || Number.isNaN(end) || end < start || !Number.isFinite(span) || span < 0) return [];
+
+  const ranges = [];
+  for (let cursorEnd = end; cursorEnd >= start;) {
+    const cursorStart = Math.max(start, cursorEnd - span * DAY_MS);
+    ranges.push({
+      from: new Date(cursorStart).toISOString().slice(0, 10),
+      to: new Date(cursorEnd).toISOString().slice(0, 10),
+    });
+    cursorEnd = cursorStart - DAY_MS;
+  }
+  return ranges;
 }

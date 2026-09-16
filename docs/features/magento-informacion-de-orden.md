@@ -6,7 +6,7 @@ en un **CSV, una fila por orden**, con el número de orden como primera columna.
 "Entrar" es pedir **por `fetch` el mismo enlace que abre el operador** y leer su HTML con
 `DOMParser`. Es el mismo origen y la misma sesión que la pestaña, así que el servidor devuelve
 exactamente la página que se vería; la diferencia es que **no ocupa la pestaña** y permite pedir
-varias órdenes a la vez (selector de 1-8).
+varias ordenes a la vez (campo numerico sin tope; 4 por defecto).
 
 > No confundir con la feature **Información de Orden** (`orden-info`), que muestra **una** orden en
 > el popup leyendo la ficha que ya está abierta. Esta recorre **muchas** y entrega un archivo.
@@ -20,10 +20,10 @@ navegador del usuario.
 src/features/magento/informacion_de_orden/
 ├── constants.js     MODULE_ID, STORAGE_KEYS, SOURCE_MODE, RUN_PHASE, ORDER_STATUS, FINISH_REASON,
 │                    FILTER_ERROR_PREFIX, MAX_RANGE_DAYS(28), STORE_ID(123), PAGE_SIZE(200),
-│                    CONCURRENCY_{MIN,MAX,DEFAULT}(1/8/4) + clampConcurrency(), DETAIL_SECTION(+CHOICES,
+│                    CONCURRENCY_{MIN,DEFAULT}(1/4) + clampConcurrency(), DETAIL_SECTION(+CHOICES,
 │                    DEFAULT_SECTIONS, expandSections), DETAIL_SELECTORS, TAB_URL_RE, SECTION_LABEL,
 │                    GRID_COLUMNS, PAYMENT_COLUMNS, ITEM_COLUMNS, META_COLUMNS
-├── grid-request.js  puro: toGridDate · buildGridParams · buildGridUrl · rangeDays
+├── grid-request.js  puro: toGridDate · buildGridParams · buildGridUrl · rangeDays · splitDateRange
 ├── grid-parse.js    puro: isFilterError · filterErrorMessage · extractGridData · extractUpdateUrl
 │                          · stripHtml · moneyValue · parseJsonField
 ├── detail-parse.js  puro (sobre un Document): parseOrderDetail · parseLogFragment · parseNotesFragment
@@ -108,7 +108,9 @@ puro y ya probado) en vez de duplicar 130 líneas de parseo de notas de pasarela
   el Purchase Point, el rango supera 1 mes).
 - **Los tres filtros del grid son obligatorios**: rango de `created_at`, `store_id` (Purchase Point)
   y que no pase de un mes. Van siempre, aunque se busque una sola orden. El tope seguro son **28
-  días** (29 pasó, 60 falló).
+  dias** (29 paso, 60 fallo). Los rangos mayores se dividen desde la fecha mas reciente en ventanas
+  sin superposicion y se juntan antes de capturar las fichas. En modo lista, cada numero se busca por
+  esas ventanas hasta encontrar una coincidencia exacta.
 - **La key de las URLs caduca y cambia por sesión.** `resolveGridEndpoint()` la resuelve en runtime:
   del documento actual si la pestaña está en el listado, si no con un `fetch` al listado. Se descartó
   pedírsela al bridge del mundo MAIN: no aporta sobre parsear el HTML, que además funciona fuera del
@@ -147,8 +149,8 @@ archivo como dato sensible.
 
 ## UI popup
 
-Rango Desde/Hasta con aviso del tope de Magento · radio **Todo el rango / Solo estas órdenes**
-(textarea + **Subir CSV**, ambos por el mismo parser) · **Consultas simultáneas 1-8** · las cuatro
+Rango Desde/Hasta con aviso de la division automatica en ventanas · radio **Todo el rango / Solo estas ordenes**
+(textarea + **Subir CSV**, ambos por el mismo parser) · **Consultas simultaneas** sin tope (4 por defecto) · las cuatro
 casillas de secciones con su explicación · Iniciar/Detener/Limpiar · progreso en vivo · tabla de
 resultados con **la misma matriz que el CSV** (primeras 150 filas) · Copiar/Descargar CSV ·
 `<details>` con el registro. Estilos `.io-*` en `popup.css`.
@@ -163,7 +165,7 @@ resultados con **la misma matriz que el CSV** (primeras 150 filas) · Copiar/Des
 
 ## Tests
 
-Tres archivos, 64 casos. Los dos que tocan DOM usan **happy-dom** (`@vitest-environment happy-dom`),
+Tres archivos, 68 casos. Los dos que tocan DOM usan **happy-dom** (`@vitest-environment happy-dom`),
 agregado al proyecto para esto.
 
 - `magento-informacion-de-orden.test.js` — lo puro: fecha y filtros obligatorios del grid, los tres
@@ -177,7 +179,8 @@ agregado al proyecto para esto.
   ficha, y el CSV (columnas dinámicas, resumen de ítems, dos órdenes con campos distintos que no se
   corren, una ficha fallida que sale marcada).
 - `magento-informacion-de-orden-run.test.js` — el motor con `chrome` y `fetch` de mentira: **el orden
-  no depende de cuál ficha conteste antes**, la paginación del listado, el tope de simultáneas, una
+  no depende de cual ficha conteste antes**, la paginacion del listado, rangos largos en ambos modos,
+  concurrencia mayor a 8, una
   ficha caída, una ficha vacía por sesión caída, una página del listado caída, rango vacío,
   `ORDER_FILTER_ERROR`, los logs AJAX solo si la sección está activa (y que un log inaccesible no
   invalide la orden), el modo lista con su `not-found`, y el ciclo de vida (fuera del admin, ya
@@ -187,7 +190,8 @@ agregado al proyecto para esto.
 
 - **Una petición por orden** (dos si se piden los logs): un rango ancho son miles. El pool ayuda,
   pero conviene acotar el rango.
-- El rango es obligatorio y ≤28 días; tope de `MAX_ORDERS` (5000) fichas por corrida.
+- El rango es obligatorio; cada consulta cubre hasta 28 dias y los rangos mayores se segmentan. Se
+  mantiene el tope de `MAX_ORDERS` (5000) fichas por corrida.
 - No se ejecuta el JS de la página: lo que la ficha arme en el cliente fuera de las pestañas AJAX
   contempladas no se ve.
 - Requiere sesión de admin iniciada y una pestaña en el admin; si se cierra a media corrida se

@@ -178,6 +178,32 @@ describe('captura por rango', () => {
     expect(captured[0].extra[0]).toContain('/sales/order/view/order_id/e1/');
   });
 
+  it('divide un rango largo y junta las ordenes de todos los bloques', async () => {
+    const windows = [];
+    globalThis.fetch = vi.fn(async (url) => {
+      if (isDetail(url)) return detailResponse(orderOf(url));
+      const params = new URL(url).searchParams;
+      windows.push({
+        from: params.get('filters[created_at][from]'),
+        to: params.get('filters[created_at][to]'),
+      });
+      return gridResponse([order(windows.length)], 1);
+    });
+
+    seedRun(rangeConfig({ from: '2026-06-01', to: '2026-09-09' }));
+    const { tickIfActive } = await loadRun();
+    await tickIfActive();
+
+    expect(windows).toEqual([
+      { from: '8/12/2026', to: '9/09/2026' },
+      { from: '7/14/2026', to: '8/11/2026' },
+      { from: '6/15/2026', to: '7/13/2026' },
+      { from: '6/01/2026', to: '6/14/2026' },
+    ]);
+    expect(currentRun().totalRecords).toBe(4);
+    expect(records().map((record) => record.incrementId)).toEqual(['1', '2', '3', '4']);
+  });
+
   it('pagina el listado antes de entrar a las fichas', async () => {
     globalThis.fetch = vi.fn(async (url) => {
       if (isDetail(url)) return detailResponse(orderOf(url));
@@ -216,6 +242,26 @@ describe('captura por rango', () => {
 
     expect(peak).toBeLessThanOrEqual(2);
     expect(currentRun().okCount).toBe(6);
+  });
+
+  it('permite mas de 8 consultas simultaneas', async () => {
+    let live = 0;
+    let peak = 0;
+    globalThis.fetch = vi.fn(async (url) => {
+      if (!isDetail(url)) return gridResponse(Array.from({ length: 12 }, (_, i) => order(i + 1)), 12);
+      live += 1;
+      peak = Math.max(peak, live);
+      await sleep(8);
+      live -= 1;
+      return detailResponse(orderOf(url));
+    });
+
+    seedRun(rangeConfig({ concurrency: 12 }));
+    const { tickIfActive } = await loadRun();
+    await tickIfActive();
+
+    expect(peak).toBe(12);
+    expect(currentRun().okCount).toBe(12);
   });
 
   it('una ficha caida no tira el recorrido: esa orden sale marcada', async () => {
@@ -368,6 +414,29 @@ describe('captura por lista', () => {
     expect(captured.map((record) => record.incrementId)).toEqual(['111', '999', '222']);
     expect(captured[1].status).toBe('not-found');
     expect(captured[0].detail['Orden - Placed from IP']).toBe('200.0.0.111');
+  });
+
+  it('busca cada orden por bloques cuando el rango es largo', async () => {
+    const windows = [];
+    globalThis.fetch = vi.fn(async (url) => {
+      if (isDetail(url)) return detailResponse(orderOf(url));
+      const params = new URL(url).searchParams;
+      windows.push(params.get('filters[created_at][from]'));
+      return windows.length === 4 ? gridResponse([order('111')], 1) : gridResponse([], 0);
+    });
+
+    seedRun(rangeConfig({
+      from: '2026-06-01',
+      to: '2026-09-09',
+      mode: 'list',
+      orderNumbers: ['111'],
+    }));
+    const { tickIfActive } = await loadRun();
+    await tickIfActive();
+
+    expect(windows).toEqual(['8/12/2026', '7/14/2026', '6/15/2026', '6/01/2026']);
+    expect(currentRun().okCount).toBe(1);
+    expect(records()[0].incrementId).toBe('111');
   });
 });
 

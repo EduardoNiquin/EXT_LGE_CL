@@ -22,6 +22,7 @@ import {
   FINISH_REASON,
   MAX_ORDERS,
   MAX_PAGES,
+  MAX_RANGE_DAYS,
   ORDER_STATUS,
   ORDER_VIEW_PATH,
   PAGE_SIZE,
@@ -35,10 +36,11 @@ import { buildRecord, makeMissingRecord } from '../../csv.js';
 import { adminBaseFrom, isAdminPage } from '../detector.js';
 import { fetchGridPage } from '../client.js';
 import { fetchOrderDetail } from '../order-page.js';
-import { isAbortError, toMessage } from '../../../../../shared/errors/index.js';
+import { ExtError, isAbortError, toMessage } from '../../../../../shared/errors/index.js';
 import { logger } from '../../../../../shared/utils/logger.js';
 import { resolveGridEndpoint } from '../endpoint.js';
 import { stripHtml } from '../../grid-parse.js';
+import { splitDateRange } from '../../grid-request.js';
 
 const log = logger('magento/informacion-de-orden');
 
@@ -123,6 +125,8 @@ async function runCapture({ run, signal }) {
   const config = run.config || {};
   const sections = expandSections(config.sections);
   const concurrency = clampConcurrency(config.concurrency);
+  const dateRanges = splitDateRange(config.from, config.to);
+  if (!dateRanges.length) throw new ExtError('El rango de fechas no es valido.', { code: 'IO_INVALID_RANGE' });
 
   await patch({ phase: RUN_PHASE.ENDPOINT });
   const { endpoint, via } = await resolveGridEndpoint({ signal });
@@ -130,9 +134,15 @@ async function runCapture({ run, signal }) {
   await appendLog({ level: 'info', message: `Key del grid resuelta (${via}).` });
 
   await patch({ phase: RUN_PHASE.DISCOVERING });
+  if (dateRanges.length > 1) {
+    await appendLog({
+      level: 'info',
+      message: `El rango se consultara en ${dateRanges.length} bloques de hasta ${MAX_RANGE_DAYS} dias.`,
+    });
+  }
   const targets = config.mode === SOURCE_MODE.LIST
-    ? await discoverFromList({ config, endpoint, concurrency, signal })
-    : await discoverFromRange({ config, endpoint, concurrency, signal });
+    ? await discoverFromList({ config, dateRanges, endpoint, concurrency, signal })
+    : await discoverFromRanges({ dateRanges, endpoint, concurrency, signal });
 
   if (!targets.length) {
     await appendLog({ level: 'warn', message: 'No hay ordenes que capturar.' });
@@ -199,14 +209,35 @@ async function detailWorker({ queue, targets, collector, sections, signal }) {
 // Fase 1: de donde salen los enlaces
 // ---------------------------------------------------------------------------
 
+async function discoverFromRanges({ dateRanges, endpoint, concurrency, signal }) {
+  const targets = [];
+  let totalRecords = 0;
+
+  for (const range of dateRanges) {
+    if (signal.aborted) break;
+    const chunk = await discoverFromRange({ config: range, endpoint, concurrency, signal });
+    targets.push(...chunk.targets);
+    totalRecords += chunk.totalRecords;
+  }
+
+  await patch({ totalRecords });
+  if (targets.length > MAX_ORDERS) {
+    await appendLog({
+      level: 'warn',
+      message: `Se capturan las primeras ${MAX_ORDERS} ordenes de ${targets.length}.`,
+    });
+    return targets.slice(0, MAX_ORDERS);
+  }
+  return targets;
+}
+
 /** Modo rango: pagina 1 para saber cuantas hay, el resto del listado en paralelo. */
 async function discoverFromRange({ config, endpoint, concurrency, signal }) {
   const query = { from: config.from, to: config.to, pageSize: PAGE_SIZE };
   const first = await fetchGridPage({ endpoint, query: { ...query, page: 1 }, signal });
 
   const totalRecords = first.totalRecords || 0;
-  await patch({ totalRecords });
-  if (!totalRecords) return [];
+  if (!totalRecords) return { targets: [], totalRecords };
 
   const pages = Math.min(Math.ceil(totalRecords / PAGE_SIZE), MAX_PAGES);
   await appendLog({ level: 'info', message: `${totalRecords} orden(es) en el rango (${pages} pagina(s) del listado).` });
@@ -240,13 +271,27 @@ async function discoverFromRange({ config, endpoint, concurrency, signal }) {
       level: 'warn',
       message: `Se capturan las primeras ${MAX_ORDERS} ordenes de ${targets.length}.`,
     });
-    return targets.slice(0, MAX_ORDERS);
+    return { targets: targets.slice(0, MAX_ORDERS), totalRecords };
   }
-  return targets;
+  return { targets, totalRecords };
+}
+
+async function findOrderInRanges({ dateRanges, endpoint, incrementId, signal }) {
+  for (const range of dateRanges) {
+    if (signal.aborted) return null;
+    const data = await fetchGridPage({
+      endpoint,
+      query: { ...range, incrementId, page: 1 },
+      signal,
+    });
+    const match = data.items.find((item) => stripHtml(item.increment_id) === String(incrementId));
+    if (match) return match;
+  }
+  return null;
 }
 
 /** Modo lista: una consulta por numero de orden, repartidas en el pool. */
-async function discoverFromList({ config, endpoint, concurrency, signal }) {
+async function discoverFromList({ config, dateRanges, endpoint, concurrency, signal }) {
   const numbers = (Array.isArray(config.orderNumbers) ? config.orderNumbers : []).slice(0, MAX_ORDERS);
   await patch({ totalRecords: numbers.length });
   if (!numbers.length) return [];
@@ -261,13 +306,14 @@ async function discoverFromList({ config, endpoint, concurrency, signal }) {
         if (signal.aborted) return;
         const incrementId = numbers[index];
         try {
-          const data = await fetchGridPage({
+          const match = await findOrderInRanges({
             endpoint,
-            query: { from: config.from, to: config.to, incrementId, page: 1 },
+            dateRanges,
+            incrementId,
             signal,
           });
           // El filtro de Magento es "contiene": la fila se casa exacto aca.
-          const match = data.items.find((item) => stripHtml(item.increment_id) === String(incrementId));
+
           targets[index] = match
             ? toTarget(match)
             : { incrementId, missing: { status: ORDER_STATUS.NOT_FOUND } };

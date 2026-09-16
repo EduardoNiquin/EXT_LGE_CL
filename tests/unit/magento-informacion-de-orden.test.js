@@ -5,7 +5,7 @@
 // El parser de la ficha y el CSV viven en `*-ficha.test.js`, que necesita DOM.
 
 import { describe, expect, it } from 'vitest';
-import { buildGridParams, buildGridUrl, rangeDays, toGridDate } from '../../src/features/magento/informacion_de_orden/grid-request.js';
+import { buildGridParams, buildGridUrl, rangeDays, splitDateRange, toGridDate } from '../../src/features/magento/informacion_de_orden/grid-request.js';
 import {
   extractGridData,
   extractUpdateUrl,
@@ -70,6 +70,15 @@ describe('grid-request', () => {
     expect(rangeDays('2026-09-01', '2026-09-15')).toBe(14);
     expect(rangeDays('2026-09-15', '2026-09-01')).toBe(-14);
     expect(Number.isNaN(rangeDays('', '2026-09-01'))).toBe(true);
+  });
+
+  it('divide rangos largos en bloques sin superposicion, desde el mas reciente', () => {
+    expect(splitDateRange('2026-06-01', '2026-09-09')).toEqual([
+      { from: '2026-08-12', to: '2026-09-09' },
+      { from: '2026-07-14', to: '2026-08-11' },
+      { from: '2026-06-15', to: '2026-07-13' },
+      { from: '2026-06-01', to: '2026-06-14' },
+    ]);
   });
 });
 
@@ -350,12 +359,13 @@ describe('parseOrderNumbers', () => {
 });
 
 describe('clampConcurrency', () => {
-  it('respeta el rango 1-8 y cae al default con basura', () => {
+  it('acepta cualquier entero positivo y cae al default con basura', () => {
     expect(clampConcurrency(1)).toBe(1);
     expect(clampConcurrency(8)).toBe(8);
     expect(clampConcurrency(0)).toBe(1);
-    expect(clampConcurrency(99)).toBe(8);
+    expect(clampConcurrency(99)).toBe(99);
     expect(clampConcurrency('x')).toBe(4);
     expect(clampConcurrency(undefined)).toBe(4);
+    expect(clampConcurrency('')).toBe(4);
   });
 });

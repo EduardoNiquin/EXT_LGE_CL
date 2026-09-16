@@ -7,8 +7,9 @@
 import {
   ADMIN_BASE_RE,
   CONCURRENCY_DEFAULT,
-  CONCURRENCY_MAX,
   CONCURRENCY_MIN,
+
+
   DEFAULT_RANGE_DAYS,
   DEFAULT_SECTIONS,
   DETAIL_SECTION_CHOICES,
@@ -37,7 +38,7 @@ import { downloadText, escapeHtml, formatTime } from '../../popup/utils.js';
 import { getActiveTab } from '../../../../shared/messaging/messaging.js';
 import { logger } from '../../../../shared/utils/logger.js';
 import { parseOrderNumbers } from '../parse-input.js';
-import { rangeDays } from '../grid-request.js';
+import { rangeDays, splitDateRange } from '../grid-request.js';
 import { toMessage } from '../../../../shared/errors/index.js';
 
 const log = logger('magento/popup');
@@ -75,7 +76,7 @@ export async function render(container) {
         <p class="lt-hint">Entra a la ficha de cada orden del rango y deja lo que hay ahi en un CSV, una fila por orden: cliente y direcciones completas, items, totales, pago e historial. Pide las paginas con tu misma sesion, sin navegar la pestana ni abrir ventanas.</p>
         <div class="mg-notice">
           <strong>Antes de iniciar</strong>
-          <span>Deja una pestana abierta en el admin de Magento con la sesion iniciada. Magento exige un rango de fechas de hasta ${MAX_RANGE_DAYS} dias.</span>
+          <span>Deja una pestana abierta en el admin de Magento con la sesion iniciada. Cada consulta usa hasta ${MAX_RANGE_DAYS} dias; los rangos mas largos se dividen y se juntan automaticamente.</span>
         </div>
 
         <div class="dt-row">
@@ -118,9 +119,9 @@ export async function render(container) {
         <div class="dt-row">
           <div class="dt-field dt-field--half">
             <label class="dt-label" for="io-concurrency">Consultas simultaneas</label>
-            <select id="io-concurrency" class="dt-input">
-              ${concurrencyOptions(config.concurrency)}
-            </select>
+            <input type="number" id="io-concurrency" class="dt-input" min="${CONCURRENCY_MIN}" step="1" value="${concurrencyValue(config.concurrency)}">
+
+
           </div>
         </div>
 
@@ -211,13 +212,8 @@ function alive(container) {
 // formulario
 // -----------------------------------------------------------------------------
 
-function concurrencyOptions(selected) {
-  const value = clampConcurrency(selected);
-  const options = [];
-  for (let n = CONCURRENCY_MIN; n <= CONCURRENCY_MAX; n += 1) {
-    options.push(`<option value="${n}" ${n === value ? 'selected' : ''}>${n}</option>`);
-  }
-  return options.join('');
+function concurrencyValue(selected) {
+  return clampConcurrency(selected);
 }
 
 function wireForm(container) {
@@ -313,8 +309,8 @@ function updateRangeHint(container) {
     return;
   }
   if (days > MAX_RANGE_DAYS) {
-    hint.textContent = `El rango es de ${days + 1} dias. Magento corta en 1 mes: usa ${MAX_RANGE_DAYS} dias o menos.`;
-    hint.classList.add('io-hint--error');
+    const blocks = splitDateRange(from, to).length;
+    hint.textContent = `Rango de ${days + 1} dias: se consultara en ${blocks} bloques de hasta ${MAX_RANGE_DAYS} dias y se juntaran los resultados.`;
     return;
   }
   hint.textContent = `Rango de ${days + 1} dia(s).`;
@@ -361,8 +357,7 @@ async function onStart(container) {
     return;
   }
   if (days > MAX_RANGE_DAYS) {
-    alert(`El rango no puede superar ${MAX_RANGE_DAYS} dias: Magento rechaza la consulta.`);
-    return;
+    log.info(`el rango se dividira en ${splitDateRange(form.from, form.to).length} bloques`);
   }
 
   const { numbers } = parseOrderNumbers(form.orders);
