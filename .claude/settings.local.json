@@ -51,7 +51,13 @@
       "Bash(python3 -c *)",
       "Bash(python -c *)",
       "Bash(python *)",
-      "Bash(npx vite build*)"
+      "Bash(npx vite build*)",
+      "Bash(rm -rf \".browser-profile-chrome/Default/Service Worker\" \".browser-profile-chrome/Default/Code Cache\")",
+      "Bash(npx vitest run *)",
+      "Bash(curl -s http://127.0.0.1:9222/json/*)",
+      "mcp__chrome-devtools__new_page",
+      "mcp__chrome-devtools__press_key",
+      "mcp__chrome-devtools__handle_dialog"
     ]
   }
 }

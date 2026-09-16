@@ -11,7 +11,13 @@
 // posicion ni se asume presente: se recorren los pares <th>/<td> tal como
 // esten y cada par se emite como un campo con su etiqueta.
 
-import { DETAIL_SECTION, DETAIL_SELECTORS, SECTION_LABEL } from './constants.js';
+import {
+  DETAIL_SECTION,
+  DETAIL_SELECTORS,
+  SECTION_LABEL,
+  SHIPPING_LABEL,
+  SHIPPING_TITLE_RE,
+} from './constants.js';
 import { buildTransaction } from '../buscar-orden/transactions.js';
 
 // -----------------------------------------------------------------------------
@@ -111,27 +117,40 @@ function parseAddresses(doc) {
 /**
  * Bloque de pago. Con marketplace NO tiene tabla de campos, solo el titulo: un
  * parser que espere filas devuelve vacio, asi que el titulo se emite igual.
+ *
+ * En varias fichas el elemento del titulo ENVUELVE a la tabla de campos, asi
+ * que leerlo entero daba "Webpay - ... Payment Type Code: VN Transaction
+ * Status: ..." duplicando en `Metodo` lo que ya sale en su propia columna. Las
+ * tablas se sacan antes de leer el texto.
  */
 function parsePayment(doc) {
   const root = query(doc, DETAIL_SELECTORS.paymentMethod);
   if (!root) return [];
   const pairs = [];
-  const title = cleanText(root.querySelector(DETAIL_SELECTORS.paymentTitle)?.textContent);
+  const titleEl = root.querySelector(DETAIL_SELECTORS.paymentTitle);
+  const title = titleEl ? textWithout(titleEl, 'table') : '';
   if (title) pairs.push(['Metodo', title]);
   root.querySelectorAll('table').forEach((table) => pairs.push(...tableToPairs(table)));
   return pairs;
 }
 
+/**
+ * Metodo de envio. Sin tabla hay que leer el bloque entero, y ahi se colaba el
+ * rotulo de la seccion ("Shipping & Handling Information Shipping $15.990"):
+ * se prefiere el contenido y, si no esta, se descarta el titulo. La etiqueta se
+ * unifica para que la columna sea la misma vengan o no los datos en tabla.
+ */
 function parseShipping(doc) {
   const root = query(doc, DETAIL_SELECTORS.shippingMethod);
   if (!root) return [];
   const pairs = [];
   root.querySelectorAll('table').forEach((table) => pairs.push(...tableToPairs(table)));
-  if (!pairs.length) {
-    const text = cellText(root);
-    if (text) pairs.push(['Metodo de envio', text]);
+  if (pairs.length) {
+    return pairs.map(([label, value]) => [SHIPPING_TITLE_RE.test(label) ? SHIPPING_LABEL : label, value]);
   }
-  return pairs;
+  const content = root.querySelector(DETAIL_SELECTORS.sectionContent);
+  const text = content ? cellText(content) : textWithout(root, DETAIL_SELECTORS.sectionTitle);
+  return text ? [[SHIPPING_LABEL, text]] : [];
 }
 
 /**
@@ -261,6 +280,14 @@ function tableToPairs(table) {
     if (label && value) pairs.push([label, value]);
   });
   return pairs;
+}
+
+/** Texto de un elemento salteando lo que matchee `selector` (tablas, titulos). */
+function textWithout(el, selector) {
+  if (!el) return '';
+  const clone = el.cloneNode(true);
+  clone.querySelectorAll(selector).forEach((node) => node.remove());
+  return cellText(clone);
 }
 
 /** Texto de una celda: los <br> se vuelven " / ". */

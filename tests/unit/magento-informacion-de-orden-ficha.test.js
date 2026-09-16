@@ -12,7 +12,7 @@
 import { describe, expect, it } from 'vitest';
 import { parseOrderDetail } from '../../src/features/magento/informacion_de_orden/detail-parse.js';
 import { buildMatrix, buildRecord, makeMissingRecord } from '../../src/features/magento/informacion_de_orden/csv.js';
-import { DEFAULT_SECTIONS, expandSections } from '../../src/features/magento/informacion_de_orden/constants.js';
+import { DEFAULT_SECTIONS, ESSENTIAL_COLUMNS, expandSections } from '../../src/features/magento/informacion_de_orden/constants.js';
 import { readField } from '../../src/features/magento/buscar-orden/transactions.js';
 
 const SECTIONS = expandSections(DEFAULT_SECTIONS);
@@ -76,18 +76,21 @@ const FICHA = `
   <thead><tr>
     <th>Price</th><th>Qty</th><th>Row Total</th><th>Model</th><th>Item Status</th>
     <th>Warehouse Code</th><th>Tracking Number</th><th>Estimated Delivery Date</th>
+    <th>Global Shipping Info</th>
   </tr></thead>
   <tbody class="even">
     <tr>
       <td>$453,981.00</td><td>Ordered 1<br>Invoiced 1</td><td>$453,981.00</td>
       <td><b>86MRGB95BSA.AWH</b></td><td>Picking</td><td>CL01</td><td>TRK-1</td><td>16-09-2026</td>
+      <td>Rule Name: Envio Normal RM + Pack OMO Expected delivery date: N/A Installation Service: Si</td>
     </tr>
-    <tr><td colspan="8">subfila de cantidades</td></tr>
+    <tr><td colspan="9">subfila de cantidades</td></tr>
   </tbody>
   <tbody class="odd">
     <tr>
       <td>$99,990.00</td><td>Ordered 2</td><td>$199,980.00</td>
       <td><b>OTRO.SKU</b></td><td>Pending</td><td>CL02</td><td></td><td>18-09-2026</td>
+      <td>N/A</td>
     </tr>
   </tbody>
 </table>
@@ -177,10 +180,13 @@ describe('parseOrderDetail', () => {
     expect(field('Pago', 'Metodo')).toBe('Tarjeta de credito - Mercado Pago');
     expect(field('Pago', 'Payment id (Mercado Pago):')).toBe('178904668430');
     expect(field('Pago', 'Installments:')).toBe('12');
-    expect(field('Envio', 'Shipping & Handling Information')).toBe('Item ID 1 - Entrega agendada');
+    // El rotulo de la seccion se unifica: la columna es la misma vengan los
+    // datos en tabla o como texto suelto.
+    expect(field('Envio', 'Metodo de envio')).toBe('Item ID 1 - Entrega agendada');
   });
 
   it('lee los totales, cuya etiqueta incluye el nombre de la promocion', () => {
+    // El parser entrega el texto de la ficha; el CSV es el que lo normaliza.
     expect(field('Totales', 'Grand Total')).toBe('$588,565.00');
     expect(field('Totales', 'Discount (LGSANTANDER10 - 10%)')).toBe('-$65,396.00');
     expect(field('Totales', 'Subtotal (Price source: ERP)')).toBe('$653,961.00');
@@ -241,6 +247,10 @@ describe('fichas que no tienen todo', () => {
   });
 });
 
+// Las pruebas de abajo miran la union completa de columnas; el perfil corto
+// (ESSENTIAL_COLUMNS) tiene su propio describe al final.
+const TODO = { allColumns: true };
+
 describe('el CSV que sale de la ficha', () => {
   const item = {
     increment_id: '123001427905',
@@ -264,7 +274,7 @@ describe('el CSV que sale de la ficha', () => {
   const record = buildRecord({ item, detail: parse(FICHA), viewHref: href });
 
   it('pone la orden primero y el enlace en su columna', () => {
-    const { headers, rows } = buildMatrix([record]);
+    const { headers, rows } = buildMatrix([record], TODO);
     expect(headers[0]).toBe('Orden');
     expect(rows[0][0]).toBe('123001427905');
     expect(rows[0][headers.indexOf('URL')]).toBe(href);
@@ -272,34 +282,50 @@ describe('el CSV que sale de la ficha', () => {
   });
 
   it('crea una columna por cada campo de la ficha', () => {
-    const { headers, rows } = buildMatrix([record]);
+    const { headers, rows } = buildMatrix([record], TODO);
     expect(headers).toContain('Cliente - Customer Name');
     expect(headers).toContain('Direccion - Billing Address');
     expect(headers).toContain('Totales - Grand Total');
     expect(rows[0][headers.indexOf('Cliente - Customer Name')]).toBe('Susana Alvarez Perez');
-    expect(rows[0][headers.indexOf('Totales - Grand Total')]).toBe('$588,565.00');
+    expect(rows[0][headers.indexOf('Totales - Grand Total')]).toBe('588565.00');
   });
 
-  it('resume los items en una sola fila', () => {
-    const { headers, rows } = buildMatrix([record]);
+  it('los items de una orden con varios productos van como JSON alineado', () => {
+    const { headers, rows } = buildMatrix([record], TODO);
     expect(rows[0][headers.indexOf('Items')]).toBe('2');
-    expect(rows[0][headers.indexOf('Item - SKU')]).toBe('86MRGB95BSA.AWH | OTRO.SKU');
-    expect(rows[0][headers.indexOf('Item - Bodega')]).toBe('CL01 | CL02');
-    // El item sin tracking no corre la columna del otro.
-    expect(rows[0][headers.indexOf('Item - Tracking')]).toBe('TRK-1');
+    expect(rows[0][headers.indexOf('Item - SKU')]).toBe('["86MRGB95BSA.AWH","OTRO.SKU"]');
+    expect(rows[0][headers.indexOf('Item - Bodega')]).toBe('["CL01","CL02"]');
+    expect(rows[0][headers.indexOf('Item - Precio')]).toBe('[453981,99990]');
+    // El item sin tracking deja su hueco: la posicion sigue siendo la del item.
+    expect(rows[0][headers.indexOf('Item - Tracking')]).toBe('["TRK-1",null]');
   });
 
-  it('resume el historial y suma el pago del grid', () => {
-    const { headers, rows } = buildMatrix([record]);
+  it('con un solo item la celda no se envuelve en un array', () => {
+    const uno = buildRecord({ item: { increment_id: '1' }, detail: parse(FICHA_MARKETPLACE) });
+    const { headers, rows } = buildMatrix([uno], TODO);
+    expect(rows[0][headers.indexOf('Items')]).toBe('1');
+    expect(rows[0][headers.indexOf('Item - SKU')]).toBe('SKU.MKT');
+  });
+
+  it('el historial va como JSON y el pago sale del grid', () => {
+    const { headers, rows } = buildMatrix([record], TODO);
     expect(rows[0][headers.indexOf('Notas')]).toBe('2');
-    expect(rows[0][headers.indexOf('Historial')]).toContain('AUTHORIZED');
+    const historial = JSON.parse(rows[0][headers.indexOf('Historial')]);
+    expect(historial).toHaveLength(2);
+    // Fecha ordenable, y el comentario "Etiqueta: valor" abierto a objeto.
+    expect(historial[0].fecha).toBe('2026-09-14 13:12:30');
+    expect(historial[0].estado).toBe('Processing');
+    expect(historial[0].comentario.Estado).toBe('AUTHORIZED');
+    expect(historial[0].comentario.texto).toBe('Transaccion Aprobada');
+    // El comentario que YA es JSON se anida en vez de quedar como texto.
+    expect(historial[1].comentario).toEqual({ holded: 'picking_for_delivery', global: null });
     expect(rows[0][headers.indexOf('Codigo autorizacion')]).toBe('307840');
     expect(rows[0][headers.indexOf('Ultimos 4')]).toBe('4805');
   });
 
   it('dos ordenes con campos distintos no se corren de columna', () => {
     const otro = buildRecord({ item: { increment_id: '123001427216' }, detail: parse(FICHA_MARKETPLACE) });
-    const { headers, rows } = buildMatrix([record, otro]);
+    const { headers, rows } = buildMatrix([record, otro], TODO);
     expect(rows[0]).toHaveLength(headers.length);
     expect(rows[1]).toHaveLength(headers.length);
     // La orden de marketplace no tiene IP: su celda queda vacia, no desplazada.
@@ -310,9 +336,65 @@ describe('el CSV que sale de la ficha', () => {
 
   it('una ficha que fallo sale igual, con el motivo', () => {
     const fallida = makeMissingRecord('123001427999', { status: 'error', error: 'La ficha respondio 500.' });
-    const { headers, rows } = buildMatrix([record, fallida]);
+    const { headers, rows } = buildMatrix([record, fallida], TODO);
     expect(rows[1][0]).toBe('123001427999');
     expect(rows[1][headers.length - 2]).toBe('Error');
     expect(rows[1][headers.length - 1]).toBe('La ficha respondio 500.');
+  });
+});
+
+// El perfil corto: las columnas que se miran a diario, siempre las mismas y en
+// el mismo orden aunque la corrida no las traiga todas.
+describe('el perfil corto de columnas', () => {
+  const item = {
+    increment_id: '123001427905',
+    payment_method: 'mercadopago_global_credit_card',
+    additional_information: JSON.stringify({
+      paymentResponse: { id: 178904668430, status: 'approved', installments: 12 },
+    }),
+  };
+  const record = buildRecord({ item, detail: parse(FICHA) });
+
+  it('emite ESSENTIAL_COLUMNS mas las de control, en ese orden', () => {
+    const { headers, rows } = buildMatrix([record]);
+    expect(headers).toEqual([...ESSENTIAL_COLUMNS, 'Estado captura', 'Error']);
+    expect(rows[0]).toHaveLength(headers.length);
+    expect(headers).not.toContain('Cliente - Customer Name');
+    expect(headers).not.toContain('URL');
+  });
+
+  it('una columna que esta en la lista pero no en los datos sale vacia, no falta', () => {
+    const { headers, rows } = buildMatrix([record]);
+    const i = headers.indexOf('Pago - Statement Descriptor:');
+    expect(i).toBeGreaterThan(-1);
+    expect(rows[0][i]).toBe('');
+  });
+
+  it('los importes salen como numero plano', () => {
+    const { headers, rows } = buildMatrix([record]);
+    expect(rows[0][headers.indexOf('Totales - Grand Total')]).toBe('588565.00');
+    expect(rows[0][headers.indexOf('Totales - Subtotal (Price source: ERP)')]).toBe('653961.00');
+  });
+
+  it('el bloque de envio de cada item se abre a objeto', () => {
+    const { headers, rows } = buildMatrix([record]);
+    const envio = JSON.parse(rows[0][headers.indexOf('Item - Envio')]);
+    expect(envio[0]['Rule Name']).toBe('Envio Normal RM + Pack OMO');
+    expect(envio[0]['Installation Service']).toBe('Si');
+    // El item sin bloque conserva su texto, no se inventa un objeto.
+    expect(envio[1]).toBe('N/A');
+  });
+
+  it('la fecha larga pasa a formato ordenable', () => {
+    const { headers, rows } = buildMatrix([record]);
+    expect(rows[0][headers.indexOf('Orden - Order Date (America/Santiago)')]).toBe('2026-09-14 09:12:20');
+  });
+
+  it('una ficha que fallo sigue diciendo por que', () => {
+    const fallida = makeMissingRecord('123001427999', { status: 'error', error: 'La ficha respondio 500.' });
+    const { headers, rows } = buildMatrix([fallida]);
+    expect(rows[0][0]).toBe('123001427999');
+    expect(rows[0][headers.length - 2]).toBe('Error');
+    expect(rows[0][headers.length - 1]).toBe('La ficha respondio 500.');
   });
 });

@@ -66,7 +66,10 @@ register('magentoInformacionDeOrden', {
       record: buildRecord({ item: match, detail, viewHref }),
     };
   }, 'Captura una orden entera: order("123001427905",{from,to})'),
-  csv: cmd(async () => buildMatrix((await getResult())?.records || []), 'Matriz del CSV (headers + filas)'),
+  csv: cmd(
+    async (allColumns = false) => buildMatrix((await getResult())?.records || [], { allColumns }),
+    'Matriz del CSV (headers + filas). csv(true) = todas las columnas',
+  ),
   result: cmd(() => getResult(), 'Registros capturados'),
   state: cmd(() => getRun(), 'Estado persistido de la captura'),
   draft: cmd(() => getDraft(), 'Ultimo formulario guardado'),

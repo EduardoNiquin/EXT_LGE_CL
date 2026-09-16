@@ -2526,8 +2526,9 @@ mark {
   flex-wrap: wrap;
 }
 .io-results-head .lt-hint { margin: 0; }
-.io-results-actions { display: flex; gap: 6px; }
+.io-results-actions { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .io-results-actions .ct-btn { padding: 5px 10px; font-size: 11px; }
+.io-columns-toggle { margin: 0 4px 0 0; font-size: 11px; white-space: nowrap; }
 
 /* La tabla replica el CSV: decenas de columnas, asi que scrollea en los dos
    ejes dentro de su caja en vez de estirar el popup. */

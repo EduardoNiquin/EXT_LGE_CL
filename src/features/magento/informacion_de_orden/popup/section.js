@@ -156,6 +156,10 @@ export async function render(container) {
         <div class="io-results-head">
           <span class="lt-hint" id="io-results-summary"></span>
           <div class="io-results-actions">
+            <label class="dt-check io-columns-toggle" title="Agrega cliente, direcciones, cupones y logs ERP/OSMS. No cambia lo capturado, solo lo que se muestra y se exporta.">
+              <input type="checkbox" id="io-all-columns" ${config.allColumns ? 'checked' : ''}>
+              <span>Todas las columnas</span>
+            </label>
             <button type="button" id="io-copy" class="ct-btn ct-btn--ghost">Copiar CSV</button>
             <button type="button" id="io-export" class="ct-btn ct-btn--primary">Descargar CSV</button>
           </div>
@@ -173,8 +177,12 @@ export async function render(container) {
   container.querySelector('#io-start').addEventListener('click', () => onStart(container));
   container.querySelector('#io-stop').addEventListener('click', onStop);
   container.querySelector('#io-clear').addEventListener('click', () => onClear(container));
-  container.querySelector('#io-export').addEventListener('click', onExport);
-  container.querySelector('#io-copy').addEventListener('click', (event) => onCopy(event.currentTarget));
+  container.querySelector('#io-export').addEventListener('click', () => onExport(container));
+  container.querySelector('#io-all-columns').addEventListener('change', () => {
+    persistDraft(container);
+    renderResults(container);
+  });
+  container.querySelector('#io-copy').addEventListener('click', (event) => onCopy(container, event.currentTarget));
 
   updateRangeHint(container);
   updateOrdersHint(container);
@@ -270,6 +278,7 @@ function readConfig(container) {
     orders: container.querySelector('#io-orders').value,
     concurrency: clampConcurrency(container.querySelector('#io-concurrency').value),
     sections: readSections(container),
+    allColumns: !!container.querySelector('#io-all-columns')?.checked,
   };
 }
 
@@ -288,6 +297,8 @@ function defaultConfig() {
     orders: '',
     concurrency: CONCURRENCY_DEFAULT,
     sections: { ...DEFAULT_SECTIONS },
+    // Por defecto solo las columnas que se miran a diario (ESSENTIAL_COLUMNS).
+    allColumns: false,
   };
 }
 
@@ -427,8 +438,8 @@ async function onClear(container) {
   renderResults(container);
 }
 
-async function onExport() {
-  const matrix = await currentMatrix();
+async function onExport(container) {
+  const matrix = await currentMatrix(container);
   if (!matrix.rows.length) {
     alert('Todavia no hay filas para exportar.');
     return;
@@ -437,8 +448,8 @@ async function onExport() {
   downloadText(matrixToCsv(matrix), `magento-ordenes-${stamp}.csv`);
 }
 
-async function onCopy(button) {
-  const matrix = await currentMatrix();
+async function onCopy(container, button) {
+  const matrix = await currentMatrix(container);
   if (!matrix.rows.length) {
     alert('Todavia no hay filas para copiar.');
     return;
@@ -459,9 +470,13 @@ async function onCopy(button) {
   setTimeout(() => { button.textContent = original; }, 1200);
 }
 
-async function currentMatrix() {
+async function currentMatrix(container) {
   const result = await getResult();
-  return buildMatrix(result?.records || []);
+  return buildMatrix(result?.records || [], { allColumns: readAllColumns(container) });
+}
+
+function readAllColumns(container) {
+  return !!container?.querySelector('#io-all-columns')?.checked;
 }
 
 // -----------------------------------------------------------------------------
@@ -517,7 +532,7 @@ async function renderResults(container) {
   }
 
   // La misma matriz que el CSV: lo que se ve es lo que se exporta.
-  const { headers, rows } = buildMatrix(records);
+  const { headers, rows } = buildMatrix(records, { allColumns: readAllColumns(container) });
   const visible = rows.slice(0, PREVIEW_ROWS);
   wrap.innerHTML = `
     <table class="io-table">

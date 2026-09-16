@@ -214,6 +214,12 @@ export const SECTION_LABEL = {
   osms: 'OSMS',
 };
 
+// El bloque de envio a veces viene como tabla (con el rotulo "Shipping &
+// Handling Information") y a veces como texto suelto. Se emite siempre con esta
+// etiqueta para que la columna sea la misma en las dos formas.
+export const SHIPPING_LABEL = 'Metodo de envio';
+export const SHIPPING_TITLE_RE = /^shipping\s*&\s*handling/i;
+
 export const DETAIL_SELECTORS = {
   orderTitle: '.order-information .admin__page-section-item-title .title, .order-information .title',
   orderStatus: '#order_status',
@@ -222,6 +228,8 @@ export const DETAIL_SELECTORS = {
   addresses: '.order-addresses',
   addressItem: '.admin__page-section-item',
   addressTitle: '.admin__page-section-item-title .title',
+  sectionTitle: '.admin__page-section-item-title',
+  sectionContent: '.admin__page-section-item-content',
   paymentMethod: '.order-payment-method',
   paymentTitle: '.order-payment-method-title',
   shippingMethod: '.order-shipping-method',
@@ -310,11 +318,94 @@ export const ITEM_COLUMNS = [
 ];
 
 export const ITEM_JOIN = ' | ';
-export const HISTORY_JOIN = ' || ';
-export const HISTORY_MAX_CHARS = 4000;
+export const HISTORY_MAX_CHARS = 8000;
 
 // Columnas de control, siempre al final.
 export const META_COLUMNS = ['Estado captura', 'Error'];
+
+// -----------------------------------------------------------------------------
+// Formato de los valores (ver format.js)
+// -----------------------------------------------------------------------------
+
+// Secciones de la ficha cuyos valores son importes: van a numero plano.
+// "Totales" son todas las filas de la tabla de totales, incluidas las de
+// descuento, cuya etiqueta lleva el nombre de la promocion.
+export const MONEY_SECTIONS = new Set([SECTION_LABEL.totales]);
+
+// Campos de la ficha con fecha y hora larga ("Sep 10, 2026, 07:40:08 PM"). La
+// etiqueta cambia de zona horaria entre ordenes, asi que se casa por prefijo.
+export const DATE_FIELD_PREFIXES = [
+  { section: SECTION_LABEL.orden, prefix: 'Order Date' },
+];
+
+// Columnas de items que son importes, y las que traen un bloque aplanado de
+// varios campos (se abre a objeto con `splitLabeled`).
+export const MONEY_ITEM_COLUMNS = new Set(['Item - Precio', 'Item - Total']);
+export const LABELED_ITEM_COLUMNS = {
+  'Item - Envio': [
+    'Rule Name',
+    'Expected delivery date',
+    'Installation Service',
+    'Haulaway Service',
+    'Time Slot Service',
+    'Delivery Type',
+    'Time Slot',
+  ],
+};
+
+// -----------------------------------------------------------------------------
+// Perfiles de salida
+// -----------------------------------------------------------------------------
+//
+// El CSV completo son ~130 columnas (todo lo que trajo la ficha). Para el uso
+// diario solo se miran estas, en este orden; el resto sigue disponible con el
+// interruptor "Todas las columnas" del popup, que no cambia lo capturado, solo
+// lo que se pinta y se exporta.
+
+export const ESSENTIAL_COLUMNS = [
+  'Orden',
+  'Metodo de pago',
+  'Pasarela',
+  'ID transaccion',
+  'Codigo autorizacion',
+  'Marca',
+  'Cuotas',
+  'Tipo de pago',
+  'Estado pago',
+  'Detalle estado',
+  'Monto pago',
+  'Comision',
+  'Neto',
+  '3DS',
+  'Envio - Metodo de envio',
+  'Pago - Metodo',
+  'Totales - Grand Total',
+  'Totales - Shipping & Handling',
+  'Totales - Subtotal (Price source: ERP)',
+  'Totales - Tax',
+  'Totales - Total Due',
+  'Totales - Total Paid',
+  'Totales - Total Refunded',
+  'In House - Comprobante de Pago',
+  'Orden - Order Date (America/Santiago)',
+  'Pago - Installments:',
+  'Pago - Payment Type Code:',
+  'Pago - Transaction Status:',
+  'Pago - 3DS verification:',
+  'Pago - Card Number:',
+  'Pago - Payment Method:',
+  'Pago - Payment Status Detail:',
+  'Pago - Payment Status:',
+  'Pago - Payment id (Mercado Pago):',
+  'Pago - Statement Descriptor:',
+  'Item - ERP Sales #',
+  'Item - Envio',
+  'Item - Estado',
+  'Item - Estado ERP',
+  'Item - Precio',
+  'Item - SKU',
+  'Historial',
+];
 
 export const LOG_CAP = 400;
 export const PREVIEW_ROWS = 150;
