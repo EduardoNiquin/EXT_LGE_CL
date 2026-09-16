@@ -88,7 +88,7 @@ popup/         view.js (sub-router) · utils.js · sections/ (una sub-vista por 
 - **Streaming content → service worker (Registro de acciones):** `connectToBackground(PORTS.EVENTOS)` de `shared/messaging`, un port por frame. Se usa port y no `sendMessage` porque lo posteado en `pagehide` sí se entrega (el clic que causa la navegación), mantiene vivo al SW mientras se graba y le da al SW `port.sender.tab.id`/`frameId`.
 
 ## Logs por scope (`Ajustes`)
-`logger('foo')` registra el scope `foo`, con toggle individual en Ajustes (`features/ajustes`) + "Habilitar/Deshabilitar todos". `log-config` cachea en memoria y persiste en `chrome.storage.local` (`log-config:scopes`, cross-context vía `storage.onChanged`); `logger.js` chequea `isScopeEnabled(scope)` antes de emitir. Default: todos habilitados. Hay un scope por feature/módulo (`colocar-tags[:product|:offer|:delivery-remove|:combobox]`, `magento/<módulo>` (incluye `magento/informacion-de-orden`), `lead-times`, `cupones`, `orden-info`, `starkoms`, `lgcom[/popup]`, `seller-center-falabella`, `e-promoters`, `pim`, `solotodo`, `gato`, `registro-acciones`) más `content`, `service-worker`, `debug`, `popup`.
+`logger('foo')` registra el scope `foo`, con toggle individual en Ajustes (`features/ajustes`) + "Habilitar/Deshabilitar todos". `log-config` cachea en memoria y persiste en `chrome.storage.local` (`log-config:scopes`, cross-context vía `storage.onChanged`); `logger.js` chequea `isScopeEnabled(scope)` antes de emitir. Default: todos habilitados. Hay un scope por feature/módulo (`colocar-tags[:product|:offer|:delivery-remove|:combobox]`, `magento/<módulo>` (incluye `magento/informacion-de-orden`), `lead-times`, `cupones`, `orden-info`, `starkoms`, `lgcom[/popup]`, `seller-center-falabella`, `e-promoters`, `pim`, `solotodo`, `gato`, `registro-acciones`, `vpn`) más `content`, `service-worker`, `debug`, `popup`.
 
 ## Errores y Modo Dev (`shared/errors` · `shared/dev-mode` · `shared/diagnostics`)
 - **errors:** `ExtError` (con `code`/`context`/`cause`), `toMessage(err)`, `isAbortError(err, signal)` (WaitAbortedError/AbortError/signal.aborted), `describeError(err, meta)` (serializable, stack recortado).
@@ -116,6 +116,7 @@ Sumar comandos: `features/<feature>/debug.js` → `register('<feature>', {...})`
 
 ## Decisiones tomadas
 - **`webNavigation` + `unlimitedStorage` (Registro de acciones):** `onCommitted` da `transitionType`/`transitionQualifiers` (link, form_submit, server_redirect) y `onHistoryStateUpdated` es la única forma de ver los `pushState` de una SPA desde el mundo aislado; `unlimitedStorage` es para la cola de eventos en IndexedDB. No agregan aviso nuevo al usuario sobre el `<all_urls>` que ya se pide.
+- **`proxy` + `webRequest` + `webRequestAuthProvider` (VPN):** `chrome.proxy` es la unica API que puede cambiar el proxy del navegador (`declarativeNetRequest` no puede). Una extension MV3 **no puede montar un tunel** —no hay sockets TCP crudos—, solo apuntar a uno que exista: por eso el origen por defecto es un proxy HTTPS en el VPS y no hay nada que instalar en el PC. Es HTTPS y no SOCKS5 porque **Chromium no sabe autenticarse contra un proxy SOCKS** (no implementa la RFC 1929), asi que un SOCKS5 publicado seria un proxy abierto con salida a LG; con HTTP hay 407 y `Proxy-Authorization`, y `webRequestAuthProvider` es lo que deja responderlo. `webRequest` es observacional (`onErrorOccurred`), para volver a directo al instante sin esperar el minuto de la alarma. Ninguno agrega aviso nuevo al usuario sobre el `<all_urls>` que ya se pide.
 - **Vite sobre Webpack:** config simple, builds rápidos (Rolldown/Vite 8). **MV3 solo:** Chrome elimina MV2 en jun 2026. **ESM en todo.**
 - **Manifests separados Chrome/Edge:** las stores requieren IDs distintos.
 - **Force-install vía política local (no Web Store):** el entorno corporativo bloquea DLP/drag&drop de `.crx` y la carga manual (`CRX_REQUIRED_PROOF_MISSING`). Política en `HKLM\SOFTWARE\Policies\Microsoft\Edge` es la única vía.
@@ -146,6 +147,7 @@ Scaffolding + CI completos. Pipeline release corporativo (.crx firmado + políti
 | PIM | Creación de producto: verificar si un SKU existe en PIM/STG (+ Spec Assign) | storage-driven async | `pim.md` |
 | SoloTodo | Generar reporte de export en el backoffice (React/MUI) | storage-driven async | `solotodo.md` |
 | GATO | Tic-tac-toe multijugador secreto (Firebase REST); solo popup | popup-only | `gato.md` |
+| VPN | Conecta este navegador a la red de LG: proxy con TLS en el VPS (sin instalar nada) o el SOCKS5 local de Enlace LG (repo aparte, `LG-VPN`) | SW puro + popup | `vpn.md` |
 | Registro de acciones | Graba clics, campos, teclas y navegación del usuario en cualquier sitio y lo exporta en Markdown para analizar el flujo con una IA | Port + SW + IndexedDB | `registro-acciones.md` |
 
 Los tres módulos de **Magento** comparten router, wiring y bridge: eso está en **`docs/features/magento.md`** (leerlo antes de sumar un módulo nuevo).

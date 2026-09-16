@@ -13,6 +13,7 @@ import { render as renderBatallaNaval } from '../features/batalla-naval/popup/vi
 import { render as renderAjustes }     from '../features/ajustes/popup/view.js';
 import { render as renderMagento }     from '../features/magento/popup/view.js';
 import { render as renderRegistroAcciones } from '../features/registro-acciones/popup/view.js';
+import { render as renderVpn }         from '../features/vpn/popup/view.js';
 
 export const features = [
   {
@@ -127,6 +128,14 @@ export const features = [
     abbr: 'REC',
     keywords: ['registro', 'grabar', 'grabador', 'acciones', 'flujo', 'automatizar', 'ia', 'pasos', 'bitacora', 'macro'],
     render: renderRegistroAcciones,
+  },
+  {
+    id: 'vpn',
+    name: 'VPN',
+    description: 'Conecta este navegador a la red de LG a traves de Enlace LG',
+    abbr: 'VPN',
+    keywords: ['vpn', 'enlace', 'red', 'lg', 'proxy', 'socks', 'socks5', 'tunel', 'túnel', 'interna', 'intranet', 'remoto', 'teletrabajo'],
+    render: renderVpn,
   },
   {
     id: 'ajustes',

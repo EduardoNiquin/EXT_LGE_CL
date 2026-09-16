@@ -8,8 +8,10 @@ import { wireInformeBackground } from '../features/e-promoters/background/inform
 import { wireDevolucionesBackground } from '../features/devoluciones/falabella/background/runner.js';
 import { wireGestionBackground } from '../features/devoluciones/falabella/gestion/background/runner.js';
 import { wireRegistroAccionesBackground } from '../features/registro-acciones/background/grabador.js';
+import { wireVpnBackground } from '../features/vpn/background/conexion.js';
 import '../features/e-promoters/debug.js';
 import '../features/registro-acciones/debug.js';
+import '../features/vpn/debug.js';
 
 const log = logger('service-worker');
 const version = chrome?.runtime?.getManifest?.()?.version;
@@ -34,6 +36,9 @@ wireGestionBackground();
 
 // Registro de acciones: graba lo que hace el usuario y arma el Markdown final.
 wireRegistroAccionesBackground();
+
+// VPN: apunta el navegador al SOCKS5 de Enlace LG y vigila que siga en pie.
+wireVpnBackground();
 
 chrome.runtime.onInstalled.addListener((details) => {
   log.info('Extensión instalada/actualizada', { reason: details?.reason, version });
