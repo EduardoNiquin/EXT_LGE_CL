@@ -2561,3 +2561,89 @@ mark {
 }
 .io-table td { color: var(--text-secondary); }
 .io-table tbody tr:hover td { background: var(--surface-2); }
+
+/* ---------------------------------------------------------------------------
+   Registro de acciones (feature `registro-acciones`)
+   Feed en vivo de lo que se esta grabando. Lo demas de la vista reusa .lt-* /
+   .ct-*; solo la lista necesita estilo propio.
+--------------------------------------------------------------------------- */
+.reg-feed {
+  list-style: none;
+  margin: var(--space-2) 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.reg-feed-item {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 5px 8px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius-sm);
+  font-size: 11.5px;
+  line-height: 1.45;
+}
+.reg-feed-item--navega { border-left-color: var(--success); }
+.reg-feed-item--pagina { border-left-color: var(--text-subtle); }
+.reg-feed-item--sesion { border-left-color: var(--ink-bg); }
+
+.reg-feed-hora {
+  color: var(--text-subtle);
+  font-variant-numeric: tabular-nums;
+  flex: 0 0 auto;
+}
+
+.reg-feed-tipo {
+  flex: 0 0 auto;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+
+.reg-feed-texto {
+  flex: 1 1 auto;
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.reg-feed-vacio {
+  padding: 10px;
+  color: var(--text-subtle);
+  font-size: 11.5px;
+  text-align: center;
+}
+
+.reg-numeros {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  margin-top: 4px;
+}
+.reg-numeros strong { color: var(--text); }
+
+.reg-punto {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 5px;
+  border-radius: 50%;
+  background: var(--danger);
+  animation: reg-latido 1.4s ease-in-out infinite;
+}
+.reg-punto--pausa { background: var(--warning); animation: none; }
+.reg-punto--fin { background: var(--text-subtle); animation: none; }
+
+@keyframes reg-latido {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.25; }
+}

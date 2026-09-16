@@ -1,13 +1,15 @@
 {
   "manifest_version": 3,
   "name": "EXT LGE CL",
-  "version": "6.4",
+  "version": "6.6",
   "description": "",
   "permissions": [
     "storage",
     "sidePanel",
     "alarms",
-    "downloads"
+    "downloads",
+    "webNavigation",
+    "unlimitedStorage"
   ],
   "host_permissions": [
     "<all_urls>"

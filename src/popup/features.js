@@ -12,6 +12,7 @@ import { render as renderSolotodo }    from '../features/solotodo/popup/view.js'
 import { render as renderBatallaNaval } from '../features/batalla-naval/popup/view.js';
 import { render as renderAjustes }     from '../features/ajustes/popup/view.js';
 import { render as renderMagento }     from '../features/magento/popup/view.js';
+import { render as renderRegistroAcciones } from '../features/registro-acciones/popup/view.js';
 
 export const features = [
   {
@@ -118,6 +119,14 @@ export const features = [
     keywords: ['batalla naval', 'battleship', 'barcos', 'bombas', 'gato', 'juego', 'multijugador'],
     secret: true,
     render: renderBatallaNaval,
+  },
+  {
+    id: 'registro-acciones',
+    name: 'Registro de acciones',
+    description: 'Graba lo que haces en el navegador y lo exporta en Markdown',
+    abbr: 'REC',
+    keywords: ['registro', 'grabar', 'grabador', 'acciones', 'flujo', 'automatizar', 'ia', 'pasos', 'bitacora', 'macro'],
+    render: renderRegistroAcciones,
   },
   {
     id: 'ajustes',

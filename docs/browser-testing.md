@@ -26,10 +26,19 @@ Cada navegador tiene **su puerto y su perfil** (Chrome 9222, Edge 9223), así qu
 - Desde Chrome 136 el puerto de depuración **se ignora sobre el perfil por defecto** → cada navegador usa su `--user-data-dir` propio (`.browser-profile-<navegador>/`, gitignored).
 - Ese perfil es **persistente a propósito**: se inicia sesión en Magento (con su 2FA) **una sola vez** y queda para todas las corridas. Es lo que hace viable probar contra el admin real.
 - **Para aplicar un rebuild hay que reiniciar el navegador** (`npm run browser -- --restart`). NO existe un `--reload`: `chrome.runtime.reload()` **descarga** una extensión cargada con `--load-extension` y no la vuelve a cargar — queda `ERR_BLOCKED_BY_CLIENT` y sin service worker. El reinicio conserva el perfil, así que no se pierde la sesión.
+- **Si lo que cambió es el service worker, `--restart` NO alcanza** (medido el 15-09-2026): Chrome guarda el script del SW en el perfil y al relanzar sigue ejecutando el bundle viejo, aunque el archivo nuevo ya esté en `dist/` y la extensión lo sirva. El síntoma engaña: el código está en el bundle, `chrome.runtime.getManifest()` responde y `install()` loguea, pero los listeners nuevos no existen (`chrome.runtime.onConnect.hasListeners() === false`). Hay que borrar el caché antes de levantar:
+  ```bash
+  npm run browser:eval -- --close
+  rm -rf ".browser-profile-chrome/Default/Service Worker" ".browser-profile-chrome/Default/Code Cache"
+  npm run browser -- --no-build
+  ```
+  (El perfil sobrevive: solo se borra el caché de SW, no las cookies ni la sesión de Magento.)
+- **Los eventos sintéticos no son `isTrusted`.** Un `el.click()` desde `browser:eval` no dispara nada que dependa de `event.isTrusted` (el Registro de acciones lo exige, justamente para no grabarse a sí mismo). Para probar interacción real hay que conducir el navegador por CDP — el **MCP de chrome-devtools** (`click`, `fill`) sí genera eventos de confianza porque los inyecta el navegador.
 
 ## En qué mundo se evalúa (`--world`), y por qué importa
 - **`isolated`** — el del content script, donde vive `window.__extLgeCl` con los comandos de las features (`magentoSoftbundles`, `colocarTags`, …). Es el **defecto para URLs http(s)**.
 - **`main`** — el de la página. Es lo que hace `evaluate_script` del MCP, y **por eso desde el MCP no se ve la Debug API del content script**.
+- **El service worker no tiene página**, así que `browser-eval` no llega a él. Para evaluar dentro del SW hay que conectarse por CDP al target `service_worker` (`http://127.0.0.1:9222/json/list` → el que apunta a `/src/background/service-worker.js`) con un WebSocket y un `Runtime.evaluate`. Ojo: el SW **se duerme** y desaparece de `/json/list`; se lo despierta abriendo el popup o navegando. Y dentro de un service worker **`import()` dinámico está prohibido** por especificación: si un módulo lo usa, ahí revienta.
 - Las páginas de la extensión (`--page=popup|options`) tienen un solo mundo: ahí están la Debug API del popup y `chrome.storage.local`, que es donde vive el estado de cada run.
 
 ## Detalles de implementación que cuestan de redescubrir

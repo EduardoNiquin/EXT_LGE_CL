@@ -36,3 +36,7 @@ Thumbs.db
 # Archivos temporales
 *.tmp
 *.temp
+
+# Exportaciones de las features (Informacion de Orden, e-promoters, PIM...):
+# traen datos de clientes SIN enmascarar. Nunca commitear.
+*.csv
