@@ -71,15 +71,19 @@ export const MAX_PAGES = 200; // tope duro de paginas de descubrimiento
 export const MAX_ORDERS = 5000; // tope duro de fichas por corrida
 
 // -----------------------------------------------------------------------------
-// Concurrencia (el selector "Consultas simultaneas" del popup)
+// Concurrencia (el campo "Consultas simultaneas" del popup)
 // -----------------------------------------------------------------------------
 
+// Sin tope: el usuario decide cuantas peticiones sostiene su Magento. Lo unico
+// que se garantiza es que sea un entero >= 1, porque con 0 el pool no arrancaria
+// ningun worker y la corrida quedaria colgada sin pedir nada.
 export const CONCURRENCY_MIN = 1;
 export const CONCURRENCY_DEFAULT = 4;
+// A partir de aca el popup avisa (no bloquea): son peticiones simultaneas contra
+// el admin de produccion con la sesion del operador.
+export const CONCURRENCY_WARN = 12;
 
-
-
-/** Restringe el paralelismo al rango permitido (fallback al valor por defecto). */
+/** Normaliza el paralelismo a un entero >= 1 (fallback al valor por defecto). */
 export function clampConcurrency(value) {
   if (String(value ?? '').trim() === '') return CONCURRENCY_DEFAULT;
   const n = Math.round(Number(value));

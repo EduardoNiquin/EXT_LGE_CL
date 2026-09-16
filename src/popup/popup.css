@@ -2486,6 +2486,8 @@ mark {
 /* === Magento - Informacion de Orden === */
 .io-view .lt-form-card { gap: 8px; }
 .io-hint--error { color: var(--danger); }
+/* Aviso, no error: el paralelismo alto se permite, solo se advierte. */
+.io-hint--warn { color: var(--warning); }
 
 /* El modo decide si el formulario pide una lista de ordenes o se lleva el rango
    entero; el bloque de la lista solo aparece cuando hace falta. */

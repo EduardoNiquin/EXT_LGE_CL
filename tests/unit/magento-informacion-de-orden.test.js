@@ -80,6 +80,21 @@ describe('grid-request', () => {
       { from: '2026-06-01', to: '2026-06-14' },
     ]);
   });
+
+  it('un rango que Magento acepta entero queda en un solo bloque', () => {
+    expect(splitDateRange('2026-09-01', '2026-09-15')).toEqual([{ from: '2026-09-01', to: '2026-09-15' }]);
+    // 29 dias de calendario es el maximo que paso en la prueba contra el admin.
+    expect(splitDateRange('2026-08-12', '2026-09-09')).toHaveLength(1);
+    expect(splitDateRange('2026-08-11', '2026-09-09')).toHaveLength(2);
+    // Un solo dia sigue siendo un bloque valido.
+    expect(splitDateRange('2026-09-09', '2026-09-09')).toEqual([{ from: '2026-09-09', to: '2026-09-09' }]);
+  });
+
+  it('un rango imposible no devuelve bloques (el motor lo trata como error)', () => {
+    expect(splitDateRange('2026-09-15', '2026-09-01')).toEqual([]);
+    expect(splitDateRange('', '2026-09-01')).toEqual([]);
+    expect(splitDateRange('2026-09-01', '2026-13-40')).toEqual([]);
+  });
 });
 
 describe('grid-parse', () => {

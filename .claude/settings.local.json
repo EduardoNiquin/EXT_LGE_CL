@@ -49,7 +49,9 @@
       "Bash(echo \"ESLINT=$?\")",
       "Bash(echo \"BUILD_EXIT=$?\")",
       "Bash(python3 -c *)",
-      "Bash(python -c *)"
+      "Bash(python -c *)",
+      "Bash(python *)",
+      "Bash(npx vite build*)"
     ]
   }
 }

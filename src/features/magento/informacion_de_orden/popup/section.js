@@ -8,8 +8,7 @@ import {
   ADMIN_BASE_RE,
   CONCURRENCY_DEFAULT,
   CONCURRENCY_MIN,
-
-
+  CONCURRENCY_WARN,
   DEFAULT_RANGE_DAYS,
   DEFAULT_SECTIONS,
   DETAIL_SECTION_CHOICES,
@@ -76,7 +75,7 @@ export async function render(container) {
         <p class="lt-hint">Entra a la ficha de cada orden del rango y deja lo que hay ahi en un CSV, una fila por orden: cliente y direcciones completas, items, totales, pago e historial. Pide las paginas con tu misma sesion, sin navegar la pestana ni abrir ventanas.</p>
         <div class="mg-notice">
           <strong>Antes de iniciar</strong>
-          <span>Deja una pestana abierta en el admin de Magento con la sesion iniciada. Cada consulta usa hasta ${MAX_RANGE_DAYS} dias; los rangos mas largos se dividen y se juntan automaticamente.</span>
+          <span>Deja una pestana abierta en el admin de Magento con la sesion iniciada. Magento filtra hasta ${MAX_RANGE_DAYS + 1} dias por consulta; un rango mas largo se pide en bloques y se junta solo.</span>
         </div>
 
         <div class="dt-row">
@@ -119,11 +118,10 @@ export async function render(container) {
         <div class="dt-row">
           <div class="dt-field dt-field--half">
             <label class="dt-label" for="io-concurrency">Consultas simultaneas</label>
-            <input type="number" id="io-concurrency" class="dt-input" min="${CONCURRENCY_MIN}" step="1" value="${concurrencyValue(config.concurrency)}">
-
-
+            <input type="number" id="io-concurrency" class="dt-input" min="${CONCURRENCY_MIN}" step="1" value="${clampConcurrency(config.concurrency)}">
           </div>
         </div>
+        <p class="lt-hint" id="io-concurrency-hint"></p>
 
         <div class="io-sections">
           <p class="dt-label">Que capturar de cada ficha</p>
@@ -180,6 +178,7 @@ export async function render(container) {
 
   updateRangeHint(container);
   updateOrdersHint(container);
+  updateConcurrencyHint(container);
   if (run) renderProgress(container, run);
   toggleButtons(container, run);
   renderResults(container);
@@ -212,10 +211,6 @@ function alive(container) {
 // formulario
 // -----------------------------------------------------------------------------
 
-function concurrencyValue(selected) {
-  return clampConcurrency(selected);
-}
-
 function wireForm(container) {
   container.querySelectorAll('#io-from, #io-to').forEach((input) => {
     input.addEventListener('change', () => {
@@ -237,7 +232,15 @@ function wireForm(container) {
     persistDraft(container);
   });
 
-  container.querySelector('#io-concurrency').addEventListener('change', () => persistDraft(container));
+  // El campo no tiene tope, pero 0, vacio o "abc" dejarian el pool sin carriles:
+  // se escribe de vuelta el valor que realmente se va a usar.
+  const concurrency = container.querySelector('#io-concurrency');
+  concurrency.addEventListener('input', () => updateConcurrencyHint(container));
+  concurrency.addEventListener('change', () => {
+    concurrency.value = clampConcurrency(concurrency.value);
+    updateConcurrencyHint(container);
+    persistDraft(container);
+  });
 
   container.querySelectorAll('[data-section]').forEach((box) => {
     box.addEventListener('change', () => persistDraft(container));
@@ -310,10 +313,21 @@ function updateRangeHint(container) {
   }
   if (days > MAX_RANGE_DAYS) {
     const blocks = splitDateRange(from, to).length;
-    hint.textContent = `Rango de ${days + 1} dias: se consultara en ${blocks} bloques de hasta ${MAX_RANGE_DAYS} dias y se juntaran los resultados.`;
+    hint.textContent = `Rango de ${days + 1} dias: se consultara en ${blocks} bloques de hasta ${MAX_RANGE_DAYS + 1} dias y se juntaran los resultados.`;
     return;
   }
   hint.textContent = `Rango de ${days + 1} dia(s).`;
+}
+
+function updateConcurrencyHint(container) {
+  const hint = container.querySelector('#io-concurrency-hint');
+  if (!hint) return;
+  const value = clampConcurrency(container.querySelector('#io-concurrency').value);
+  const high = value >= CONCURRENCY_WARN;
+  hint.classList.toggle('io-hint--warn', high);
+  hint.textContent = high
+    ? `${value} peticiones a la vez contra el admin: si Magento empieza a rechazarlas o a ir lento, bajalo.`
+    : `Sin tope; ${CONCURRENCY_DEFAULT} por defecto. Cuantas fichas se piden en paralelo.`;
 }
 
 function updateOrdersHint(container) {
@@ -356,9 +370,10 @@ async function onStart(container) {
     alert('La fecha "Hasta" es anterior a "Desde".');
     return;
   }
-  if (days > MAX_RANGE_DAYS) {
-    log.info(`el rango se dividira en ${splitDateRange(form.from, form.to).length} bloques`);
-  }
+  // Un rango largo ya no se rechaza: se parte en ventanas de las que Magento si
+  // acepta y los resultados se juntan.
+  const blocks = splitDateRange(form.from, form.to).length;
+  if (blocks > 1) log.info(`el rango se consultara en ${blocks} bloques`);
 
   const { numbers } = parseOrderNumbers(form.orders);
   if (form.mode === SOURCE_MODE.LIST && !numbers.length) {

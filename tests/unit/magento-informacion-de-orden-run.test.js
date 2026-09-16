@@ -204,6 +204,60 @@ describe('captura por rango', () => {
     expect(records().map((record) => record.incrementId)).toEqual(['1', '2', '3', '4']);
   });
 
+  it('los bloques se consultan en paralelo, no en fila india', async () => {
+    let live = 0;
+    let peak = 0;
+    globalThis.fetch = vi.fn(async (url) => {
+      if (isDetail(url)) return detailResponse(orderOf(url));
+      live += 1;
+      peak = Math.max(peak, live);
+      await sleep(8);
+      live -= 1;
+      return gridResponse([], 0);
+    });
+
+    // 100 dias = 4 bloques: con el pool de 4 salen las cuatro consultas juntas.
+    seedRun(rangeConfig({ from: '2026-06-01', to: '2026-09-09', concurrency: 4 }));
+    const { tickIfActive } = await loadRun();
+    await tickIfActive();
+
+    expect(peak).toBe(4);
+    expect(currentRun().finishReason).toBe('done');
+  });
+
+  it('no repite una orden que aparece en dos bloques o paginas', async () => {
+    globalThis.fetch = vi.fn(async (url) => {
+      if (isDetail(url)) return detailResponse(orderOf(url));
+      // El listado se reordena mientras se pagina: la 1 vuelve a salir.
+      const page = Number(new URL(url).searchParams.get('paging[current]'));
+      return gridResponse(page === 1 ? [order(1), order(2)] : [order(1), order(3)], 400);
+    });
+
+    seedRun(rangeConfig({ concurrency: 2 }));
+    const { tickIfActive } = await loadRun();
+    await tickIfActive();
+
+    expect(records().map((record) => record.incrementId)).toEqual(['1', '2', '3']);
+    expect(currentRun().okCount).toBe(3);
+  });
+
+  it('no pide paginas cuyas ordenes pasarian del tope de la corrida', async () => {
+    let gridCalls = 0;
+    globalThis.fetch = vi.fn(async (url) => {
+      if (isDetail(url)) return detailResponse(orderOf(url));
+      gridCalls += 1;
+      return gridResponse([], 6000);
+    });
+
+    seedRun(rangeConfig({ concurrency: 8 }));
+    const { tickIfActive } = await loadRun();
+    await tickIfActive();
+
+    // 5000 ordenes / 200 por pagina = 25 paginas, no las 30 del total.
+    expect(gridCalls).toBe(25);
+    expect(currentRun().log.some((entry) => entry.message.includes('primeras 5000'))).toBe(true);
+  });
+
   it('pagina el listado antes de entrar a las fichas', async () => {
     globalThis.fetch = vi.fn(async (url) => {
       if (isDetail(url)) return detailResponse(orderOf(url));
