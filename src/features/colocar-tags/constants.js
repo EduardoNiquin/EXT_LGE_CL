@@ -155,6 +155,11 @@ export const SELECTORS = {
   // Fila "Delivery" dentro del modal
   deliveryRowChk:    '#deliveryTagChk',
   deliveryTagInput:  '#deliveryTag',
+  // LEGACY: los ids `#cb2-button` / `#cb2-listbox` estan DUPLICADOS entre varios
+  // comboboxes del modal, asi que resolverlos por id devuelve el equivocado
+  // (tipicamente el de Product Tag). El flow ya NO los usa: resuelve boton y
+  // listbox por estructura DOM via selectComboboxByInput(#deliveryTag). Quedan
+  // solo como referencia para diagnostico.
   deliveryComboBtn:  '#cb2-button',
   deliveryListbox:   '#cb2-listbox',
   deliveryUseFlag:   '#deliveryTagUseFlag',

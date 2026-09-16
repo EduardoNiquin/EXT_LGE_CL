@@ -14,7 +14,7 @@ Pantalla: **Marketing Info Mapping (MIM)** en GP1 (SPA), modal `#dialog2`.
 **Texto messageboxes:** confirm STG/PROD = "all selected rows of information"; success = "successfully saved to STG"/"...to PROD".
 
 ## Tag de Delivery — port `colocar-tags:delivery-run`
-Popup: `skus[]`, `tagLabel` (default "Despacho Gratis RM"), `beginDay/Time`, `endDay/Time`, `skipProd` (default true). Por SKU: `applyDeliveryTag` marca `#deliveryTagChk`, selecciona tag vía `cb2-button`/`cb2-listbox`, marca `#deliveryTagUseFlag`, `#deliveryTagUserType=ALL`, setea 4 inputs fecha/hora, `formSubmit()` → confirm YES → ack OK. Si `!skipProd`: `formSubmitProd()` + confirm + ack.
+Popup: `skus[]`, `tagLabel` (default "Despacho Gratis RM"), `beginDay/Time`, `endDay/Time`, `skipProd` (default true). Por SKU: `applyDeliveryTag` marca `#deliveryTagChk`, selecciona tag vía `selectComboboxByInput(#deliveryTag)` (los ids `cb2-*` están duplicados), marca `#deliveryTagUseFlag`, `#deliveryTagUserType=ALL`, setea 4 inputs fecha/hora, `formSubmit()` → confirm YES → ack OK. Si `!skipProd`: `formSubmitProd()` + confirm + ack.
 
 ## Quitar Tag de Delivery — port `colocar-tags:delivery-remove-run`
 Inverso: desactiva. Popup solo `skus[]` + `skipProd`. Por SKU: marca `#deliveryTagChk` (dirty trigger/inclusión), **desmarca** `#deliveryTagUseFlag`, SAVE STG → YES → OK, opcional PROD. NO toca combobox ni fechas. Runner `DELIVERY_REMOVE_RUN`.
