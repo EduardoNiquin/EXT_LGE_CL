@@ -17,7 +17,7 @@ EXT_LGE_CL/
 ├── docs/features/             Un .md por feature (detalle completo)
 ├── manifests/                 manifest.base.json (MV3 compartido) + .chrome/.edge (overrides)
 ├── scripts/                   pack-extension / generate-policy / build-installer / install.ps1 / build.js / package.js
-│                              dev-browser.mjs + browser-eval.mjs (ver docs/browser-testing.md)
+│                              dev-browser.mjs + browser-eval.mjs + mcp-chrome.mjs (ver docs/browser-testing.md)
 ├── src/
 │   ├── background/service-worker.js
 │   ├── content/index.js       Debug API + init de features + runSkuBatch
@@ -36,7 +36,7 @@ EXT_LGE_CL/
 │       ├── run-store/         createRunStore + createPersistedValue + wireAsync/ReloadTickLifecycle
 │       └── log-config/        Cache de scopes habilitados (`log-config:scopes`)
 ├── tests/{unit,e2e}/   keys/ (.pem, gitignored)   build/ (gitignored)
-└── eslint.config.js  vite.config.js  package.json  EXTENSION_INSTALL.md
+└── eslint.config.js  vite.config.js  package.json  .mcp.json  EXTENSION_INSTALL.md
 ```
 Todas las esperas de `shared/dom` aceptan `AbortSignal`.
 
@@ -50,6 +50,9 @@ npm run lint / npm test
 npm run browser / browser:edge        # navegador con la extension cargada + CDP
 npm run browser -- --restart          # aplicar un rebuild
 npm run browser:eval -- --storage     # conducirlo / inspeccionarlo   (docs/browser-testing.md)
+npm run browser:ensure                # levanta el navegador si no hay ninguno (lo que hace el MCP solo)
+# El MCP de chrome-devtools (.mcp.json -> scripts/mcp-chrome.mjs) se asegura de que ese navegador con la
+# extension cargada este arriba antes de cada herramienta; reload_extension aplica un rebuild sin reiniciarlo.
 # Release corporativo
 npm run version:bump      # +0.1 (X.Y) con rollover en 9: 0.9→1.0. Sync manifest.base.json + package.json (--set=x.y)
 npm run pack:ext          # dist/edge → .crx firmado + extension-id.txt
@@ -152,4 +155,4 @@ Scaffolding + CI completos. Pipeline release corporativo (.crx firmado + políti
 
 Los tres módulos de **Magento** comparten router, wiring y bridge: eso está en **`docs/features/magento.md`** (leerlo antes de sumar un módulo nuevo).
 
-Otros docs: **`docs/browser-testing.md`** (probar en un navegador real: `npm run browser` / `browser:eval`, diferencias Chrome/Edge, mundos de evaluación) · **`src/features/magento/softbundles/docs/flujo.md`** (recorrido medido contra el admin real; ignorar su §2 de red/túnel).
+Otros docs: **`docs/browser-testing.md`** (probar en un navegador real: `npm run browser` / `browser:eval`, el MCP de chrome-devtools —`--categoryExtensions` + `reload_extension`—, diferencias Chrome/Edge, mundos de evaluación) · **`src/features/magento/softbundles/docs/flujo.md`** (recorrido medido contra el admin real; ignorar su §2 de red/túnel).

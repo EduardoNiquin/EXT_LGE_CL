@@ -10,6 +10,8 @@
     "browser": "node scripts/dev-browser.mjs",
     "browser:edge": "node scripts/dev-browser.mjs --browser=edge",
     "browser:eval": "node scripts/browser-eval.mjs",
+    "browser:ensure": "node scripts/mcp-chrome.mjs --ensure",
+    "mcp:chrome": "node scripts/mcp-chrome.mjs",
     "build:chrome": "vite build --mode chrome",
     "build:edge": "vite build --mode edge",
     "build": "npm run build:chrome && npm run build:edge",
@@ -35,6 +37,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.0",
+    "chrome-devtools-mcp": "^1.9.0",
     "eslint": "^10.0.0",
     "globals": "^16.0.0",
     "happy-dom": "^20.14.5",

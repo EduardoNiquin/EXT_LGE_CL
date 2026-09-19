@@ -63,7 +63,7 @@ async function main() {
       throw new CdpError('No se encontro la extension en ese navegador. Levantalo con `npm run browser`.');
     }
 
-    const { expression, world } = buildExpression(extensionId);
+    const { expression, world } = buildExpression();
     const { targetId, opened } = await resolveTarget(client, extensionId);
 
     const value = await evaluateInTarget(client, targetId, expression, { world, extensionName: EXTENSION_NAME });
@@ -83,7 +83,7 @@ function needsExtension() {
 // que se evalua
 // -----------------------------------------------------------------------------
 
-function buildExpression(extensionId) {
+function buildExpression() {
   const page = args.page || 'popup';
   const isExtensionPage = page === 'popup' || page === 'options';
   // El mundo aislado solo existe en paginas web; en las de la extension hay uno solo.
