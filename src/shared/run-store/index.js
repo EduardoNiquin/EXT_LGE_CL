@@ -181,6 +181,7 @@ export function wireAsyncRunLifecycle({
  * @param {string} o.runKey   key del run en storage que se observa.
  * @param {()=>Promise<void>|void} o.tickIfActive
  * @param {number} [o.delay=300]  espera inicial para que monte el DOM/grid.
+ * @param {boolean} [o.topFrameOnly=true]  false: tambien en iframes.
  * @param {{debug?:Function}} [o.log=console]
  */
 export function wireReloadTickLifecycle({
@@ -188,9 +189,12 @@ export function wireReloadTickLifecycle({
   tickIfActive,
   abortActiveRun = null,
   delay = 300,
+  topFrameOnly = true,
   log = console,
 }) {
-  if (window !== window.top) {
+  // `topFrameOnly: false` es para pantallas que viven en un iframe (Facturas /
+  // GEVS): ahi cada frame hace tick y el que detecta la pantalla es el que actua.
+  if (topFrameOnly && window !== window.top) {
     log.debug?.('iframe — no se inicializa la state machine en este frame');
     return;
   }

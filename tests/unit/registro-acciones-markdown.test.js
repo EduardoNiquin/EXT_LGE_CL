@@ -346,6 +346,37 @@ describe('generarPartes', () => {
     expect(md).toContain('- **Enlace:** `/ver/98213`');
   });
 
+  it('distingue lo que hizo la extension de lo que hizo la persona', () => {
+    const { partes } = generarPartes([
+      evento(1, TIPOS.PAGINA_VISITA),
+      evento(2, TIPOS.EXTENSION, {
+        origen: 'extension',
+        datos: {
+          feature: 'facturas',
+          mensaje: 'Escribe #InvoiceNo = "2943361"',
+          elemento: { selector: '#InvoiceNo' },
+          valor: '2943361',
+          respuesta: 'nada',
+          detalle: { paso: 'invoice-no', intento: 1, vacio: null },
+        },
+      }),
+      evento(3, TIPOS.CLIC, { datos: { elemento: elemento({ texto: 'Submit', selector: '#ABSubmitBtn' }) } }),
+    ], SESION);
+
+    const md = partes[0].contenido;
+    expect(md).toContain('#### #2 - 14:09:02 - extension');
+    expect(md).toContain('- **Lo hizo la extension** (facturas): Escribe #InvoiceNo = "2943361"');
+    expect(md).toContain('- **Elemento:** `#InvoiceNo`');
+    expect(md).toContain('- **Valor:** `2943361`');
+    expect(md).toContain('- **Respuesta esperada de la pagina:** nada');
+    expect(md).toContain('- **Detalle:** paso=invoice-no - intento=1');
+    expect(md).not.toContain('vacio=');
+    // El clic de la persona sigue siendo un bloque normal, sin la marca.
+    const bloqueClic = md.slice(md.indexOf('#### #3'));
+    expect(bloqueClic).toContain('- **Selector:** `#ABSubmitBtn`');
+    expect(bloqueClic).not.toContain('Lo hizo la extension');
+  });
+
   it('deja anotado el shadow DOM cuando el selector lo cruza', () => {
     const { partes } = generarPartes([
       evento(1, TIPOS.PAGINA_VISITA),

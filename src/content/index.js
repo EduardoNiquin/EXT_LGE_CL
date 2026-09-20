@@ -13,6 +13,7 @@ import * as solotodo    from '../features/solotodo/content/index.js';
 import * as devoluciones from '../features/devoluciones/content/index.js';
 import * as magento      from '../features/magento/content/index.js';
 import * as registroAcciones from '../features/registro-acciones/content/index.js';
+import * as facturas    from '../features/facturas/content/index.js';
 
 // Importar el debug.js de cada feature auto-registra sus comandos.
 // Para sumar una nueva feature: crear src/features/<feature>/debug.js
@@ -28,6 +29,7 @@ import '../features/pim/debug.js';
 import '../features/solotodo/debug.js';
 import '../features/magento/debug.js';
 import '../features/registro-acciones/debug.js';
+import '../features/facturas/debug.js';
 
 const log = logger('content');
 const version = chrome?.runtime?.getManifest?.()?.version;
@@ -46,6 +48,7 @@ solotodo.init();
 devoluciones.init();
 magento.init();
 registroAcciones.init();
+facturas.init();
 
 log.info('content script cargado', {
   url: location.href,

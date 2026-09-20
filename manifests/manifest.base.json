@@ -12,7 +12,8 @@
     "proxy",
     "webRequest",
     "webRequestAuthProvider",
-    "unlimitedStorage"
+    "unlimitedStorage",
+    "contentSettings"
   ],
   "host_permissions": [
     "<all_urls>"
@@ -56,6 +57,18 @@
       "run_at": "document_idle",
       "world": "MAIN",
       "all_frames": false
+    },
+    {
+      "matches": [
+        "http://lgegltase1q.lge.com:8032/OA_HTML/jsp/xxlge/com/uploadResult.jsp*",
+        "http://lgegltase9q.lge.com:8032/OA_HTML/jsp/xxlge/com/uploadResult.jsp*"
+      ],
+      "js": [
+        "src/features/facturas/content/upload-alert.js"
+      ],
+      "run_at": "document_start",
+      "world": "MAIN",
+      "all_frames": true
     }
   ],
   "side_panel": {

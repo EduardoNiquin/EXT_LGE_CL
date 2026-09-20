@@ -15,6 +15,7 @@ export const ETIQUETAS = {
   [TIPOS.SESION_REANUDAR]: 'SIGUE',
   [TIPOS.SESION_FIN]: 'FIN',
   [TIPOS.NOTA]: 'NOTA',
+  [TIPOS.EXTENSION]: 'EXT',
   [TIPOS.PESTANA_ABIERTA]: 'PESTANA',
   [TIPOS.PESTANA_ACTIVADA]: 'PESTANA',
   [TIPOS.PESTANA_CERRADA]: 'PESTANA',
@@ -152,6 +153,8 @@ export function resumirEvento(evento) {
       return `Fin de la grabacion (${datos.motivo || 'usuario'})`;
     case TIPOS.NOTA:
       return datos.mensaje || 'Nota';
+    case TIPOS.EXTENSION:
+      return `[${datos.feature || 'extension'}] ${datos.mensaje || 'accion de la extension'}`;
 
     default:
       return evento.tipo;

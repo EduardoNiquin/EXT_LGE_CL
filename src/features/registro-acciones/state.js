@@ -32,13 +32,19 @@ export const {
   subscribeToRun,
 } = store;
 
-/** Sello de sesion legible, que ademas nombra la carpeta de descarga. */
-export function nuevoSesionId(ahora = new Date()) {
+/**
+ * Sello de sesion legible, que ademas nombra la carpeta de descarga. Con
+ * `etiqueta` (una feature que graba su propia corrida) queda
+ * `2026-09-15_14-32-10_facturas-mercado-pago-2943361`.
+ */
+export function nuevoSesionId(ahora = new Date(), etiqueta = '') {
   const dos = (n) => String(n).padStart(2, '0');
-  return [
+  const sello = [
     ahora.getFullYear(), '-', dos(ahora.getMonth() + 1), '-', dos(ahora.getDate()),
     '_', dos(ahora.getHours()), '-', dos(ahora.getMinutes()), '-', dos(ahora.getSeconds()),
   ].join('');
+  const sufijo = String(etiqueta || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40);
+  return sufijo ? `${sello}_${sufijo}` : sello;
 }
 
 export function makeRun({ sesionId, mensaje } = {}) {

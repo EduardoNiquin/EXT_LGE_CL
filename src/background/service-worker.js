@@ -9,6 +9,7 @@ import { wireDevolucionesBackground } from '../features/devoluciones/falabella/b
 import { wireGestionBackground } from '../features/devoluciones/falabella/gestion/background/runner.js';
 import { wireRegistroAccionesBackground } from '../features/registro-acciones/background/grabador.js';
 import { wireVpnBackground } from '../features/vpn/background/conexion.js';
+import { wireFacturasBackground } from '../features/facturas/background/index.js';
 import '../features/e-promoters/debug.js';
 import '../features/registro-acciones/debug.js';
 import '../features/vpn/debug.js';
@@ -39,6 +40,9 @@ wireRegistroAccionesBackground();
 
 // VPN: apunta el navegador al SOCKS5 de Enlace LG y vigila que siga en pie.
 wireVpnBackground();
+
+// Facturas: entrega los adjuntos (base64) al content script del iframe de upload de GEVS.
+wireFacturasBackground();
 
 chrome.runtime.onInstalled.addListener((details) => {
   log.info('Extensión instalada/actualizada', { reason: details?.reason, version });

@@ -26,6 +26,9 @@ export const MESSAGES = {
   EXPORTAR: `${FEATURE_ID}:exportar`,
   ESTADO: `${FEATURE_ID}:estado`,
   ULTIMOS: `${FEATURE_ID}:ultimos`,
+  // content/popup de OTRA feature -> SW: anota una accion hecha por la extension
+  // en la grabacion activa (tipo `extension`). `{ datos, url?, titulo? }`.
+  ANOTAR: `${FEATURE_ID}:anotar`,
 };
 
 /**
@@ -39,6 +42,11 @@ export const TIPOS = {
   SESION_REANUDAR: 'sesion.reanudar',
   SESION_FIN: 'sesion.fin',
   NOTA: 'nota',
+  // Algo que hizo la EXTENSION (no la persona) mientras se grababa: una feature
+  // automatizando una pantalla lo anota con MESSAGES.ANOTAR. Los eventos del
+  // usuario no lo incluyen (la captura ignora los eventos no `isTrusted`).
+  // datos: { feature, mensaje, elemento?: {selector}, valor?, respuesta?, detalle?: {clave: valor} }
+  EXTENSION: 'extension',
 
   // Pestanas y navegacion (service worker)
   PESTANA_ABIERTA: 'pestana.abierta',

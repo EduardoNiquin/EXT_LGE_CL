@@ -320,6 +320,21 @@ function cuerpoDeAccion(evento) {
     case TIPOS.NAVEGACION_ERROR:
       return [`- **Error:** ${datos.error || 'sin detalle'}`, `- **URL:** ${codigo(evento.url)}`];
 
+    // Lo hizo la extension, no la persona: se dice explicito para que quien lea
+    // el archivo (una IA, en general) no lo confunda con un paso manual.
+    case TIPOS.EXTENSION: {
+      const lineas = [`- **Lo hizo la extension** (${datos.feature || 'extension'}): ${datos.mensaje || '-'}`];
+      if (datos.elemento?.selector) lineas.push(`- **Elemento:** ${codigo(datos.elemento.selector)}`);
+      if (datos.valor != null && datos.valor !== '') lineas.push(`- **Valor:** ${codigo(datos.valor)}`);
+      if (datos.respuesta) lineas.push(`- **Respuesta esperada de la pagina:** ${datos.respuesta}`);
+      const detalle = Object.entries(datos.detalle || {})
+        .filter(([, v]) => v != null && v !== '')
+        .map(([k, v]) => `${k}=${typeof v === 'object' ? JSON.stringify(v) : v}`)
+        .join(' - ');
+      if (detalle) lineas.push(`- **Detalle:** ${detalle}`);
+      return lineas;
+    }
+
     default: {
       const lineas = [];
       if (datos.elemento) lineas.push(...lineasDeElemento(datos.elemento));

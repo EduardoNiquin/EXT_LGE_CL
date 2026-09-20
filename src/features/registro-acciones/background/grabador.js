@@ -125,6 +125,7 @@ function recordarRef(ref, id) {
 function recordarAccion(evento, id) {
   const esNavegable = evento.tipo === TIPOS.CLIC
     || evento.tipo === TIPOS.ENVIO_FORMULARIO
+    || evento.tipo === TIPOS.EXTENSION
     || (evento.tipo === TIPOS.TECLA && evento.datos?.tecla === 'Enter');
   if (!esNavegable || evento.pestanaId == null) return;
 
@@ -196,6 +197,15 @@ export async function emitirDelSw(evento) {
   }]);
 
   return id ?? null;
+}
+
+/**
+ * Una accion hecha por la EXTENSION (otra feature automatizando una pantalla),
+ * anotada en la grabacion activa junto a lo que hace la persona. Si no se esta
+ * grabando, no pasa nada: la feature no tiene que saberlo.
+ */
+export function anotar({ datos = {}, pestanaId = null, frameId = null, url = null, titulo = null } = {}) {
+  return emitirDelSw({ tipo: TIPOS.EXTENSION, origen: 'extension', pestanaId, frameId, url, titulo, datos });
 }
 
 /** Lote que llega de un frame. */
@@ -286,9 +296,16 @@ function avisarAlPanel() {
 // Ordenes del popup
 // -----------------------------------------------------------------------------
 
-async function iniciar() {
+/**
+ * @param {object} [o]
+ * @param {string} [o.etiqueta]  sufijo del sesionId (y de la carpeta) cuando la
+ *   grabacion la pide una feature para su propia corrida.
+ * @returns {{ok:true, run:object} | {ok:false, reason:string, run?:object}}
+ *   con `run` = la grabacion que ya estaba en curso, si esa fue la razon.
+ */
+export async function iniciar({ etiqueta = '' } = {}) {
   const previo = await getRun();
-  if (previo?.active) return { ok: false, reason: 'Ya hay una grabacion en curso.' };
+  if (previo?.active) return { ok: false, reason: 'Ya hay una grabacion en curso.', run: previo };
 
   try {
     await store.limpiar();
@@ -296,7 +313,7 @@ async function iniciar() {
     return { ok: false, reason: `No se pudo preparar el almacen: ${toMessage(err)}` };
   }
 
-  const sesionId = nuevoSesionId();
+  const sesionId = nuevoSesionId(new Date(), etiqueta);
   memoria.activo = true;
   memoria.pausado = false;
   memoria.sesionId = sesionId;
@@ -391,7 +408,8 @@ async function reanudar() {
  * suelte lo que tenga acumulado — y recien despues se exporta, para no dejar
  * afuera los ultimos eventos.
  */
-async function detener({ motivo = MOTIVO_FIN.USUARIO, exportar = true } = {}) {
+/** `motivo`: un MOTIVO_FIN o el id de la feature que cierra su propia grabacion. */
+export async function detener({ motivo = MOTIVO_FIN.USUARIO, exportar = true } = {}) {
   if (!memoria.activo) return { ok: false, reason: 'No hay una grabacion activa.' };
 
   const ahora = Date.now();
@@ -497,10 +515,22 @@ function alConectar(port) {
   }
 }
 
-function alMensaje(mensaje, _sender, sendResponse) {
+function alMensaje(mensaje, sender, sendResponse) {
   switch (mensaje?.type) {
     case MESSAGES.INICIAR:
-      iniciar().then(sendResponse).catch((err) => sendResponse({ ok: false, reason: toMessage(err) }));
+      iniciar({ etiqueta: mensaje.etiqueta }).then(sendResponse).catch((err) => sendResponse({ ok: false, reason: toMessage(err) }));
+      return true;
+
+    case MESSAGES.ANOTAR:
+      anotar({
+        datos: mensaje.datos,
+        pestanaId: sender?.tab?.id ?? null,
+        frameId: sender?.frameId ?? null,
+        url: mensaje.url || sender?.url || null,
+        titulo: mensaje.titulo || null,
+      })
+        .then((id) => sendResponse({ ok: true, id }))
+        .catch((err) => sendResponse({ ok: false, reason: toMessage(err) }));
       return true;
 
     case MESSAGES.PAUSAR:

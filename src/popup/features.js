@@ -14,6 +14,7 @@ import { render as renderAjustes }     from '../features/ajustes/popup/view.js';
 import { render as renderMagento }     from '../features/magento/popup/view.js';
 import { render as renderRegistroAcciones } from '../features/registro-acciones/popup/view.js';
 import { render as renderVpn }         from '../features/vpn/popup/view.js';
+import { render as renderFacturas }    from '../features/facturas/popup/view.js';
 
 export const features = [
   {
@@ -136,6 +137,14 @@ export const features = [
     abbr: 'VPN',
     keywords: ['vpn', 'enlace', 'red', 'lg', 'proxy', 'socks', 'socks5', 'tunel', 'túnel', 'interna', 'intranet', 'remoto', 'teletrabajo'],
     render: renderVpn,
+  },
+  {
+    id: 'facturas',
+    name: 'Facturas',
+    description: 'Carga facturas de comision en GEVS (Complex Voucher) desde el Invoice Master File',
+    abbr: 'FAC',
+    keywords: ['facturas', 'factura', 'gevs', 'voucher', 'complex', 'invoice', 'comision', 'mercado pago', 'transbank', 'falabella', 'paris', 'walmart', 'ripley'],
+    render: renderFacturas,
   },
   {
     id: 'ajustes',

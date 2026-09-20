@@ -41,6 +41,7 @@ Lotes cada `loteMs` (400 ms) o `loteEventos` (50), **salvo** clic navegable, sub
 
 ## Que se captura (`TIPOS`)
 - **Sesion (SW):** `sesion.inicio` (con navegador, zona horaria, opciones y pestanas abiertas), `sesion.pausa`, `sesion.reanudar`, `sesion.fin`, `nota`.
+- **Extension (otra feature, via SW):** `extension` = algo que hizo la EXTENSION, no la persona (ver "Bitacora de otra feature").
 - **Navegacion (SW):** `navegacion` (con `transitionType` y `transitionQualifiers` → link / form_submit / typed / reload / server_redirect…), `navegacion.spa` (`pushState`), `navegacion.error`, `pestana.abierta` (con `abiertaPor`), `pestana.activada`, `pestana.cerrada`, `descarga`.
 - **Interaccion (content):** `clic` (boton, doble, modificadores, href, abre-en-pestana-nueva), `campo.cambio` (**valor final**, no tecla por tecla), `tecla` (solo la lista blanca + cualquier combinacion con Ctrl/Alt/Meta), `envio-formulario` (con el resumen de campos), `copiar`/`cortar`/`pegar`.
 - **Pagina (content):** `pagina.visita`, `pagina.inventario` (formularios, campos, botones, enlaces, tablas con muestra, iframes, dialogos), `pagina.oculta`/`pagina.visible`.
@@ -74,6 +75,22 @@ Esto corre en cada frame de cada pagina: todo esta acotado.
 - `#N` es la id global, asi que `Causado por #704` funciona aunque #704 este en otra parte.
 - **Las paginas sin ninguna accion no se escriben.** Cada pestana abierta de fondo anuncia su visita; sin esto el recorrido se llenaba de paginas donde no paso nada.
 - Solo se registran paginas `http(s)`: nada de `about:blank`, paginas internas del navegador ni el popup de la propia extension.
+
+## Bitacora de otra feature (`TIPOS.EXTENSION`, `MESSAGES.ANOTAR`)
+Una feature que automatiza una pantalla (hoy: **Facturas**) puede grabar su corrida con este mismo grabador, de modo que
+el archivo mezcle **lo que hizo la extension** con **lo que hizo la persona** (la captura ignora los eventos no
+`isTrusted`, asi que las escrituras sinteticas de la extension nunca aparecen como acciones del usuario: solo entran por
+esta via, marcadas). Piezas:
+- `iniciar({ etiqueta })` / `detener({ motivo, exportar })` exportadas de `background/grabador.js` para el SW de la otra
+  feature (mismo contexto: no hace falta mensaje). Con `etiqueta` el `sesionId` (y la carpeta) queda
+  `2026-09-20_10-02-11_facturas-mercado-pago-2943361`; `motivo` puede ser el id de la feature. Si ya habia una
+  grabacion del usuario, `iniciar` devuelve `{ ok:false, run }` y la feature decide anotar ahi sin cerrarla.
+- `MESSAGES.ANOTAR` (content/popup de la otra feature → SW) o `anotar()` directo en el SW: emite un evento `extension`
+  con `datos = { feature, mensaje, elemento?: {selector}, valor?, respuesta?, detalle?: {clave: valor} }`, `pestanaId` y
+  `frameId` del emisor. Si no se esta grabando, se descarta en silencio: la feature no necesita saberlo.
+- En el Markdown el bloque dice **"Lo hizo la extension (feature): mensaje"** + Elemento / Valor / Respuesta esperada /
+  Detalle; en el feed la etiqueta es `EXT`. Cuenta como accion "navegable": la navegacion que provoque (Save, montos)
+  se le atribuye con `Causado por #N`.
 
 ## UI (`popup/sections/grabador.js`)
 Cuatro opciones (mapa de pagina, consecuencias, portapapeles, ocultar correo/RUT) que se bloquean mientras se graba. **Iniciar** pide confirmacion con el aviso de que se graba todo. Mientras corre: punto rojo latiendo, cronometro (descontando pausas), contador de eventos y paginas, y el **feed en vivo** (ultimos 60, lo mas nuevo arriba). **Pausar/Reanudar** no aborta nada. **Detener** confirma, genera los archivos y muestra la lista con su tamano; queda **Volver a generar** y **Descartar**.
