@@ -138,7 +138,7 @@ Scaffolding + CI completos. Pipeline release corporativo (.crx firmado + políti
 |---|---|---|---|
 | Colocar TAGs | GP1 Marketing Info Mapping: Lectura, Tag Delivery, Quitar Delivery, Tag Producto, Tag Oferta (batch por SKU) | SPA + ports | `colocar-tags.md` |
 | Magento · Buscar orden | Encontrar la orden por los datos del pago (read-only, CSV) | tick-por-reload | `magento-buscar-orden.md` |
-| Magento · Informacion de Orden | Entra a la ficha de cada orden de un rango (o de una lista) y exporta lo que hay ahi a CSV, una fila por orden (read-only) | storage-driven async | `magento-informacion-de-orden.md` |
+| Magento · Informacion de Orden | Entra a la ficha de cada orden de un rango (o de una lista) y exporta lo que hay ahi a CSV, una fila por orden (read-only). El resultado se guarda y se baja **por partes** (N ordenes por archivo) con opcion de unirlas: en una sola tanda un rango amplio se caia por memoria | storage-driven async | `magento-informacion-de-orden.md` |
 | Magento · Crear Softbundles | Package rules en lote (padre + hijos); único módulo con acción destructiva opcional | tick-por-reload | `magento-softbundles.md` |
 | Magento · Global Shipping Rules | Recorre las rules y exporta CSV (read-only) | tick-por-reload | `magento-global-shipping-rules.md` |
 | Lead Times | Manage Address Level 2: lead times por región/comuna | tick-por-reload | `lead-times.md` |

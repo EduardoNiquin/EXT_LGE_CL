@@ -10,7 +10,15 @@ import {
   expandSections,
 } from './constants.js';
 import { buildMatrix, buildRecord } from './csv.js';
-import { clearResult, clearRun, getDraft, getResult, getRun, updateRun } from './state.js';
+import {
+  clearResult,
+  clearRun,
+  getDraft,
+  getResultIndex,
+  getRun,
+  readResultPart,
+  updateRun,
+} from './state.js';
 import { adminBaseFrom, diagnose } from './content/detector.js';
 import { fetchGridPage } from './content/client.js';
 import { fetchOrderDetail, fetchTextWithRetry } from './content/order-page.js';
@@ -158,11 +166,19 @@ register('magentoInformacionDeOrden', {
         : 'La REST no acepta la sesion del admin (lo esperable por el path de la cookie). La captura sigue por la ficha.',
     };
   }, 'Prueba si /rest/V1/orders/<entity_id> acepta la sesion del admin: restProbe("35732098")'),
-  csv: cmd(
-    async (allColumns = false) => buildMatrix((await getResult())?.records || [], { allColumns }),
-    'Matriz del CSV (headers + filas). csv(true) = todas las columnas',
-  ),
-  result: cmd(() => getResult(), 'Registros capturados'),
+  // El resultado vive en PARTES (un CSV por parte): estos comandos trabajan
+  // sobre una, nunca sobre todo junto, por la misma razon que el popup.
+  csv: cmd(async (part = 0, allColumns = false) => {
+    const index = await getResultIndex();
+    const entry = index?.parts?.[part];
+    if (!entry) return { headers: [], rows: [] };
+    return buildMatrix(await readResultPart(entry), { allColumns, columns: index.columns });
+  }, 'Matriz del CSV de una parte: csv(0) o csv(0, true) para todas las columnas'),
+  result: cmd(() => getResultIndex(), 'Indice del resultado: partes, total y columnas'),
+  part: cmd(async (part = 0) => {
+    const index = await getResultIndex();
+    return readResultPart(index?.parts?.[part] ?? part);
+  }, 'Registros capturados de una parte: part(0)'),
   state: cmd(() => getRun(), 'Estado persistido de la captura'),
   draft: cmd(() => getDraft(), 'Ultimo formulario guardado'),
   stop: cmd(() => updateRun((run) => ({

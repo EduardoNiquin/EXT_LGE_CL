@@ -32,14 +32,23 @@ import {
   RESULT_FLUSH_MAX_MS,
   RESULT_FLUSH_MIN_MS,
   RESULT_FLUSH_PER_RECORD_MS,
+  RESULT_VERSION,
   RUN_PHASE,
   SOURCE_MODE,
   clampConcurrency,
+  clampPartSize,
   expandSections,
 } from '../../constants.js';
 import { addTiming, describeSummary, formatDuration, summarizeRun } from '../../stats.js';
-import { appendLog, getRun, setResult, updateRun } from '../../state.js';
-import { buildRecord, makeMissingRecord } from '../../csv.js';
+import {
+  appendLog,
+  getRun,
+  resultPartKey,
+  setResultIndex,
+  updateRun,
+  writeResultPart,
+} from '../../state.js';
+import { buildRecord, makeMissingRecord, mergeColumns, recordColumnKeys } from '../../csv.js';
 import { adminBaseFrom, isAdminPage } from '../detector.js';
 import { fetchGridPage } from '../client.js';
 import { fetchOrderDetail } from '../order-page.js';
@@ -241,7 +250,7 @@ async function runCapture({ run, signal }) {
     return;
   }
 
-  const collector = createCollector({ signal });
+  const collector = createCollector({ signal, partSize: clampPartSize(config.partSize) });
   // Las que el grid no devolvio se anotan ya: salen en el CSV marcadas.
   targets.forEach((target, index) => {
     if (target.missing) collector.setSlot(index, makeMissingRecord(target.incrementId, target.missing));
@@ -262,6 +271,12 @@ async function runCapture({ run, signal }) {
 
   await patch({ phase: RUN_PHASE.BUILDING });
   await collector.flush(true);
+  const written = collector.describe();
+  await patch({ parts: written.parts, savedRecords: written.total });
+  await appendLog({
+    level: 'info',
+    message: `${written.total} fila(s) en ${written.parts} archivo(s) CSV de hasta ${written.partSize}.`,
+  });
 }
 
 /**
@@ -291,6 +306,7 @@ async function captureTarget({ target, index, collector, sections, signal }) {
     }));
     await bumpProgress({ error: 1 });
     await appendLog({ level: 'error', message: `Orden ${target.incrementId}: ${reason}` });
+    await collector.flush();
   }
 }
 
@@ -498,52 +514,139 @@ function toTarget(item) {
 // ---------------------------------------------------------------------------
 
 /**
- * Junta los registros en memoria y los vuelca a storage cada tanto: escribir
- * miles de filas en cada orden seria carisimo, y no volcar nunca perderia todo
- * si el usuario cierra la pestana. Los slots mantienen el orden del listado
- * aunque los workers terminen desordenados.
+ * Junta los registros y los vuelca a storage POR PARTES de `partSize` ordenes,
+ * una clave por parte. Cada parte es tambien un archivo CSV.
  *
- * Cada volcado escribe el resultado ENTERO (chrome.storage no sabe de
- * "agregar"), asi que su costo crece con lo capturado: con un intervalo fijo,
- * una corrida larga terminaba gastando mas en serializar que en pedir fichas.
- * El intervalo crece con el numero de registros (`flushIntervalFor`).
+ * Por que en partes: un volcado reescribe entero lo que abarca (chrome.storage
+ * no sabe de "agregar"), asi que con todo el resultado en una sola clave el
+ * costo crece con la corrida y un rango amplio termina cayendo por memoria --al
+ * serializar, y despues en el popup al leerlo y matrizarlo--. Con partes el
+ * volcado cuesta siempre lo mismo (como maximo `partSize` registros) y la parte
+ * que se completa se escribe una ultima vez y SE SUELTA de memoria.
+ *
+ * Los slots mantienen el orden del listado aunque los workers terminen
+ * desordenados: `pending` esta indexado por el numero de orden dentro de la
+ * corrida, y la parte abierta es la ventana [partStart, partStart+partSize).
+ * Como el pool reparte los indices en orden, cuando la ventana esta completa ya
+ * no puede llegarle nada mas y se puede cerrar.
+ *
+ * La union de columnas se acumula aca (no al exportar): todas las partes tienen
+ * que salir con el mismo encabezado para poder unirse en un solo archivo.
  */
-function createCollector({ signal }) {
-  const slots = [];
+function createCollector({ signal, partSize }) {
+  const pending = new Map(); // indice global -> registro todavia en memoria
+  const closed = []; // partes ya completas y escritas, en orden
+  let columns = [];
+  let partStart = 0; // indice global con el que empieza la parte abierta
+  let snapshot = { parts: [], total: 0 };
   let lastFlush = 0;
-  let pending = false;
-  let stored = 0;
+  let dirty = false;
+  let openStored = 0; // registros de la parte abierta ya escritos
+  let queue = Promise.resolve(); // los volcados van de a uno (ver flush)
 
-  const flatten = () => slots.filter(Boolean);
+  /** Los registros de la parte abierta, en el orden del listado. */
+  function openRecords() {
+    const records = [];
+    for (let index = partStart; index < partStart + partSize; index += 1) {
+      const record = pending.get(index);
+      if (record) records.push(record);
+    }
+    return records;
+  }
+
+  /** La ventana abierta ya tiene todos sus registros: nada mas puede caer ahi. */
+  function isComplete() {
+    for (let index = partStart; index < partStart + partSize; index += 1) {
+      if (!pending.has(index)) return false;
+    }
+    return true;
+  }
+
+  function describePart(records) {
+    const index = closed.length;
+    return {
+      index,
+      key: resultPartKey(index),
+      count: records.length,
+      first: records[0]?.incrementId || '',
+      last: records[records.length - 1]?.incrementId || '',
+    };
+  }
+
+  const totalOf = (parts) => parts.reduce((sum, part) => sum + part.count, 0);
+
+  async function writeOpenPart(force) {
+    const complete = isComplete();
+    if (!dirty && !force && !complete) return;
+    const now = Date.now();
+    // Una parte completa se cierra en cuanto lo esta: es lo que libera su
+    // memoria, asi que no espera el intervalo.
+    if (!force && !complete && now - lastFlush < flushIntervalFor(openStored)) return;
+    lastFlush = now;
+    dirty = false;
+
+    const records = openRecords();
+    const part = describePart(records);
+    const parts = records.length ? [...closed, part] : [...closed];
+    try {
+      if (records.length) await writeResultPart(part.index, records);
+      await setResultIndex({
+        version: RESULT_VERSION,
+        generatedAt: now,
+        partSize,
+        columns,
+        parts,
+        total: totalOf(parts),
+      });
+      snapshot = { parts, total: totalOf(parts) };
+      openStored = records.length;
+      if (complete) {
+        closed.push(part);
+        for (let index = partStart; index < partStart + partSize; index += 1) pending.delete(index);
+        partStart += partSize;
+        openStored = 0;
+      }
+    } catch (err) {
+      if (isAbortError(err, signal)) throw err;
+      dirty = true; // que el proximo volcado lo reintente
+      log.warn('no se pudo guardar el resultado', { error: toMessage(err) });
+      await appendLog({
+        level: 'error',
+        message: `No se pudo guardar el resultado (${toMessage(err)}). Prueba con menos ordenes por archivo.`,
+      });
+    }
+  }
 
   return {
     setSlot(index, record) {
-      slots[index] = record;
-      pending = true;
+      pending.set(index, record);
+      columns = mergeColumns(columns, recordColumnKeys(record));
+      dirty = true;
     },
-    async flush(force = false) {
-      if (!pending && !force) return;
-      const now = Date.now();
-      if (!force && now - lastFlush < flushIntervalFor(stored)) return;
-      lastFlush = now;
-      pending = false;
-      try {
-        const records = flatten();
-        await setResult({ generatedAt: now, records });
-        stored = records.length;
-      } catch (err) {
-        if (isAbortError(err, signal)) throw err;
-        log.warn('no se pudo guardar el resultado', { error: toMessage(err) });
-        await appendLog({
-          level: 'error',
-          message: `No se pudo guardar el resultado (${toMessage(err)}). Prueba con menos ordenes por corrida.`,
-        });
-      }
+    /** Lo que quedo escrito, para el registro de la corrida. */
+    describe() {
+      return { parts: snapshot.parts.length, total: snapshot.total, partSize };
+    },
+    /**
+     * Los volcados van de a UNO: cada carril llama a flush al terminar su ficha,
+     * y dos volcados simultaneos veian la MISMA ventana abierta (con `partStart`
+     * todavia sin avanzar), asi que la escribian dos veces y cada uno la anotaba
+     * como una parte nueva. El que espera vuelve a mirar el estado, que para
+     * entonces ya puede estar volcado.
+     */
+    flush(force = false) {
+      const task = queue.catch(() => {}).then(() => writeOpenPart(force));
+      queue = task.catch(() => {}); // la cola no arrastra el error; el llamador si lo ve
+      return task;
     },
   };
 }
 
-/** Cada cuanto volcar segun cuantos registros ya se escribieron. */
+/**
+ * Cada cuanto volcar la parte abierta, segun cuantos registros ya tiene escritos:
+ * reescribirla cuesta proporcional a su tamano. El tope lo pone `partSize`, asi
+ * que el intervalo no se dispara como cuando el resultado era una sola clave.
+ */
 export function flushIntervalFor(records) {
   const scaled = RESULT_FLUSH_MIN_MS + Math.max(0, records) * RESULT_FLUSH_PER_RECORD_MS;
   return Math.min(RESULT_FLUSH_MAX_MS, scaled);

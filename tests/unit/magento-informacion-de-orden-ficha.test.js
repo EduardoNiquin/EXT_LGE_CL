@@ -11,7 +11,17 @@
 
 import { describe, expect, it } from 'vitest';
 import { mainContentOf, parseOrderDetail } from '../../src/features/magento/informacion_de_orden/detail-parse.js';
-import { buildMatrix, buildRecord, makeMissingRecord } from '../../src/features/magento/informacion_de_orden/csv.js';
+import {
+  CSV_BOM,
+  CSV_EOL,
+  buildMatrix,
+  buildRecord,
+  makeMissingRecord,
+  matrixToCsv,
+  matrixToCsvText,
+  mergeColumns,
+  recordColumnKeys,
+} from '../../src/features/magento/informacion_de_orden/csv.js';
 import { DEFAULT_SECTIONS, ESSENTIAL_COLUMNS, expandSections } from '../../src/features/magento/informacion_de_orden/constants.js';
 import { readField } from '../../src/features/magento/buscar-orden/transactions.js';
 
@@ -474,5 +484,57 @@ describe('el log del ERP con el markup real (labels, no tabla)', () => {
     const erp = (label) => conTabla.fields.find((f) => f.section === 'ERP' && f.label === label)?.value;
     expect(erp('Status')).toBe('success');
     expect(conTabla.logsEmbedded.erp).toBe(true);
+  });
+});
+
+// El resultado se exporta en VARIAS partes (un CSV por parte, mas la opcion de
+// unirlas): lo que hay que cuidar es que todas salgan con el mismo encabezado,
+// porque la union de columnas depende de que trajo cada ficha.
+describe('el CSV en partes', () => {
+  const uno = buildRecord({ item: { increment_id: '123001427905' }, detail: parse(FICHA) });
+  const otro = buildRecord({ item: { increment_id: '123001427216' }, detail: parse(FICHA_MARKETPLACE) });
+
+  /** La union tal como la acumula la captura, orden por orden. */
+  const unionOf = (records) => records.reduce(
+    (columns, record) => mergeColumns(columns, recordColumnKeys(record)),
+    [],
+  );
+
+  it('la union acumulada es la misma que la del CSV armado de una sola vez', () => {
+    const { headers } = buildMatrix([uno, otro], { allColumns: true });
+    // Las dos columnas de control las agrega buildMatrix al final.
+    expect(unionOf([uno, otro])).toEqual(headers.slice(0, -2));
+  });
+
+  it('mergeColumns no repite y conserva el orden de aparicion', () => {
+    expect(mergeColumns(['a', 'b'], ['b', 'c', 'a', 'd'])).toEqual(['a', 'b', 'c', 'd']);
+    const previo = ['a', 'b'];
+    expect(mergeColumns(previo, ['a'])).toBe(previo); // sin novedad, sin copiar
+  });
+
+  it('con la union pasada, las partes comparten encabezado y unidas dan el CSV completo', () => {
+    const columns = unionOf([uno, otro]);
+    const entero = matrixToCsv(buildMatrix([uno, otro], { allColumns: true, columns }));
+
+    const parte1 = buildMatrix([uno], { allColumns: true, columns });
+    const parte2 = buildMatrix([otro], { allColumns: true, columns });
+    expect(parte1.headers).toEqual(parte2.headers);
+
+    const unido = [
+      `${CSV_BOM}${matrixToCsvText({ headers: parte1.headers, rows: [] })}`,
+      CSV_EOL + matrixToCsvText(parte1, { header: false }),
+      CSV_EOL + matrixToCsvText(parte2, { header: false }),
+    ].join('');
+    expect(unido).toBe(entero);
+  });
+
+  it('sin la union, cada parte saldria con sus propias columnas (y no se podrian unir)', () => {
+    const solo = buildMatrix([uno], { allColumns: true }).headers;
+    const solaOtra = buildMatrix([otro], { allColumns: true }).headers;
+    expect(solo).not.toEqual(solaOtra);
+  });
+
+  it('el perfil corto no necesita union: las columnas son fijas', () => {
+    expect(buildMatrix([uno]).headers).toEqual(buildMatrix([otro]).headers);
   });
 });

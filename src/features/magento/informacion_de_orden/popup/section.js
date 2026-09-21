@@ -14,27 +14,40 @@ import {
   DETAIL_SECTION_CHOICES,
   FINISH_REASON,
   MAX_RANGE_DAYS,
+  PART_SIZE_DEFAULT,
+  PART_SIZE_MAX,
+  PART_SIZE_MIN,
   PREVIEW_ROWS,
   RUN_PHASE,
   SOURCE_MODE,
   clampConcurrency,
+  clampPartSize,
 } from '../constants.js';
 import {
   clearResult,
   clearRun,
   getDraft,
-  getResult,
+  getResultIndex,
   getRun,
   makeRun,
+  readResultPart,
   setDraft,
   setRun,
   subscribeToResult,
   subscribeToRun,
   updateRun,
 } from '../state.js';
-import { buildMatrix, matrixToCsv } from '../csv.js';
+import {
+  CSV_BOM,
+  CSV_EOL,
+  buildMatrix,
+  matrixToCsv,
+  matrixToCsvText,
+  mergeColumns,
+  recordColumnKeys,
+} from '../csv.js';
 import { describeSummary, formatDuration, summarizeRun } from '../stats.js';
-import { downloadText, escapeHtml, formatTime } from '../../popup/utils.js';
+import { downloadBlob, escapeHtml, formatTime } from '../../popup/utils.js';
 import { getActiveTab } from '../../../../shared/messaging/messaging.js';
 import { logger } from '../../../../shared/utils/logger.js';
 import { parseOrderNumbers } from '../parse-input.js';
@@ -51,6 +64,11 @@ let resultsTimer = null;
 // registros: repintar la tabla en cada uno era leer y matrizar miles de filas
 // por cada avance. Se repinta como mucho cada tanto, leyendo lo ultimo.
 const RESULTS_RENDER_THROTTLE_MS = 2000;
+
+const CSV_MIME = 'text/csv;charset=utf-8';
+// Copiar al portapapeles arma TODO el CSV como un solo string en memoria, que es
+// justo lo que la exportacion por partes evita: con muchas filas se avisa.
+const COPY_WARN_ROWS = 2000;
 
 const PHASE_TITLE = {
   [RUN_PHASE.STARTING]: 'Preparando...',
@@ -127,8 +145,13 @@ export async function render(container) {
             <label class="dt-label" for="io-concurrency">Consultas simultaneas</label>
             <input type="number" id="io-concurrency" class="dt-input" min="${CONCURRENCY_MIN}" step="1" value="${clampConcurrency(config.concurrency)}">
           </div>
+          <div class="dt-field dt-field--half">
+            <label class="dt-label" for="io-part-size">Ordenes por archivo</label>
+            <input type="number" id="io-part-size" class="dt-input" min="${PART_SIZE_MIN}" max="${PART_SIZE_MAX}" step="50" value="${clampPartSize(config.partSize)}">
+          </div>
         </div>
         <p class="lt-hint" id="io-concurrency-hint"></p>
+        <p class="lt-hint" id="io-part-size-hint"></p>
 
         <div class="io-sections">
           <p class="dt-label">Que capturar de cada ficha</p>
@@ -169,6 +192,7 @@ export async function render(container) {
               <span>Todas las columnas</span>
             </label>
             <button type="button" id="io-copy" class="ct-btn ct-btn--ghost">Copiar CSV</button>
+            <button type="button" id="io-export-joined" class="ct-btn ct-btn--ghost hidden" title="Un solo archivo con las filas de todos los archivos y el encabezado una sola vez.">Descargar todo unido</button>
             <button type="button" id="io-export" class="ct-btn ct-btn--primary">Descargar CSV</button>
           </div>
         </div>
@@ -186,6 +210,7 @@ export async function render(container) {
   container.querySelector('#io-stop').addEventListener('click', onStop);
   container.querySelector('#io-clear').addEventListener('click', () => onClear(container));
   container.querySelector('#io-export').addEventListener('click', () => onExport(container));
+  container.querySelector('#io-export-joined').addEventListener('click', () => onExportJoined(container));
   container.querySelector('#io-all-columns').addEventListener('change', () => {
     persistDraft(container);
     renderResults(container);
@@ -195,6 +220,7 @@ export async function render(container) {
   updateRangeHint(container);
   updateOrdersHint(container);
   updateConcurrencyHint(container);
+  updatePartSizeHint(container);
   if (run) renderProgress(container, run);
   toggleButtons(container, run);
   renderResults(container);
@@ -266,6 +292,17 @@ function wireForm(container) {
     persistDraft(container);
   });
 
+  // Cuantas ordenes entran en cada CSV. No cambia lo que se captura: cambia en
+  // cuantos archivos queda el resultado y, sobre todo, cuanto se reescribe en
+  // cada guardado durante la corrida.
+  const partSize = container.querySelector('#io-part-size');
+  partSize.addEventListener('input', () => updatePartSizeHint(container));
+  partSize.addEventListener('change', () => {
+    partSize.value = clampPartSize(partSize.value);
+    updatePartSizeHint(container);
+    persistDraft(container);
+  });
+
   container.querySelectorAll('[data-section]').forEach((box) => {
     box.addEventListener('change', () => persistDraft(container));
   });
@@ -293,6 +330,7 @@ function readConfig(container) {
     mode: readMode(container),
     orders: container.querySelector('#io-orders').value,
     concurrency: clampConcurrency(container.querySelector('#io-concurrency').value),
+    partSize: clampPartSize(container.querySelector('#io-part-size').value),
     sections: readSections(container),
     allColumns: !!container.querySelector('#io-all-columns')?.checked,
   };
@@ -312,6 +350,7 @@ function defaultConfig() {
     mode: SOURCE_MODE.RANGE,
     orders: '',
     concurrency: CONCURRENCY_DEFAULT,
+    partSize: PART_SIZE_DEFAULT,
     sections: { ...DEFAULT_SECTIONS },
     // Por defecto solo las columnas que se miran a diario (ESSENTIAL_COLUMNS).
     allColumns: false,
@@ -355,6 +394,13 @@ function updateConcurrencyHint(container) {
   hint.textContent = high
     ? `${value} a la vez: por encima de ${CONCURRENCY_WARN - 1} el tunel de la VPN ya va lleno y solo se alargan las descargas (medido: 6 y 12 carriles rinden igual). Bajalo.`
     : `Sin tope; ${CONCURRENCY_DEFAULT} por defecto. El limite es el tunel de la VPN (~320 KB/s con fichas de ~600 KB), asi que entre 4 y 8 rinde lo mismo: unas 30 fichas por minuto.`;
+}
+
+function updatePartSizeHint(container) {
+  const hint = container.querySelector('#io-part-size-hint');
+  if (!hint) return;
+  const value = clampPartSize(container.querySelector('#io-part-size').value);
+  hint.textContent = `El resultado se corta en archivos de ${value} orden(es) (entre ${PART_SIZE_MIN} y ${PART_SIZE_MAX}). Un rango amplio en un solo archivo se cae por memoria, porque cada guardado reescribe todo lo capturado. Al terminar se bajan de a uno o todos unidos.`;
 }
 
 function updateOrdersHint(container) {
@@ -427,6 +473,7 @@ async function onStart(container) {
       mode: form.mode,
       orderNumbers: form.mode === SOURCE_MODE.LIST ? numbers : [],
       concurrency: form.concurrency,
+      partSize: form.partSize,
       sections: form.sections,
     },
   }));
@@ -454,41 +501,149 @@ async function onClear(container) {
   renderResults(container);
 }
 
+/**
+ * Un archivo por parte. Cada parte se lee, se convierte y se baja antes de pasar
+ * a la siguiente: en ningun momento hay mas de una parte en memoria, que es todo
+ * el punto de haberlas cortado.
+ */
 async function onExport(container) {
-  const matrix = await currentMatrix(container);
-  if (!matrix.rows.length) {
-    alert('Todavia no hay filas para exportar.');
-    return;
-  }
-  const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
-  downloadText(matrixToCsv(matrix), `magento-ordenes-${stamp}.csv`);
+  const context = await loadExport(container, 'exportar');
+  if (!context) return;
+  const { index, allColumns, columns, stamp } = context;
+  const total = index.parts.length;
+  const button = container.querySelector('#io-export');
+
+  await withBusy(button, total > 1 ? `Bajando 1/${total}...` : 'Bajando...', async () => {
+    for (const part of index.parts) {
+      const matrix = buildMatrix(await readResultPart(part), { allColumns, columns });
+      if (!matrix.rows.length) continue;
+      const blob = new Blob([matrixToCsv(matrix)], { type: CSV_MIME });
+      await downloadBlob(blob, partFilename(stamp, part.index, total));
+      if (total > 1) button.textContent = `Bajando ${part.index + 2}/${total}...`;
+    }
+  });
+}
+
+/**
+ * Las partes en un solo archivo: el encabezado una vez y despues las filas de
+ * cada una. El texto no se concatena --se junta como pedazos de un Blob--, asi
+ * que lo unico grande que se arma es el archivo mismo.
+ *
+ * Es correcto anexar las filas de una parte debajo de otra porque todas las
+ * partes comparten el encabezado (`columns`).
+ */
+async function onExportJoined(container) {
+  const context = await loadExport(container, 'unir');
+  if (!context) return;
+  const { index, allColumns, columns, stamp } = context;
+
+  await withBusy(container.querySelector('#io-export-joined'), 'Uniendo...', async () => {
+    const pieces = [];
+    for (const part of index.parts) {
+      const matrix = buildMatrix(await readResultPart(part), { allColumns, columns });
+      if (!pieces.length) pieces.push(`${CSV_BOM}${matrixToCsvText({ headers: matrix.headers, rows: [] })}`);
+      if (!matrix.rows.length) continue;
+      pieces.push(CSV_EOL + matrixToCsvText(matrix, { header: false }));
+    }
+    if (pieces.length < 2) {
+      alert('Todavia no hay filas para exportar.');
+      return;
+    }
+    await downloadBlob(new Blob(pieces, { type: CSV_MIME }), `magento-ordenes-${stamp}-completo.csv`);
+  });
 }
 
 async function onCopy(container, button) {
-  const matrix = await currentMatrix(container);
-  if (!matrix.rows.length) {
-    alert('Todavia no hay filas para copiar.');
+  const context = await loadExport(container, 'copiar');
+  if (!context) return;
+  const { index, allColumns, columns } = context;
+  if (index.total > COPY_WARN_ROWS
+    && !confirm(`Son ${index.total} filas: copiarlas arma todo el CSV en memoria y puede colgar el panel. Para un resultado asi conviene "Descargar todo unido". Copiar igual?`)) {
     return;
   }
-  const text = matrixToCsv(matrix);
+
   const original = button.textContent;
-  try {
-    await navigator.clipboard.writeText(text);
-  } catch {
-    const helper = document.createElement('textarea');
-    helper.value = text;
-    document.body.appendChild(helper);
-    helper.select();
-    document.execCommand('copy');
-    helper.remove();
-  }
+  await withBusy(button, 'Copiando...', async () => {
+    const pieces = [];
+    for (const part of index.parts) {
+      const matrix = buildMatrix(await readResultPart(part), { allColumns, columns });
+      if (!pieces.length) pieces.push(`${CSV_BOM}${matrixToCsvText({ headers: matrix.headers, rows: [] })}`);
+      if (matrix.rows.length) pieces.push(CSV_EOL + matrixToCsvText(matrix, { header: false }));
+    }
+    const text = pieces.join('');
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch {
+      const helper = document.createElement('textarea');
+      helper.value = text;
+      document.body.appendChild(helper);
+      helper.select();
+      document.execCommand('copy');
+      helper.remove();
+    }
+  });
   button.textContent = 'Copiado';
   setTimeout(() => { button.textContent = original; }, 1200);
 }
 
-async function currentMatrix(container) {
-  const result = await getResult();
-  return buildMatrix(result?.records || [], { allColumns: readAllColumns(container) });
+/** Lo que necesita cualquier exportacion, o null si no hay nada que exportar. */
+async function loadExport(container, verb) {
+  const index = await getResultIndex();
+  if (!index?.total) {
+    alert(`Todavia no hay filas para ${verb}.`);
+    return null;
+  }
+  const allColumns = readAllColumns(container);
+  return {
+    index,
+    allColumns,
+    columns: await resolveColumns(index, allColumns),
+    stamp: new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-'),
+  };
+}
+
+/**
+ * El encabezado comun de todas las partes. Con el perfil corto las columnas son
+ * fijas (null: las pone `buildMatrix`); con "todas las columnas" es la union de
+ * la corrida, que el indice ya trae.
+ *
+ * Un resultado capturado ANTES de las partes no la trae: se recorre para
+ * calcularla, porque exportar cada archivo con la union de sus propias filas
+ * daria encabezados distintos entre archivos, y unirlos seria imposible.
+ */
+async function resolveColumns(index, allColumns) {
+  if (!allColumns) return null;
+  if (index.columns?.length) return index.columns;
+  let columns = [];
+  for (const part of index.parts) {
+    for (const record of await readResultPart(part)) {
+      columns = mergeColumns(columns, recordColumnKeys(record));
+    }
+  }
+  return columns;
+}
+
+function partFilename(stamp, partIndex, total) {
+  return total > 1
+    ? `magento-ordenes-${stamp}-parte-${partIndex + 1}-de-${total}.csv`
+    : `magento-ordenes-${stamp}.csv`;
+}
+
+/** Deja el boton fuera de juego mientras dura la exportacion. */
+async function withBusy(button, label, task) {
+  if (!button) return task();
+  const original = button.textContent;
+  button.disabled = true;
+  button.textContent = label;
+  try {
+    return await task();
+  } catch (err) {
+    alert(`No se pudo completar la descarga: ${toMessage(err)}`);
+    return undefined;
+  } finally {
+    button.disabled = false;
+    button.textContent = original;
+  }
 }
 
 function readAllColumns(container) {
@@ -551,34 +706,53 @@ async function renderResults(container) {
   const summary = container.querySelector('#io-results-summary');
   if (!wrap) return;
 
-  const result = await getResult();
+  const index = await getResultIndex();
   if (!alive(container)) return;
+  updateExportButtons(container, index);
 
-  const records = result?.records || [];
-  if (!records.length) {
+  if (!index?.total) {
     wrap.innerHTML = '<p class="ct-empty">Sin datos todavia.</p>';
     if (summary) summary.textContent = '';
     return;
   }
 
-  // La misma matriz que el CSV: lo que se ve es lo que se exporta. Con el
-  // perfil corto las columnas son fijas, asi que alcanza con matrizar las filas
-  // que se muestran; la union completa solo hace falta con todas las columnas.
+  // La vista previa sale de la PRIMERA parte y nunca de todo el resultado: leer
+  // y matrizar miles de registros para mostrar 150 filas es justo lo que hacia
+  // caer al panel con un rango amplio.
+  const records = await readResultPart(index.parts[0]);
+  if (!alive(container)) return;
+
+  // La misma matriz que el CSV: lo que se ve es lo que se exporta.
   const allColumns = readAllColumns(container);
-  const { headers, rows } = buildMatrix(allColumns ? records : records.slice(0, PREVIEW_ROWS), { allColumns });
-  const visible = rows.slice(0, PREVIEW_ROWS);
+  const { headers, rows } = buildMatrix(records.slice(0, PREVIEW_ROWS), {
+    allColumns,
+    columns: index.columns,
+  });
   wrap.innerHTML = `
     <table class="io-table">
       <thead><tr>${headers.map((header) => `<th>${escapeHtml(header)}</th>`).join('')}</tr></thead>
       <tbody>
-        ${visible.map((row) => `<tr>${row.map((cell) => `<td title="${escapeHtml(cell)}">${escapeHtml(cell)}</td>`).join('')}</tr>`).join('')}
+        ${rows.map((row) => `<tr>${row.map((cell) => `<td title="${escapeHtml(cell)}">${escapeHtml(cell)}</td>`).join('')}</tr>`).join('')}
       </tbody>
     </table>`;
-  if (summary) {
-    summary.textContent = records.length > visible.length
-      ? `Se muestran ${visible.length} de ${records.length} filas.`
-      : `${records.length} fila(s).`;
-  }
+  if (summary) summary.textContent = describeResult(index, rows.length);
+}
+
+function describeResult(index, shown) {
+  const files = index.parts.length;
+  const parts = [`${index.total} fila(s)`];
+  if (files > 1) parts.push(`en ${files} archivos de hasta ${index.partSize}`);
+  if (index.total > shown) parts.push(`se muestran las primeras ${shown}`);
+  return `${parts.join(' - ')}.`;
+}
+
+/** "Descargar CSV" dice cuantos archivos son, y unir solo aparece si hay varios. */
+function updateExportButtons(container, index) {
+  const files = index?.parts?.length || 0;
+  const exportBtn = container.querySelector('#io-export');
+  const joinBtn = container.querySelector('#io-export-joined');
+  if (exportBtn) exportBtn.textContent = files > 1 ? `Descargar ${files} archivos` : 'Descargar CSV';
+  if (joinBtn) joinBtn.classList.toggle('hidden', files < 2);
 }
 
 function renderLog(list, entries) {

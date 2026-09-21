@@ -15,7 +15,10 @@ export const STORAGE_KEYS = {
   DRAFT: `magento:${MODULE_ID}:draft`,
   // El resultado va aparte del run: cientos de ordenes con sus campos no entran
   // en un run que ademas se reescribe en cada avance (criterio de e-promoters).
+  // Esta clave guarda el INDICE (sin registros); los registros viven en las
+  // claves de parte (ver PART_SIZE mas abajo).
   RESULT: `magento:${MODULE_ID}:result`,
+  RESULT_PART: `magento:${MODULE_ID}:result:part:`, // + numero de parte
 };
 
 // De donde salen las ordenes a capturar.
@@ -288,11 +291,11 @@ export const DETAIL_RETRY_DELAY_MS = 1500;
 // DOMParser. Si no aparece se parsea entero (login, layout distinto).
 export const MAIN_CONTENT_RE = /<main\b[^>]*\bid=["']anchor-content["'][^>]*>[\s\S]*?<\/main>/i;
 
-// Volcado del resultado a storage: escribir TODOS los registros en cada volcado
-// es O(N), asi que a medida que el resultado crece se vuelca menos seguido
-// (`RESULT_FLUSH_PER_RECORD_MS` por registro acumulado), entre un minimo y un
-// maximo. Lo que se arriesga al cerrar la pestana es lo capturado desde el
-// ultimo volcado: como mucho `RESULT_FLUSH_MAX_MS`.
+// Volcado del resultado a storage: un volcado reescribe entera la PARTE abierta,
+// asi que cuesta proporcional a lo que esa parte ya tiene y se vuelca menos
+// seguido a medida que se llena (`RESULT_FLUSH_PER_RECORD_MS` por registro),
+// entre un minimo y un maximo. Lo que se arriesga al cerrar la pestana es lo
+// capturado desde el ultimo volcado: como mucho `RESULT_FLUSH_MAX_MS`.
 export const RESULT_FLUSH_MIN_MS = 1500;
 export const RESULT_FLUSH_PER_RECORD_MS = 3;
 export const RESULT_FLUSH_MAX_MS = 15000;
@@ -459,3 +462,34 @@ export const ESSENTIAL_COLUMNS = [
 
 export const LOG_CAP = 400;
 export const PREVIEW_ROWS = 150;
+
+// -----------------------------------------------------------------------------
+// El resultado en partes (varios CSV)
+// -----------------------------------------------------------------------------
+//
+// Un rango amplio se cae por memoria si todo el resultado vive en una sola
+// clave de storage: cada volcado reescribe el arreglo COMPLETO (serializar
+// miles de registros con su historial y sus ~130 campos), y el popup despues lo
+// lee entero para matrizarlo. Por eso los registros se cortan en PARTES de
+// `partSize` ordenes: cada parte es su propia clave (`RESULT_PART` + numero) y
+// se escribe una sola vez; en memoria queda solo la parte abierta.
+//
+// Cada parte es tambien UN ARCHIVO CSV. El popup las baja de a una o las une en
+// un solo archivo leyendo parte por parte (el encabezado es el mismo para
+// todas, por eso el indice guarda la union de columnas de la corrida).
+
+export const RESULT_VERSION = 2;
+
+export const PART_SIZE_MIN = 50;
+// 500 ordenes por archivo: con fichas de ~90 columnas son unos pocos MB por
+// parte, que Excel abre sin problemas y storage escribe sin pensarlo.
+export const PART_SIZE_DEFAULT = 500;
+export const PART_SIZE_MAX = 5000;
+
+/** Normaliza las ordenes por archivo a un entero dentro del rango permitido. */
+export function clampPartSize(value) {
+  if (String(value ?? '').trim() === '') return PART_SIZE_DEFAULT;
+  const n = Math.round(Number(value));
+  if (!Number.isFinite(n)) return PART_SIZE_DEFAULT;
+  return Math.min(PART_SIZE_MAX, Math.max(PART_SIZE_MIN, n));
+}

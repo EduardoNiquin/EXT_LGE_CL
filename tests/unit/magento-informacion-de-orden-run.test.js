@@ -125,7 +125,18 @@ function seedRun(config) {
   });
 }
 
-const records = () => store.get(RESULT_KEY)?.records || [];
+// El resultado NO vive en una sola clave: el indice dice en que partes quedo y
+// cada parte es su propia clave (y su propio archivo CSV).
+const resultIndex = () => store.get(RESULT_KEY);
+const records = () => {
+  const index = resultIndex();
+  if (!index) return [];
+  if (Array.isArray(index.records)) return index.records; // forma anterior a las partes
+  return (index.parts || []).flatMap((part) => store.get(part.key)?.records || []);
+};
+const clearStoredResult = () => {
+  for (const key of [...store.keys()]) if (key.startsWith(RESULT_KEY)) store.delete(key);
+};
 const currentRun = () => store.get(RUN_KEY);
 
 /** Config con todas las secciones salvo las que se pisen. */
@@ -420,7 +431,7 @@ describe('las pestanas que Magento carga aparte', () => {
 
     // Y con la seccion activa, se pide y sus campos entran en el registro.
     pedidas.length = 0;
-    store.delete(RESULT_KEY);
+    clearStoredResult();
     seedRun(rangeConfig({ sections: { info: true, payment: true, history: true, logs: true } }));
     const again = await loadRun();
     await again.tickIfActive();
@@ -664,6 +675,106 @@ describe('donde se va el tiempo', () => {
     expect(flushIntervalFor(0)).toBe(1500);
     expect(flushIntervalFor(500)).toBe(3000);
     expect(flushIntervalFor(100000)).toBe(15000);
+  });
+});
+
+describe('el resultado en partes (varios CSV)', () => {
+  // PART_SIZE_MIN es 50, asi que las partes se prueban con corridas de ese orden.
+  const gridOf = (n) => gridResponse(Array.from({ length: n }, (_, i) => order(i + 1)), n);
+  const serveAll = (n) => vi.fn(async (url) => (
+    isDetail(url) ? detailResponse(orderOf(url)) : gridOf(n)));
+
+  it('corta el resultado en partes de partSize y cada parte es su propia clave', async () => {
+    globalThis.fetch = serveAll(120);
+
+    seedRun(rangeConfig({ concurrency: 8, partSize: 50 }));
+    const { tickIfActive } = await loadRun();
+    await tickIfActive();
+
+    const index = resultIndex();
+    expect(index.parts.map((part) => part.count)).toEqual([50, 50, 20]);
+    expect(index.total).toBe(120);
+    expect(index.partSize).toBe(50);
+    // El indice NO lleva registros: es lo que permite reescribirlo en cada avance.
+    expect(index.records).toBeUndefined();
+    // Cada parte en su clave, con las ordenes en el orden del listado.
+    expect(index.parts[1]).toMatchObject({ index: 1, first: '51', last: '100' });
+    expect(store.get(index.parts[2].key).records.map((r) => r.incrementId)[0]).toBe('101');
+    // Y juntas siguen siendo la corrida completa, en orden.
+    expect(records().map((r) => r.incrementId)).toEqual(
+      Array.from({ length: 120 }, (_, i) => String(i + 1)),
+    );
+  });
+
+  it('el indice guarda la union de columnas: todas las partes comparten encabezado', async () => {
+    globalThis.fetch = serveAll(4);
+
+    seedRun(rangeConfig({ concurrency: 2, partSize: 50 }));
+    const { tickIfActive } = await loadRun();
+    await tickIfActive();
+
+    const { columns } = resultIndex();
+    expect(columns).toContain('Orden - Placed from IP');
+    expect(columns).toContain('Direccion - Billing Address');
+    expect(columns).toContain('Estado (ficha)');
+    // Sin repetidas y sin las columnas de control (esas las pone buildMatrix).
+    expect(new Set(columns).size).toBe(columns.length);
+    expect(columns).not.toContain('Estado captura');
+  });
+
+  it('una parte cerrada no se vuelve a escribir', async () => {
+    const written = [];
+    globalThis.fetch = serveAll(100);
+
+    seedRun(rangeConfig({ concurrency: 8, partSize: 50 }));
+    const { tickIfActive } = await loadRun();
+    const original = chrome.storage.local.set;
+    chrome.storage.local.set = async (obj) => {
+      for (const key of Object.keys(obj)) if (key.startsWith(`${RESULT_KEY}:part:`)) written.push(key);
+      return original(obj);
+    };
+    await tickIfActive();
+    chrome.storage.local.set = original;
+
+    const first = `${RESULT_KEY}:part:0`;
+    const second = `${RESULT_KEY}:part:1`;
+    expect([...new Set(written)]).toEqual([first, second]);
+    // Lo que importa: al cerrarse una parte se deja de pagar por ella, asi que
+    // el costo de un volcado no crece con lo capturado.
+    expect(written.lastIndexOf(first)).toBeLessThan(written.indexOf(second));
+  });
+
+  it('el registro de la corrida dice en cuantos archivos quedo', async () => {
+    globalThis.fetch = serveAll(120);
+
+    seedRun(rangeConfig({ concurrency: 8, partSize: 50 }));
+    const { tickIfActive } = await loadRun();
+    await tickIfActive();
+
+    const run = currentRun();
+    expect(run.parts).toBe(3);
+    expect(run.savedRecords).toBe(120);
+    expect(run.log.some((entry) => entry.message.includes('3 archivo(s) CSV'))).toBe(true);
+  });
+
+  it('la parte abierta se volca aunque no se haya llenado', async () => {
+    globalThis.fetch = vi.fn(async (url) => {
+      await sleep(20);
+      if (!isDetail(url)) return gridOf(20);
+      return detailResponse(orderOf(url));
+    });
+
+    seedRun(rangeConfig({ concurrency: 2, partSize: 500 }));
+    const { abortActiveRun, tickIfActive } = await loadRun();
+    const pending = tickIfActive();
+    await sleep(450);
+    abortActiveRun();
+    await pending;
+
+    const index = resultIndex();
+    expect(index.parts).toHaveLength(1);
+    expect(index.total).toBeGreaterThan(0);
+    expect(records()).toHaveLength(index.total);
   });
 });
 

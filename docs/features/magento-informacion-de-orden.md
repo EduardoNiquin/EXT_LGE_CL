@@ -3,6 +3,10 @@
 Entra a la **ficha de cada orden** (`/sales/order/view/order_id/<entity_id>`) y deja lo que hay ahí
 en un **CSV, una fila por orden**, con el número de orden como primera columna. **Read-only.**
 
+El resultado sale **en varios CSV** (uno cada `partSize` órdenes, 500 por defecto), con un botón para
+**bajarlos todos unidos** en un solo archivo. No es una comodidad: un rango amplio en una sola tanda
+se caía por memoria (ver "El resultado en partes").
+
 "Entrar" es pedir **por `fetch` el mismo enlace que abre el operador** y leer su HTML con
 `DOMParser`. Es el mismo origen y la misma sesión que la pestaña, así que el servidor devuelve
 exactamente la página que se vería; la diferencia es que **no ocupa la pestaña** y permite pedir
@@ -20,7 +24,8 @@ navegador del usuario.
 src/features/magento/informacion_de_orden/
 ├── constants.js     MODULE_ID, STORAGE_KEYS, SOURCE_MODE, RUN_PHASE, ORDER_STATUS, FINISH_REASON,
 │                    FILTER_ERROR_PREFIX, MAX_RANGE_DAYS(28), STORE_ID(123), PAGE_SIZE(200),
-│                    CONCURRENCY_{MIN,DEFAULT,WARN}(1/4/12) + clampConcurrency(), DETAIL_SECTION(+CHOICES,
+│                    CONCURRENCY_{MIN,DEFAULT,WARN}(1/6/10) + clampConcurrency(),
+│                    PART_SIZE_{MIN,DEFAULT,MAX}(50/500/5000) + clampPartSize(), DETAIL_SECTION(+CHOICES,
 │                    DEFAULT_SECTIONS, expandSections), DETAIL_SELECTORS, TAB_URL_RE, SECTION_LABEL,
 │                    GRID_COLUMNS, PAYMENT_COLUMNS, ITEM_COLUMNS, META_COLUMNS, ESSENTIAL_COLUMNS,
 │                    MONEY_SECTIONS, DATE_FIELD_PREFIXES, MONEY_ITEM_COLUMNS, LABELED_ITEM_COLUMNS
@@ -32,9 +37,10 @@ src/features/magento/informacion_de_orden/
 │                          parseComment · parseJsonText · scalarCell · listCell
 ├── payment.js       puro: normalizePayment(item del grid) → modelo único de pago
 ├── parse-input.js   puro: parseOrderNumbers(text) → { numbers, warnings }
-├── csv.js           buildRecord · makeMissingRecord · buildMatrix · matrixToCsv
+├── csv.js           buildRecord · makeMissingRecord · buildMatrix · matrixToCsv(+Text) ·
+│                  recordColumnKeys · mergeColumns (union de columnas de la corrida)
 ├── stats.js         puro: emptyStats · addTiming · summarizeRun · describeSummary · formatDuration · formatMs
-├── state.js         run store + makeRun + draft + resultado aparte (get/set/subscribe)
+├── state.js         run store + makeRun + draft + resultado en partes (indice + parte + clear)
 ├── debug.js         __extLgeCl.magentoInformacionDeOrden.*
 ├── content/ detector.js · endpoint.js · client.js (grid) · order-page.js (ficha) · index.js · flows/run.js
 └── popup/   section.js
@@ -63,12 +69,22 @@ notFoundCount, errorCount, fetchStartedAt, stats:{count,requests,retries,bytes,t
 parseMs,logsMs}, log:[...] (cap 400) }`. `fetchStartedAt` marca desde cuando se entran fichas
 (el ritmo no cuenta el descubrimiento) y `stats` acumula el `timing` de cada ficha (`stats.js`).
 
-**`…:result`** — los registros: `{ generatedAt, records:[{ incrementId, entityId, viewHref, status,
-error, fixed:[...], extra:[...], detail:{"<sección> - <etiqueta>": valor}, items:{}, history:{} }] }`.
-**`…:draft`** — el formulario.
+**`…:result`** — el **índice** del resultado, sin registros:
+`{ version:2, generatedAt, partSize, total, columns:[...], parts:[{ index, key, count, first, last }] }`.
+`columns` es la unión de columnas dinámicas de toda la corrida: el encabezado común de todas las
+partes.
 
-**Por qué el resultado va aparte:** cientos de órdenes con sus campos no entran en un run que además
-se reescribe en cada avance (criterio de e-promoters).
+**`…:result:part:<n>`** — los registros de una parte: `{ records:[{ incrementId, entityId, viewHref,
+status, error, fixed:[...], extra:[...], detail:{"<sección> - <etiqueta>": valor}, itemRows:[],
+notes:[] }] }`.
+
+**`…:draft`** — el formulario (incluye `partSize`).
+
+**Por qué el resultado va aparte del run:** cientos de órdenes con sus campos no entran en un run que
+además se reescribe en cada avance (criterio de e-promoters). **Por qué va además en partes:** abajo.
+
+Un resultado guardado por la versión anterior (todos los registros dentro de `…:result`) se sigue
+leyendo: `normalizeResultIndex` lo presenta como una parte única que vive en la clave del índice.
 
 ## Patrón
 
@@ -127,7 +143,7 @@ Tres sintomas y como distinguirlos con lo que mide el motor:
 |---|---|---|
 | Subir "Consultas simultaneas" no cambia las fichas/min y la **espera** crece escalonada | Magento atiende las peticiones de una misma sesion **de a una** | Dejar 2-3 carriles, pedir menos |
 | La **descarga** por ficha se estira con los carriles y los KB/s del lote no suben | Ancho de banda del tunel (**el caso real de LG**) | Entre 4 y 8 carriles; el costo es por byte |
-| Espera y descarga cortas pero fichas/min bajas | CPU de esta maquina (parseo) o volcado del resultado | Ya se recorta el HTML al `<main>` y el volcado se espacia solo; revisar `parseMs` |
+| Espera y descarga cortas pero fichas/min bajas | CPU de esta maquina (parseo) o volcado del resultado | Ya se recorta el HTML al `<main>`, el resultado se vuelca por partes y el volcado se espacia solo; revisar `parseMs` |
 
 **Lo que mide el motor** (`order-page.js` → `detail.timing` → `run.stats`): por ficha, `ttfbMs` (desde
 que se pide hasta que llega la cabecera: cola del navegador + tunel + lo que tarda el servidor en
@@ -286,6 +302,47 @@ popup. **No cambia lo capturado:** la captura siempre lee todo lo que las casill
 pidan, el perfil solo decide qué se pinta y qué se exporta, así que se puede cambiar de opinión
 después de correr, sin volver a capturar.
 
+### El resultado en partes (varios CSV)
+
+**El problema:** un volcado reescribe **entero** lo que abarca (`chrome.storage` no sabe de
+"agregar"). Con todo el resultado en una sola clave, el costo de cada volcado crece con la corrida
+—serializar miles de registros con sus ~130 campos y el historial en JSON— y el popup después lo leía
+completo para matrizarlo. Con un rango amplio eso termina cayendo por memoria, que es el síntoma que
+originó este cambio.
+
+**La solución:** los registros se cortan en **partes de `partSize` órdenes** (campo *Órdenes por
+archivo*, 500 por defecto, entre 50 y 5000). Cada parte es su propia clave y **cada parte es un
+archivo CSV**.
+
+- En memoria queda solo la **parte abierta** (la ventana `[partStart, partStart+partSize)`), más las
+  fichas en vuelo. `pending` está indexado por el número de orden dentro de la corrida, así que el
+  orden del listado no depende de cuál ficha contestó antes.
+- Como el pool reparte los índices **en orden**, cuando la ventana está completa ya no puede
+  llegarle nada más: la parte se escribe una última vez, se anota en el índice y **se suelta de
+  memoria**. Una parte cerrada no se vuelve a escribir.
+- Los volcados van **de a uno** (`flush` los encola). Cada carril llama a `flush` al terminar su
+  ficha, y dos volcados simultáneos veían la misma ventana abierta con `partStart` sin avanzar: la
+  escribían dos veces y cada uno la anotaba como una parte nueva (se vio en los tests: 7 partes de 50
+  para 120 órdenes).
+- El intervalo entre volcados sigue creciendo con lo que la parte ya tiene escrito
+  (`flushIntervalFor`), pero ahora el tope lo pone `partSize`.
+
+**Al exportar** (`popup/section.js`): *Descargar N archivos* recorre las partes y baja una por una
+—nunca hay más de una parte en memoria—; *Descargar todo unido* arma un solo archivo con el
+encabezado una vez y las filas de cada parte, juntando los pedazos **como partes de un `Blob`** en
+vez de concatenar un string gigante. Se baja con `chrome.downloads` (`downloadBlob` en
+`magento/popup/utils.js`): bajar varios archivos con clics sintetizados en un `<a>` dispara el aviso
+de "descargas múltiples" del navegador y puede perder alguno.
+
+**Por eso la unión de columnas se acumula durante la captura** (`recordColumnKeys` + `mergeColumns`,
+guardada en el índice) y no se recalcula al exportar: si cada archivo se armara con la unión de sus
+propias filas, dos partes con campos distintos saldrían con encabezados distintos y no se podrían
+unir. Con el perfil corto el encabezado ya es fijo (`ESSENTIAL_COLUMNS`), así que no hace falta.
+
+**La vista previa sale de la primera parte**, no de todo el resultado: leer y matrizar miles de
+registros para mostrar 150 filas era la otra mitad del problema de memoria. *Copiar CSV* sí arma todo
+en un string (es lo que el portapapeles necesita), así que a partir de 2000 filas pregunta antes.
+
 ### Formato de los valores
 
 La ficha escribe para que la lea una persona, no una planilla. `format.js` (puro, sin DOM) lo
@@ -323,14 +380,17 @@ archivo como dato sensible.
 
 Rango Desde/Hasta con aviso de la division automatica en ventanas · radio **Todo el rango / Solo estas ordenes**
 (textarea + **Subir CSV**, ambos por el mismo parser) · **Consultas simultaneas**: campo numerico
-**sin tope**, 4 por defecto, que se normaliza al salir del campo (vacio o 0 dejarian el pool sin
-carriles) y avisa a partir de `CONCURRENCY_WARN` (12) sin bloquear · las cuatro
+**sin tope**, 6 por defecto, que se normaliza al salir del campo (vacio o 0 dejarian el pool sin
+carriles) y avisa a partir de `CONCURRENCY_WARN` (10) sin bloquear · **Ordenes por archivo**
+(`partSize`, 500 por defecto, entre 50 y 5000: en cuantos CSV queda el resultado y cuanto se
+reescribe de una sola vez) · las cuatro
 casillas de secciones con su explicación · Iniciar/Detener/Limpiar · progreso en vivo (contadores y,
 debajo, **fichas/min, espera y descarga medias, KB por ficha, reintentos y cuanto falta**) · tabla de
-resultados con **la misma matriz que el CSV** (primeras 150 filas; se repinta como mucho cada 2 s
-y con el perfil corto solo matriza esas filas) · casilla **Todas las columnas**
-(perfil de columnas; se guarda en el borrador y repinta la tabla en el acto) · Copiar/Descargar CSV ·
-`<details>` con el registro. Estilos `.io-*` en `popup.css`.
+resultados con **la misma matriz que el CSV** (primeras 150 filas, leidas de la PRIMERA parte; se
+repinta como mucho cada 2 s) · casilla **Todas las columnas**
+(perfil de columnas; se guarda en el borrador y repinta la tabla en el acto) · **Copiar CSV** /
+**Descargar N archivos** (uno por parte) / **Descargar todo unido** (aparece solo si hay mas de una
+parte) · `<details>` con el registro. Estilos `.io-*` en `popup.css`.
 
 ## Debug `__extLgeCl.magentoInformacionDeOrden.`
 
@@ -339,13 +399,14 @@ y con el perfil corto solo matriza esas filas) · casilla **Todas las columnas**
 **`parseCurrent()`** (parsea la ficha abierta en esta pestaña, sin red) · **`order(orden,{from,to})`**
 (enlace + ficha + la fila que saldría en el CSV) · **`benchmark({lanes:4}|{href,lanes})`** (una ficha
 sola y N a la vez, con veredicto: ¿el servidor serializa?) · **`restProbe(entityId)`** (¿acepta
-`/rest/V1/orders/<id>` la sesion del admin?) · `csv()` / `csv(true)` (perfil corto / completo)
-· `result()` · `state()` · `draft()` ·
+`/rest/V1/orders/<id>` la sesion del admin?) · `csv(parte)` / `csv(parte, true)` (matriz de UNA
+parte, perfil corto / completo) · `result()` (el indice: partes, total y columnas) · `part(n)`
+(los registros de una parte) · `state()` · `draft()` ·
 `stop()` · `reset()` · `tick()`.
 
 ## Tests
 
-Cuatro archivos, 109 casos. Los dos que tocan DOM usan **happy-dom** (`@vitest-environment happy-dom`),
+Cuatro archivos, 120 casos. Los dos que tocan DOM usan **happy-dom** (`@vitest-environment happy-dom`),
 agregado al proyecto para esto.
 
 - `magento-informacion-de-orden.test.js` — lo puro: fecha y filtros obligatorios del grid, los tres
@@ -361,7 +422,10 @@ agregado al proyecto para esto.
   con el markup real** (labels + textarea, dos envios con sufijo, OSMS "No Data Found", `logsEmbedded`),
   y el CSV en sus dos perfiles (columnas dinámicas, ítems en JSON alineado, historial en
   JSON, dos órdenes con campos distintos que no se corren, una ficha fallida que sale marcada, y que
-  el perfil corto emita `ESSENTIAL_COLUMNS` completo aunque falten datos).
+  el perfil corto emita `ESSENTIAL_COLUMNS` completo aunque falten datos), y **el CSV en partes**
+  (que la unión acumulada orden por orden sea la misma que la del CSV armado de una vez, que las
+  partes compartan encabezado y unidas den exactamente el archivo completo, y que **sin** la unión
+  cada parte saldría con sus propias columnas).
 - `magento-informacion-de-orden-format.test.js` — `format.js`: la ambigüedad del punto en los
   importes (miles vs decimal, los dos separadores, el signo), las 12 de AM/PM en las fechas,
   `splitLabeled` con valores que llevan espacios, y los tres tipos de comentario del historial.
@@ -375,7 +439,10 @@ agregado al proyecto para esto.
   invalide la orden), **los dos logs pedidos a la vez cuando faltan, ninguno cuando vienen embebidos,
   y la URL absoluta conservada (con `/obsadm`)**, **el reintento** (503 y `TypeError` se
   reintentan una vez, 403 no), **los tiempos por ficha y la linea de resumen** en el registro (sin
-  colarse en el registro de la orden), el espaciado del volcado, el modo lista con su `not-found`,
+  colarse en el registro de la orden), el espaciado del volcado, **el corte en partes** (los cortes
+  exactos y cada parte en su clave, la unión de columnas en el índice, que una parte cerrada no se
+  vuelva a escribir, el conteo de archivos en el registro y la parte abierta volcada al cancelar),
+  el modo lista con su `not-found`,
   el ciclo de vida (fuera del admin, ya reclamado, cancelar, reconcile) y **dos pestañas a la vez**
   (dos instancias del modulo sobre el mismo storage: solo una captura; y si otro token pisa el
   reclamo a mitad de camino, el frame cede sin marcar el run como cancelado).
@@ -388,7 +455,12 @@ agregado al proyecto para esto.
   exportacion CSV del grid (doc §4.9) trae las columnas del grid (enmascaradas, sin items ni
   historial), y queda por evaluar el API del VPS (`/api/magento/orders`, ya usado desde otro
   proyecto) si sus campos cubren lo que se necesita de la ficha.
-- El tope de la corrida sigue siendo `MAX_ORDERS` (5000) fichas.
+- El tope de la corrida sigue siendo `MAX_ORDERS` (5000) fichas. Ya no es un tope de memoria
+  —el resultado se guarda y se exporta por partes—, es para no dejar una corrida de horas colgada de
+  una sola pestaña.
+- **Unir las partes arma el archivo completo en el navegador**: es el único paso cuyo costo es el
+  tamaño total. Si un resultado enorme no se deja unir, se bajan las partes por separado (el
+  encabezado es el mismo en todas, así que se pegan sin retocar).
 - El rango es obligatorio; cada consulta cubre hasta 29 dias de calendario y los mayores se
   segmentan solos.
 - **En modo lista cada numero se busca bloque por bloque**: con un rango de un año y 100 ordenes eso
@@ -396,7 +468,8 @@ agregado al proyecto para esto.
 - No se ejecuta el JS de la página: lo que la ficha arme en el cliente fuera de las pestañas AJAX
   contempladas no se ve.
 - Requiere sesión de admin iniciada y una pestaña en el admin; si se cierra a media corrida se
-  conserva lo del último volcado.
+  conserva lo del último volcado (como mucho se pierde `RESULT_FLUSH_MAX_MS` de captura, nunca una
+  parte ya cerrada).
 - Solo el store view de Chile (`STORE_ID = 123`).
 - Con varias pestañas del admin abiertas corre en **una sola** (reclamo con token; ver "Patrón"),
   pero no impide correrlo junto a otro módulo del apartado. El reintento por orden es de un solo

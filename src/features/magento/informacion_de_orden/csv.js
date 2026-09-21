@@ -14,6 +14,12 @@
 // siempre las mismas aunque una corrida no las traiga todas; con
 // `allColumns: true` sale la union completa, como antes.
 //
+// La union se puede pasar hecha (`{ columns }`): el resultado se exporta EN
+// PARTES y todas tienen que llevar el mismo encabezado, asi que la union se
+// acumula durante la captura (`recordColumnKeys` + `mergeColumns`) y se guarda
+// en el indice, en vez de recalcularse por parte (que daria archivos con
+// columnas distintas, imposibles de unir).
+//
 // Los campos que traen varios datos NO se aplanan con separadores: van como
 // JSON (el historial, los items de una orden con mas de un producto, el bloque
 // de envio de cada item). Asi se pueden volver a leer sin adivinar donde corta
@@ -146,12 +152,26 @@ function normalizeField({ section, label, value }) {
 function itemColumns(items) {
   if (!items.length) return {};
   const out = { Items: String(items.length) };
+  for (const { label, values } of itemColumnEntries(items)) {
+    out[label] = items.length === 1 ? scalarCell(values[0]) : listCell(values);
+  }
+  return out;
+}
+
+/**
+ * Las columnas de items que SI traen dato, con sus valores por item. Separado de
+ * `itemColumns` para poder preguntar solo por las etiquetas: la union de
+ * columnas se calcula en CADA orden capturada, y armar ahi las celdas seria
+ * pagar dos veces el JSON de los items.
+ */
+function itemColumnEntries(items) {
+  const entries = [];
   for (const column of ITEM_COLUMNS) {
     const values = items.map((item) => itemValue(column, pickHeader(item, column.headers)));
     if (values.every((value) => value === null)) continue;
-    out[column.label] = items.length === 1 ? scalarCell(values[0]) : listCell(values);
+    entries.push({ label: column.label, values });
   }
-  return out;
+  return entries;
 }
 
 /** Numero si la columna es un importe, objeto si trae un bloque de campos. */
@@ -214,15 +234,21 @@ function historyCell(notes) {
 /**
  * Registros -> { headers, rows } listo para pintar o serializar.
  * @param {object[]} records
- * @param {{ allColumns?: boolean }} [opts] true = la union completa de columnas
+ * @param {object} [opts]
+ * @param {boolean} [opts.allColumns] true = la union completa de columnas
+ * @param {string[]|null} [opts.columns] union ya calculada (la de TODA la
+ *   corrida). Hace falta para que las partes de un mismo resultado salgan con el
+ *   mismo encabezado; sin ella la union se saca de `records`, que solo es
+ *   correcto cuando son todos los registros.
  */
-export function buildMatrix(records, { allColumns = false } = {}) {
+export function buildMatrix(records, { allColumns = false, columns = null } = {}) {
   const list = Array.isArray(records) ? records : [];
   const cells = list.map(recordCells);
 
-  const headers = allColumns
-    ? [...unionKeys(cells), ...META_COLUMNS]
-    : [...ESSENTIAL_COLUMNS, ...META_COLUMNS];
+  let headers;
+  if (!allColumns) headers = [...ESSENTIAL_COLUMNS, ...META_COLUMNS];
+  else if (columns?.length) headers = [...columns, ...META_COLUMNS];
+  else headers = [...unionKeys(cells), ...META_COLUMNS];
 
   const rows = list.map((record, index) => headers.map((header) => {
     if (header === META_COLUMNS[0]) return STATUS_LABEL[record.status] || record.status || '';
@@ -231,6 +257,51 @@ export function buildMatrix(records, { allColumns = false } = {}) {
   }));
 
   return { headers, rows };
+}
+
+/**
+ * Las columnas que aporta un registro, sin armar sus celdas. Es lo que se
+ * acumula durante la captura para tener la union de la corrida (el encabezado
+ * comun de todas las partes) sin guardar los registros ni volver a leerlos.
+ *
+ * No incluye META_COLUMNS: esas las agrega `buildMatrix` al final.
+ */
+export function recordColumnKeys(record) {
+  const keys = [
+    ...FIXED_COLUMNS.map((column) => column.label),
+    ...EXTRA_FIXED,
+    ...Object.keys(record?.detail || {}),
+  ];
+
+  const items = record?.itemRows || [];
+  if (items.length) {
+    keys.push('Items');
+    for (const entry of itemColumnEntries(items)) keys.push(entry.label);
+  } else if (record?.items) {
+    keys.push(...Object.keys(record.items));
+  }
+
+  if (record?.notes?.length || record?.history?.count) keys.push(...HISTORY_HEADERS);
+  return keys;
+}
+
+/**
+ * Suma columnas nuevas a la union conservando el orden de aparicion (el mismo
+ * criterio que `unionKeys`). Devuelve el arreglo recibido si no hubo novedad,
+ * asi el caso normal --una orden mas que no trae ninguna columna nueva-- no
+ * copia nada.
+ */
+export function mergeColumns(columns, keys) {
+  const current = Array.isArray(columns) ? columns : [];
+  const seen = new Set(current);
+  let out = current;
+  for (const key of keys) {
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    if (out === current) out = [...current];
+    out.push(key);
+  }
+  return out;
 }
 
 /** Todas las celdas de un registro, indexadas por el nombre de su columna. */
@@ -281,10 +352,22 @@ function unionKeys(maps) {
   return keys;
 }
 
-/** Matriz -> texto CSV (con BOM para que Excel respete los acentos). */
-export function matrixToCsv({ headers, rows }) {
-  const body = [headers, ...rows].map((row) => row.map(csvCell).join(',')).join('\r\n');
-  return `\uFEFF${body}`;
+export const CSV_EOL = '\r\n';
+export const CSV_BOM = '\uFEFF'; // sin el, Excel lee el UTF-8 como latin-1
+
+/**
+ * Matriz -> texto CSV, sin BOM y sin salto de linea final.
+ * `header: false` es para anexar una parte a un archivo ya empezado.
+ */
+export function matrixToCsvText({ headers, rows }, { header = true } = {}) {
+  const lines = header ? [headers.map(csvCell).join(',')] : [];
+  for (const row of rows) lines.push(row.map(csvCell).join(','));
+  return lines.join(CSV_EOL);
+}
+
+/** Matriz -> texto CSV completo (con BOM para que Excel respete los acentos). */
+export function matrixToCsv(matrix) {
+  return `${CSV_BOM}${matrixToCsvText(matrix)}`;
 }
 
 function csvCell(value) {
@@ -299,4 +382,5 @@ function protectFormula(value) {
 
 export const __test = {
   csvCell, protectFormula, unionKeys, itemColumns, historyCell, pickHeader, recordCells,
+  itemColumnEntries,
 };
