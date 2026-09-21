@@ -11,7 +11,7 @@
 // `ctx` = { run, plan, signal, patch(fields) }.
 
 import { GEVS, PASOS, SELECTORS } from '../../constants.js';
-import { clic, contarFilasDebit, el, elegir, escribir, leerValor, lupaDe, mensajes, mismoMonto } from '../gevs/campos.js';
+import { clic, contarFilasDebit, el, elegir, escribir, leerValor, lupaDe, mensajes, mismoMonto, normalizarMonto } from '../gevs/campos.js';
 import { ACCION, esperarAccion, tipoDeAccion } from '../gevs/ppr.js';
 import { leerPantalla } from '../gevs/lectura.js';
 import { batchIdDe } from '../detector.js';
@@ -110,7 +110,7 @@ export function diferencias(pantalla, plan) {
   cmp('Fila IVA Description', iva.description, plan.cabecera.description);
   if (iva.product) out.push(`Fila IVA Product deberia ir vacio y tiene "${iva.product}"`);
 
-  const sumaDebit = pantalla.debito.reduce((acc, f) => acc + Number(f.amount.replace(/\./g, '').replace(',', '.') || 0), 0);
+  const sumaDebit = pantalla.debito.reduce((acc, f) => acc + Number(normalizarMonto(f.amount) || 0), 0);
   if (sumaDebit !== plan.credito.amount) out.push(`Suma Debit ${sumaDebit} != Credit ${plan.credito.amount}`);
   if (/error/i.test(pantalla.mensajes)) out.push(`GEVS muestra: ${pantalla.mensajes}`);
   return out;

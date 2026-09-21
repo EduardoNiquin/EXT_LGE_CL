@@ -10,6 +10,7 @@ import { leerMasterFile } from '../../reglas/excel.js';
 import { agruparDocumentos } from '../../reglas/agrupar.js';
 import { getDraft, setDraft } from '../../state.js';
 import { evaluarDocumento } from '../contexto.js';
+import { nombreDocumento } from '../utils.js';
 import { toMessage } from '../../../../shared/errors/index.js';
 import { escapeHtml, formatClp } from '../../../../shared/ui/format.js';
 import { extensionDe, fileIntakeHtml, wireFileIntake } from '../../../../shared/ui/file-intake.js';
@@ -35,7 +36,7 @@ export async function render(container) {
       </section>
       <section class="lt-form-card">
         <h3 class="lt-section-title">Facturas del archivo</h3>
-        <p class="lt-hint">Entran las <strong>Pending</strong> de clientes Complex voucher con numero, fecha y montos. El resto se muestra con su motivo.</p>
+        <p class="lt-hint">Entran las <strong>Pending</strong> de clientes Complex voucher con numero, fecha y montos: facturas (todo en positivo) y notas de credito (todo en negativo). El resto se muestra con su motivo.</p>
         <label class="dt-check">
           <input type="checkbox" id="fa-forzar" ${draft?.forzar ? 'checked' : ''}>
           <span>Permitir elegir facturas no elegibles (solo para pruebas)</span>
@@ -55,7 +56,7 @@ export async function render(container) {
 
 function archivoTexto(draft) {
   const { nombre, cargadoEn } = draft.archivo;
-  return `Archivo: <strong>${escapeHtml(nombre)}</strong> (${new Date(cargadoEn).toLocaleString()}) - ${draft.documentos.length} factura(s).`;
+  return `Archivo: <strong>${escapeHtml(nombre)}</strong> (${new Date(cargadoEn).toLocaleString()}) - ${draft.documentos.length} documento(s).`;
 }
 
 /** Del lote pegado/arrastrado/elegido se usa el primer Excel; el resto se ignora. */
@@ -99,12 +100,13 @@ function renderTabla(container, draft) {
   const filas = draft.documentos.map((doc) => ({ doc, ...evaluarDocumento(draft, doc) }));
   wrap.innerHTML = `
     <table class="io-table">
-      <thead><tr><th></th><th>Cliente</th><th>Factura</th><th>Fecha</th><th>Estado</th><th>Neto (CLP)</th><th>Motivo</th></tr></thead>
+      <thead><tr><th></th><th>Cliente</th><th>Tipo</th><th>Numero</th><th>Fecha</th><th>Estado</th><th>Neto (CLP)</th><th>Motivo</th></tr></thead>
       <tbody>
         ${filas.map(({ doc, elegibilidad }) => `
           <tr>
             <td><input type="radio" name="fa-doc" value="${escapeHtml(doc.clave)}" ${doc.clave === draft.claveElegida ? 'checked' : ''} ${elegibilidad.elegible || draft.forzar ? '' : 'disabled'}></td>
             <td title="${escapeHtml(doc.commissionType)} / ${escapeHtml(doc.cutDate)}">${escapeHtml(doc.customer)}</td>
+            <td>${escapeHtml(nombreDocumento(doc.docType))}</td>
             <td>${escapeHtml(doc.invoiceNumber || '-')}</td>
             <td>${escapeHtml(doc.invoiceDate || '-')}</td>
             <td>${escapeHtml(doc.status)}</td>

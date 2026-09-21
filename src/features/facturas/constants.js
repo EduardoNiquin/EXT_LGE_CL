@@ -52,16 +52,21 @@ export const ESTADO_FACTURA = {
   PENDING_REPORT: 'pending report',
 };
 
+// Col "Doc Type" de Master 1 y Master 2, normalizada.
 export const DOC_TYPE = {
   INVOICE: 'invoice',
   CREDIT_NOTE: 'credit note',
   DEBIT_NOTE: 'debit note',
 };
 
-// Prefijo de la Description por tipo de documento.
-export const PREFIJO_DESCRIPCION = {
-  [DOC_TYPE.INVOICE]: 'F',
-  [DOC_TYPE.CREDIT_NOTE]: 'CN',
+// Tipos de documento que se cargan. Entre una factura y una nota de credito la
+// pantalla es la misma: cambian el prefijo de la Description y el SIGNO de todos
+// los montos (lineas, IVA, credito y DFF), que ya viene puesto en el Excel
+// (Finanzas carga las notas de credito con todo en negativo). Debit Note existe
+// en Master 2 pero no tiene prefijo acordado: no se carga.
+export const TIPOS_DOCUMENTO = {
+  [DOC_TYPE.INVOICE]: { label: 'factura', prefijo: 'F', signo: 1 },
+  [DOC_TYPE.CREDIT_NOTE]: { label: 'nota de credito', prefijo: 'CN', signo: -1 },
 };
 
 // Orden fijo de las BUs (Master 1 col "BU" / hoja Map). Es el orden de las
@@ -203,7 +208,7 @@ export const PASOS = [
 ];
 
 export const FASE_LABEL = {
-  [FASE.CARGANDO]: 'Cargando la factura en GEVS...',
+  [FASE.CARGANDO]: 'Cargando el voucher en GEVS...',
   [FASE.LISTO_PARA_ENVIAR]: 'Guardada con adjuntos: te toca el Submit en GEVS',
   [FASE.DONE]: 'Submit confirmado por GEVS',
 };

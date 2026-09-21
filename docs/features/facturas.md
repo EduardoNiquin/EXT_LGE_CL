@@ -1,9 +1,10 @@
 # Facturas
 
 Carga automatica de facturas de comision en **GEVS** (Global Easy Voucher System de LG, Oracle OA Framework), pantalla
-**Complex Voucher Entry(LGECL)**: cabecera, credito, N lineas de debito por BU + IVA, DFF, adjuntos y Save. El **Submit
-lo hace la persona** en GEVS; la extension se lo indica y anota la Reference cuando GEVS lo confirma. La fuente de datos
-es el **Invoice Master File** (Excel) que mantiene Finanzas. Opcionalmente la corrida entera (lo que hizo la extension y
+**Complex Voucher Entry(LGECL)**: cabecera, credito, N lineas de debito por BU + IVA, DFF, adjuntos y Save. Carga
+**facturas y notas de credito**: la nota de credito es la misma pantalla con la Description `CN ...` y todos los montos
+en negativo. El **Submit lo hace la persona** en GEVS; la extension se lo indica y anota la Reference cuando GEVS lo
+confirma. La fuente de datos es el **Invoice Master File** (Excel) que mantiene Finanzas. Opcionalmente la corrida entera (lo que hizo la extension y
 lo que hizo la persona) queda en una **bitacora descargable** (Registro de acciones).
 
 **Estado: implementada y probada contra GEVS real hasta el Save y los adjuntos (2026-09-19/20).** Con la factura MP
@@ -12,22 +13,37 @@ pantalla quedo identica al plan, el Save asigno batchId, los dos adjuntos se sub
 con Delete. El **Submit no lo hace la extension** (decision del usuario, 2026-09-20): la corrida termina en "guardada
 con adjuntos" y se lo dice a la persona. Sin probar todavia en GEVS real: la bitacora y la lectura de la Reference en
 Inquiry tras un Submit manual (ambas agregadas el 2026-09-20). Detalle de lo medido en `facturas-flujo-gevs.md`, seccion
-"Verificado". Los archivos crudos (registro de acciones y Excel) estan en `docs/features/Facturas/`.
+"Verificado". Los archivos crudos (registro de acciones y Excel) estan en `docs/features/Facturas/` (carpeta en
+`.gitignore`: datos financieros).
+
+**Primera factura real (2026-09-21):** FALABELLA (DIRECT) 494026, 8 filas Debit, credito 241.962.762. La extension la
+cargo entera hasta Save + 2 adjuntos (~3 min, con bitacora), y la persona hizo el Submit; la corrida se cerro con
+"Terminar", asi que la lectura de la Reference en Inquiry sigue sin ejercitarse. Bitacora en
+`Facturas/registro-extension-2026-09-21_*.md`. Ese mismo dia se sumaron las **notas de credito** (Doc Type
+`Credit Note`, prefijo `CN`, todo en negativo) sobre el Excel nuevo (`Invoice Master File 260831-v2.xlsx`: columna
+`Doc Type` al principio y columnas `INVOICE ROUND AMOUNT` / `INVOICE ROUND VAT`): probadas en la capa pura, en el popup y a
+mano en GEVS (negativos aceptados en montos, credito y DFF); falta la primera corrida completa hasta Save.
 
 | Doc | Que tiene |
 |---|---|
 | `facturas-flujo-gevs.md` | la pantalla paso a paso: selectores, valores, PPR/reloads, ventanas LOV y calendario, iframe de upload, Submit y sus modales, quirks, lista de verificacion en navegador real |
 | `facturas-datos.md` | el Excel: hojas, columnas, agrupacion en documentos, elegibilidad, receta por cliente, reglas de redondeo/IVA/N filas, Description, mapeo columna -> campo |
 | `Facturas/registro_*.md` | grabacion original (Registro de acciones, 2026-09-15, factura MP 2943361, 46 min) |
-| `Facturas/Invoice Master File 260831.xlsx` | copia del Excel analizado (datos financieros: no distribuir) |
+| `Facturas/registro-extension-2026-09-21_*.md` | bitacora de la primera corrida real de la extension (FALABELLA 494026) |
+| `Facturas/Invoice Master File 260831.xlsx` / `260831-v2.xlsx` | copias del Excel (v2 = layout 2026-09, la que lee `facturas-excel.test.js`; datos financieros: no distribuir) |
+| `Facturas/master1-columnas-2026-09.png` | captura de Finanzas explicando las columnas nuevas de Master 1 |
 
 Es un proceso **delicado**: el Submit crea un documento contable real. Todo el diseño prioriza verificar antes de
 escribir, idempotencia ante reloads y puntos de parada explicitos.
 
 ## Alcance v1 (acordado)
 
-- Solo `Doc Type = Invoice` de clientes con `System Module = Complex voucher`: Falabella (Direct), Paris, Walmart, Ripley
-  (Fullkom), Transbank y Mercado Pago. Notas de credito = etapa 2 (todo en negativo, prefijo `CN`).
+- Facturas (`Doc Type = Invoice`) y notas de credito (`Credit Note`) de clientes con `System Module = Complex voucher`:
+  Falabella (Direct), Paris, Walmart, Ripley (Fullkom), Transbank y Mercado Pago (las notas de credito solo tienen receta
+  en Master 2 para Falabella, Transbank y Mercado Pago). **Una nota de credito es la misma pantalla con la Description
+  `CN <num> - ...` y TODOS los montos en negativo** (lineas, IVA, credito, SUPPLY_PRICE y ORIGINAL_TAX_AMOUNT), que es
+  como vienen en el Excel: el driver no distingue tipos, copia el signo del plan. Un documento cuyo signo no corresponde a
+  su tipo (factura con negativos, nota de credito con positivos) no es elegible. `Debit Note` queda fuera.
 - Solo `Invoice Status = Pending`. `Draft`, `Pending Report`, `Approving` y `AP Completed` se listan con motivo.
 - Una factura por corrida. La extension llena todo, adjunta y hace **Save** (queda Draft con `batchId`); el **Submit**
   (Reset + Submit + modal de avisos) **lo hace la persona en GEVS**. La extension lo indica en el popup, no toca mas la
@@ -45,7 +61,9 @@ escribir, idempotencia ante reloads y puntos de parada explicitos.
   selector de siempre- y el selector sigue ahi para los equipos sin el bloqueo. Ojo con el orden: al pasar al Explorador
   el popup se cierra, asi que se copia primero y se pega al reabrirlo (el portapapeles sobrevive).
 - Description: `F <num> - <title> - <Mes en ingles> <Year>` a partir del `Impact Month`.
-- Redondeo al entero mas cercano; IVA = round(NET' * 0.19); Credit = NET' + IVA' (cuadre garantizado).
+- Redondeo al entero mas cercano; IVA = round(NET' * 0.19); Credit = NET' + IVA' (cuadre garantizado). Desde 2026-09
+  Master 1 trae su propio ROUND por linea (`INVOICE ROUND AMOUNT`): se contrasta con el calculado y, si difieren (ajuste a
+  mano o Excel sin recalcular), el plan da error y no se carga hasta que una persona lo resuelva en el Excel.
 
 ## Patron
 
@@ -59,8 +77,8 @@ upload (otro host) reciben el content script y se coordinan por el run en `chrom
 
 ```
 src/features/facturas/
-├── constants.js        ids, STORAGE_KEYS, MESSAGES, SELECTORS de la pantalla, GEVS (codigos fijos), PASOS (orden y
-│                       rotulo de cada paso), FASE, FINISH_REASON, tiempos
+├── constants.js        ids, STORAGE_KEYS, MESSAGES, SELECTORS de la pantalla, GEVS (codigos fijos), TIPOS_DOCUMENTO
+│                       (label, prefijo y signo por Doc Type), PASOS (orden y rotulo de cada paso), FASE, FINISH_REASON
 ├── state.js            run store + draft (documentos del Excel, sin el workbook) + plan + resultados
 ├── debug.js            __extLgeCl.facturas.{diagnose, leerPantalla, run, plan, mensajes, huella, procesando, escribir, elegir}
 ├── reglas/             CAPA PURA (tests/unit/facturas-reglas.test.js, facturas-excel.test.js):
@@ -70,8 +88,9 @@ src/features/facturas/
 │   ├── receta.js       Map (fuente) + Master 2 (titulo, cuentas, tax code) -> receta por cliente; avisa si difieren
 │   ├── calculo.js      redondeo ROUND de Excel, NET', IVA', CREDIT, N filas
 │   ├── descripcion.js  "F <num> - <titulo> - <Mes> <Year>" y fechas dd/MM/yyyy
-│   ├── validar.js      elegibilidad con motivos legibles
-│   └── plan.js         plan de carga (valor exacto de cada campo) + emparejado de adjuntos
+│   ├── validar.js      elegibilidad con motivos legibles (estado, tipo y signo, receta, numero, fecha, montos)
+│   └── plan.js         plan de carga (valor exacto de cada campo, con signo) + emparejado de adjuntos + contraste
+│                       con INVOICE ROUND AMOUNT
 ├── adjuntos/store.js   IndexedDB del origen de la extension (popup escribe, SW lee): guardar/listar/leer/rol/borrar
 ├── background/index.js wireFacturasBackground(): INICIAR (abre la bitacora y despues el run), ADJUNTO_GET ->
 │                       { nombre, tipo, contenido base64 } (tope 25 MB), y al ver el run inactivo cierra/descarga la bitacora
@@ -94,6 +113,7 @@ src/features/facturas/
 │                       actuar() anota cada escritura/clic en la bitacora ANTES de hacerla
 └── popup/
     ├── view.js         tabs Datos | Adjuntos | Plan | Ejecutar
+    ├── utils.js        nombreDocumento(docType): "factura" / "nota de credito" para los rotulos
     ├── contexto.js     cargarContexto(): draft + adjuntos + receta + elegibilidad + plan de la factura elegida
     └── sections/       datos.js (Excel y tabla de facturas) - adjuntos.js - plan.js (previsualizacion) -
                         ejecutar.js (requisitos -la VPN es solo una nota, no bloquea-, paso a paso, bitacora,
@@ -196,5 +216,13 @@ El popup muestra el `sesionId` y, al terminar, la carpeta.
   script se agrego despues), asi que la primera factura real confirmara que ya no bloquea.
 - Con un Invoice No repetido GEVS rechaza el Save ("Invoice No Duplication with EVS Invoice"): la corrida se detiene
   con ese mensaje. No hay forma (ni intencion) de saltarlo.
-- Notas de credito, lote de varias facturas, `Debit Note`, ajuste `E19` de Round: etapa 2.
+- Notas de credito: capa pura y popup probados con la NC 459689 del Excel v2 (elegible, plan en negativo). Verificado
+  a mano en GEVS el 2026-09-21 sobre un voucher sin guardar (`facturas-flujo-gevs.md`, punto 14): OAF muestra un monto
+  negativo como `-12.345` (signo adelante: `normalizarMonto` lo entiende), recalcula el Credit Amount en negativo y el
+  DFF de la fila VAT acepta SUPPLY_PRICE / ORIGINAL_TAX_AMOUNT negativos (Apply sin mensajes). **Falta la primera
+  corrida completa (Save con negativos)**: la NC 459689 esta Pending y necesita sus adjuntos (PDF + detalle).
+- Lote de varias facturas y `Debit Note`: etapa 2. Ajuste manual por linea (el `E19` de Round): no se soporta; si
+  `INVOICE ROUND AMOUNT` de Master 1 difiere de ROUND(neto), el plan da error y no se carga.
+- Las notas de credito de Transbank y Mercado Pago dicen en Master 2 "no distribuir si el monto es peanuts": no se
+  implementa, se distribuye siempre por BU (mismas filas que la factura).
 - Fuente de datos por API (sistema propio en vez del Excel): el parser queda aislado en `reglas/excel.js` para cambiarlo.

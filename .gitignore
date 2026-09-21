@@ -40,3 +40,6 @@ Thumbs.db
 # Exportaciones de las features (Informacion de Orden, e-promoters, PIM...):
 # traen datos de clientes SIN enmascarar. Nunca commitear.
 *.csv
+
+# Facturas: Excel de Finanzas, grabaciones y capturas con datos financieros. Nunca commitear.
+docs/features/Facturas/

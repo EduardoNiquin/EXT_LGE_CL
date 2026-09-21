@@ -3,7 +3,7 @@
 // ejecuta; el driver no calcula nada, solo copia lo que dice el plan.
 
 import { GEVS, ROLES_OBLIGATORIOS, ROL_ADJUNTO } from '../constants.js';
-import { calcularMontos } from './calculo.js';
+import { calcularMontos, redondear } from './calculo.js';
 import { armarDescripcion, fechaGevs } from './descripcion.js';
 
 // Diferencia tolerada entre el credito que se carga y el total de Master 1: el
@@ -12,7 +12,7 @@ const TOLERANCIA_CLP = 1;
 
 const EXTENSIONES_POR_ROL = {
   [ROL_ADJUNTO.FACTURA]: ['.pdf'],
-  [ROL_ADJUNTO.DETALLE]: ['.xlsx', '.xls', '.csv'],
+  [ROL_ADJUNTO.DETALLE]: ['.xlsx', '.xlsb', '.xlsm', '.xls', '.csv'],
 };
 
 /**
@@ -69,6 +69,16 @@ export function armarPlan({ documento, receta, adjuntos = [] }) {
   for (const rol of ROLES_OBLIGATORIOS) {
     if (!porRol[rol]) errores.push(`Falta el adjunto "${rol}".`);
   }
+  // Master 1 trae desde 2026-09 su propio redondeo por linea (INVOICE ROUND
+  // AMOUNT, una formula ROUND). Si no coincide con el de aqui, o Finanzas ajusto
+  // esa linea a mano o el Excel se guardo sin recalcular: en los dos casos lo
+  // resuelve una persona en el Excel, no la extension.
+  const redondeoDistinto = documento.lineas
+    .filter((l) => l.redondeado != null && l.redondeado !== redondear(l.neto))
+    .map((l) => `${l.bu} (Excel ${l.redondeado}, calculado ${redondear(l.neto)})`);
+  if (redondeoDistinto.length) {
+    errores.push(`INVOICE ROUND AMOUNT de Master 1 no coincide con el redondeo calculado en ${redondeoDistinto.join(', ')}: revisa el Excel.`);
+  }
 
   const diferencia = documento.total ? montos.credit - documento.total.total : null;
   if (diferencia != null && Math.abs(diferencia) > TOLERANCIA_CLP) {
@@ -78,6 +88,7 @@ export function armarPlan({ documento, receta, adjuntos = [] }) {
   return {
     clave: documento.clave,
     customer: documento.customer,
+    docType: documento.docType,
     invoiceNumber: documento.invoiceNumber,
     cutDate: documento.cutDate,
     commissionType: documento.commissionType,

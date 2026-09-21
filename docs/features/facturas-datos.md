@@ -21,10 +21,13 @@ extension no las necesita.
 ## `Master 1_BU v2`
 
 Encabezado en la **fila 4**, datos desde la fila 5 (624 filas en la copia analizada). La extension ubica el encabezado
-buscando la celda `Customer`, no por posicion fija.
+buscando la celda `Customer` y cada columna **por su nombre**, no por posicion: en 2026-09 Finanzas movio `Doc Type` al
+principio y agrego `INVOICE ROUND AMOUNT` / `INVOICE ROUND VAT` (captura en `Facturas/master1-columnas-2026-09.png`) sin
+que hubiera que tocar el parser.
 
 | Columna | Ejemplo (MP 2943361) | Uso |
 |---|---|---|
+| Doc Type | `Invoice` / `Credit Note` / `Debit Note` | **tipo de documento**: prefijo de la Description (`F` / `CN`) y signo esperado de los montos (positivo / negativo). `Debit Note` no se carga |
 | Year | 2026 | año de la Description |
 | Cut Date | `JUL 26 to AUG 25` | trazabilidad (log/resultado) |
 | Invoice Received | `AUG` | no |
@@ -40,9 +43,10 @@ buscando la celda `Customer`, no por posicion fija.
 | VAT (CLP) | 0 en divisiones; `1378553.17` en TOTAL | referencia (formula `Net*0.19` solo en TOTAL) |
 | Total Amt (CLP) | `8634096.17` en TOTAL | referencia para el aviso de diferencia |
 | Invoice Net Amt (USD), VAT (USD), Total Amt (USD), FX Rate | | no |
+| INVOICE ROUND AMOUNT | `1508792` (`-10338484` en una NC) | `ROUND(neto, 0)` por linea, puesto por Finanzas (2026-09) para "ingresar sin comas ni puntos". Se **contrasta** con el redondeo calculado: si difieren, el plan da error. En la fila TOTAL es el ROUND de la suma sin redondear (difiere 1-2 CLP de la suma de redondeados): no se usa |
+| INVOICE ROUND VAT | solo en TOTAL: `ROUND(VAT (CLP), 0)` | no se usa: es el IVA del neto sin redondear (y en facturas viejas de MP el `VAT (CLP)` no es 19%); la hoja Round lo calcula sobre el neto redondeado |
 | Commission Type | `Monthly Commission`, `Commission (1era Quincena)`, `Commission (2da Quincena)`, `Logistic Cost`, `Commission (In transit)` | trazabilidad |
 | Provision | `Provision (Based on External Report)` / `(Based on PO, One View)` | no |
-| Doc Type | `Invoice` / `Credit Note` | v1 solo `Invoice` |
 | Variable /Fixed | `Variable` | no |
 | Invoice Status | `Pending` / `Approving` / `AP Completed` / `Draft` / `Pending Report` | **elegibilidad** |
 | BU (2da), Provision * | | no |
@@ -71,14 +75,16 @@ Un documento entra al proceso solo si:
 
 1. `Invoice Status` = `Pending` (los demas se listan con el motivo: `Approving` = ya registrado, `AP Completed` = ya
    aprobado, `Draft` y `Pending Report` = fuera de alcance por ahora).
-2. `Doc Type` = `Invoice` (las notas de credito son etapa 2: van en negativo).
+2. `Doc Type` = `Invoice` o `Credit Note`, con el **signo que corresponde**: una factura lleva todo >= 0 y una nota de
+   credito todo <= 0 (lineas y TOTAL); un monto con el signo cambiado es un error del Excel. `Debit Note` no se soporta.
 3. El cliente tiene receta con `System Module` = `Complex voucher` (ver Master 2).
 4. `Invoice Number` presente y `Invoice Date` es una fecha valida.
 5. Al menos una BU con neto distinto de 0 y `TOTAL` distinto de 0.
 6. Adjuntos asignados: factura (PDF) y detalle (obligatorios); distribution se ignora por ahora.
 
-Con la copia analizada **ninguna** factura cumple (las Pending de Complex voucher no tienen numero todavia; MP 2943361
-ya esta `Approving`). El popup ofrece un override "procesar igual" (con aviso) para pruebas.
+En la copia de 2026-09-21 cumplen dos documentos de FALABELLA (DIRECT): la factura 494026 (cargada ese dia por la
+extension) y la nota de credito 459689; el resto de las Pending de Complex voucher no tiene numero todavia. El popup
+ofrece un override "procesar igual" (con aviso) para pruebas.
 
 ## `Master 2_STEPS` (receta)
 
@@ -111,9 +117,11 @@ Recetas Complex voucher (Invoice):
 | TRANSBANK | CL003010 | 20148 | 51357755 | Commission PG TRANSBANK, 0.9%-1.4% |
 | MERCADO PAGO | CL005108 | 20148 | 51357755 | PG Commission MERCADO PAGO, 1.0%-2.3% |
 
-Comunes: Credit Account `21117701`, VAT Tax Code `CLIDD19`, Invoice Type Vendor Invoice(CHL). Para las notas de credito
-(etapa 2) la receta dice: todo en negativo (lineas, IVA, SUPPLY_PRICE, ORIGINAL_TAX_AMOUNT) y "no distribuir si el monto
-es peanuts".
+Comunes: Credit Account `21117701`, VAT Tax Code `CLIDD19`, Invoice Type Vendor Invoice(CHL). Las **notas de credito**
+tienen su propia fila (`Doc No` 61) solo para FALABELLA (DIRECT), TRANSBANK y MERCADO PAGO (Paris, Walmart y Ripley no la
+tienen: "sin receta", no elegibles); repite los mismos codigos y titulo que la factura y agrega "ALL in NEGATIVE"
+(lineas, IVA, SUPPLY_PRICE, ORIGINAL_TAX_AMOUNT) y, en Transbank y Mercado Pago, "no distribuir si el monto es peanuts"
+(no se implementa: se distribuye siempre por BU). Hay tambien una fila `Debit Note` de Falabella sin `Doc No`: fuera.
 
 **Regla de precedencia:** `Payee Code`, `Department` y `Debit Account` se leen de **Map** (fuente de los VLOOKUP); de
 Master 2 se usan `title`, `Credit-Account`, `VAT Tax Code`, `Invoice Type` y `System Module`. Si Master 2 (valores
@@ -147,7 +155,19 @@ ajuste E19 (DFT)    = 0 en v1
 
 Las BUs con neto 0 (en el ejemplo DVT y DMT) **no generan fila**. El orden de las filas es el orden de la tabla
 Division -> BU. Si `|CREDIT - Total Amt (CLP)| > 1` el popup avisa (en el ejemplo la factura real decia 8.634.096,56 y
-se cargo 8.634.097, que es lo que dicta la hoja Round).
+se cargo 8.634.097, que es lo que dicta la hoja Round). Ojo: como `Total Amt` es la suma SIN redondear x 1.19, la
+diferencia normal es de 1 a 2 CLP (494026: 1,90; NC 459689: 1,79), asi que ese aviso sale en casi todos los documentos.
+
+**Notas de credito:** la misma hoja Round con todo en negativo (nota "*Credit Note with Negative"). `ROUND` de Excel
+aleja las mitades de cero tambien en negativo (`redondear` hace lo mismo: -2,5 -> -3) y el IVA sale negativo. Ejemplo NC
+459689 (FALABELLA, `AUG (Provision)`): CNT -15797376, CDT -191528, DFT -36678441, GLT -23441649, PNT -2260696,
+GTT -3576234, DGT -359074 (CVT, DVT, DLT y DMT en 0, sin fila); NET' -82304998, IVA' -15637950, CREDIT -97942948, N = 8;
+Description `CN 459689 - Commission 3P FALABELLA Direct (Integration May 2026), 10%-13% - August 2026`.
+
+**Contraste con `INVOICE ROUND AMOUNT`:** desde 2026-09 cada linea de Master 1 trae `ROUND(neto)` puesto por Finanzas
+(en la copia analizada coincide con `redondear` en las 624 filas). Si una linea difiere, o Finanzas la ajusto a mano
+(lo que antes era el `E19` de Round) o el Excel se guardo sin recalcular: en los dos casos el plan da **error** y lo
+resuelve una persona en el Excel; la extension no elige entre los dos valores.
 
 Ejemplo completo (MP 2943361, `Impact Month` = `AUG (Provision)`):
 
@@ -171,7 +191,7 @@ Ejemplo completo (MP 2943361, `Impact Month` = `AUG (Provision)`):
 F 2943361 - PG Commission MERCADO PAGO, 1.0%-2.3% - August 2026
 ```
 
-- Prefijo: `F` para Invoice; `CN` para Credit Note (etapa 2).
+- Prefijo: `F` para Invoice; `CN` para Credit Note (`TIPOS_DOCUMENTO` en `constants.js`).
 - Mes: prefijo de 3 letras de `Impact Month` (`AUG (Provision)` -> August, `SEP (Ingresar)` -> September); año de `Year`.
 - La misma cadena va en `#Description` y en la Description de **todas** las filas Debit (incluida la de IVA).
 
@@ -200,5 +220,5 @@ F 2943361 - PG Commission MERCADO PAGO, 1.0%-2.3% - August 2026
 - Redondeo al entero mas cercano (es lo que hace la hoja Round) y credito = NET' + IVA' aunque difiera del total real
   de la factura en 1 CLP.
 - Accounting Date queda con el default (fecha del dia) y el Department del Credit con el default del usuario (20163).
-- El ajuste `E19` de Round no se contempla.
-- Una factura por corrida; sin notas de credito.
+- El ajuste `E19` de Round no se contempla (si aparece como una linea distinta en `INVOICE ROUND AMOUNT`, se detiene).
+- Una factura o nota de credito por corrida.

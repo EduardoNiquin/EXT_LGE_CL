@@ -256,3 +256,10 @@ extension en modo paso a paso hasta el freno previo al Save (los 19 pasos anteri
     re-enter the invoice no. Invoice No Duplication with EVS Invoice. (Duplicate Voucher: ESCL-EV-...)". La corrida lo
     detecta (`mensajeDeError`) y se detiene con ese texto en vez de reintentar. Es tambien la red de seguridad contra
     cargar dos veces la misma factura.
+14. **Montos negativos (notas de credito), medido el 2026-09-21 sobre un voucher sin guardar:** escribir `-12345` en
+    `DAmount:0` navega como siempre y al volver GEVS lo muestra como `-12.345` (signo adelante y puntos de miles), copia
+    `-12.345` a Book Amount y recalcula el Credit Amount en `-12.345`, sin mensajes. En el DFF de la fila VAT (que
+    solo trae los campos `#LineDffItem1..10` cuando la fila ya tiene tax code: con ITEM, o con VAT sin tax code, el
+    panel abre vacio) SUPPLY_PRICE `-12345` y ORIGINAL_TAX_AMOUNT `-2346` quedan tal cual (sin formato) y Apply cierra el
+    panel por PPR sin mensajes. Dato al margen: cambiar el Line Type de una fila a `VAT` vuelve su Amount a `0` (en el
+    flujo los montos se escriben despues del line type, asi que no afecta). Falta confirmar el Save con negativos.

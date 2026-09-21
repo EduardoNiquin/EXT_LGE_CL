@@ -33,7 +33,7 @@ export function agruparDocumentos(filas) {
         docType: fila.docType,
         status: fila.status,
         invoiceUrl: '',
-        lineas: [],       // [{ bu, division, neto }] en el orden de BUS
+        lineas: [],       // [{ bu, division, neto, redondeado }] en el orden de BUS
         total: null,      // { neto, vat, total } de la fila TOTAL
         ambiguo: false,   // una BU repetida con montos distintos
         filas: 0,
@@ -53,7 +53,7 @@ export function agruparDocumentos(filas) {
       if (previa.neto !== neto) doc.ambiguo = true;
       continue;
     }
-    doc.lineas.push({ bu: fila.bu, division: fila.division, neto });
+    doc.lineas.push({ bu: fila.bu, division: fila.division, neto, redondeado: fila.redondeadoClp });
   }
 
   for (const doc of porClave.values()) {

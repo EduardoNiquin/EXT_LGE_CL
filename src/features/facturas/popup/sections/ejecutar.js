@@ -14,6 +14,7 @@
 import { FASE, FASE_LABEL, FINISH_REASON, MESSAGES, PANTALLA, PASOS } from '../../constants.js';
 import { clearRun, getRun, setPlan, subscribeToRun, updateRun } from '../../state.js';
 import { cargarContexto } from '../contexto.js';
+import { nombreDocumento } from '../utils.js';
 import { getEstadoOInicial } from '../../../vpn/state.js';
 import { EXPORT as EXPORT_REGISTRO } from '../../../registro-acciones/constants.js';
 import { sendMessage, sendMessageToActiveTab } from '../../../../shared/messaging/messaging.js';
@@ -23,7 +24,7 @@ import { logPanelHtml, renderLogPanel } from '../../../../shared/ui/log-panel.js
 
 const FINISH_TITLE = {
   [FINISH_REASON.DONE]: 'Submit confirmado por GEVS',
-  [FINISH_REASON.GUARDADO]: 'Factura guardada en GEVS (Submit por tu cuenta)',
+  [FINISH_REASON.GUARDADO]: 'Voucher guardado en GEVS (Submit por tu cuenta)',
   [FINISH_REASON.CANCELLED]: 'Corrida detenida',
   [FINISH_REASON.ERROR]: 'La corrida se detuvo con error',
   [FINISH_REASON.NOT_DETECTED]: 'No se encontro la pantalla de Complex Voucher',
@@ -143,7 +144,7 @@ async function onIniciar(container, ctx, requisitos) {
     pasoAPaso: container.querySelector('#fa-paso-a-paso').checked,
     bitacora: container.querySelector('#fa-bitacora').checked,
   };
-  const resumen = `${ctx.plan.customer} ${ctx.plan.invoiceNumber}: ${ctx.plan.resumen.filasDebit} filas, credito ${ctx.plan.resumen.credit}.`;
+  const resumen = `${ctx.plan.customer}, ${nombreDocumento(ctx.plan.docType)} ${ctx.plan.invoiceNumber}: ${ctx.plan.resumen.filasDebit} filas, credito ${ctx.plan.resumen.credit}.`;
   if (!confirm(`Cargar en GEVS hasta Save? El Submit lo haces tu despues.\n${resumen}\nBitacora: ${config.bitacora ? 'si' : 'no'}.`)) return;
   await setPlan(ctx.plan);
   const respuesta = await sendMessage({ type: MESSAGES.INICIAR, plan: ctx.plan, config });

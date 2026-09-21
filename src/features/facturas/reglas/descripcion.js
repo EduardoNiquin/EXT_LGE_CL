@@ -2,7 +2,7 @@
 //   F 2943361 - PG Commission MERCADO PAGO, 1.0%-2.3% - August 2026
 //   <prefijo> <numero> - <titulo de la receta> - <mes del Impact Month> <Year>
 
-import { MESES_EN, PREFIJO_DESCRIPCION } from '../constants.js';
+import { MESES_EN, TIPOS_DOCUMENTO } from '../constants.js';
 
 /** "AUG (Provision)" -> "August"; '' si no se reconoce. */
 export function mesDeImpactMonth(impactMonth) {
@@ -11,7 +11,7 @@ export function mesDeImpactMonth(impactMonth) {
 }
 
 export function armarDescripcion({ docType, invoiceNumber, titulo, impactMonth, year }) {
-  const prefijo = PREFIJO_DESCRIPCION[docType];
+  const prefijo = TIPOS_DOCUMENTO[docType]?.prefijo;
   const mes = mesDeImpactMonth(impactMonth);
   if (!prefijo || !invoiceNumber || !titulo || !mes || !year) return '';
   return `${prefijo} ${invoiceNumber} - ${titulo} - ${mes} ${year}`;

@@ -71,7 +71,9 @@ function filasComoObjetos(matriz, rotulosClave) {
 
 /**
  * Filas de "Master 1_BU v2": una por factura x division.
- * @returns {Array<object>} ver campos abajo; `netoClp` es null cuando la celda esta vacia.
+ * @returns {Array<object>} ver campos abajo; `netoClp` es null cuando la celda esta vacia y
+ *   `redondeadoClp` (col "INVOICE ROUND AMOUNT", ROUND(neto) puesto por Finanzas desde 2026-09)
+ *   es null en los archivos que no traen la columna.
  */
 export function leerMaster1(matriz) {
   return filasComoObjetos(matriz, ['Customer', 'Invoice Number', 'Division']).map((f) => ({
@@ -84,6 +86,7 @@ export function leerMaster1(matriz) {
     bu: textoOVacio(f.bu).toUpperCase(),
     division: textoOVacio(f.division),
     netoClp: numeroONulo(f['invoice net amt (clp)']),
+    redondeadoClp: numeroONulo(f['invoice round amount']),
     vatClp: numeroONulo(f['vat (clp)']),
     totalClp: numeroONulo(f['total amt (clp)']),
     commissionType: textoOVacio(f['commission type']),

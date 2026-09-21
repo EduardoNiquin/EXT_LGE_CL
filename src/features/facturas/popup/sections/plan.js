@@ -2,6 +2,7 @@
 // Es la revision humana antes de tocar la pantalla.
 
 import { cargarContexto } from '../contexto.js';
+import { nombreDocumento } from '../utils.js';
 import { escapeHtml, formatClp } from '../../../../shared/ui/format.js';
 
 export async function render(container) {
@@ -26,7 +27,7 @@ export async function render(container) {
   container.innerHTML = `
     <div class="lt-view">
       <section class="lt-form-card">
-        <h3 class="lt-section-title">${escapeHtml(plan.customer)} - factura ${escapeHtml(plan.invoiceNumber)}</h3>
+        <h3 class="lt-section-title">${escapeHtml(plan.customer)} - ${escapeHtml(nombreDocumento(plan.docType))} ${escapeHtml(plan.invoiceNumber)}</h3>
         <p class="lt-hint">${escapeHtml(plan.commissionType)} / ${escapeHtml(plan.cutDate)}</p>
         ${notas.map(([nivel, texto]) => `<div class="ct-state ct-state--${nivel}">${escapeHtml(texto)}</div>`).join('')}
         ${tabla('Cabecera', [
