@@ -1,6 +1,10 @@
-// Ejecutar: requisitos (VPN, pestana en Complex Voucher, plan sin errores),
-// la corrida en vivo y los botones que la gobiernan. El trabajo lo hace el
+// Ejecutar: requisitos (pestana en Complex Voucher, plan sin errores), la
+// corrida en vivo y los botones que la gobiernan. El trabajo lo hace el
 // content script de la pestana de GEVS; esta vista solo refleja el run.
+//
+// La VPN de la extension NO es un requisito: quien ya esta en la red de LG
+// llega a GEVS sin ella. Si esta desconectada se muestra como nota (no
+// bloquea); el requisito real es que la pestana este en Complex Voucher.
 //
 // La corrida termina en "guardada con adjuntos": el Submit lo hace la persona
 // en GEVS y esta vista se lo dice. Con "bitacora" la corrida entera (lo que
@@ -90,10 +94,16 @@ async function comprobarRequisitos() {
   return { vpn, pagina };
 }
 
+/**
+ * Cada item es `{ ok, texto, opcional? }`. Los `opcional` son avisos: se
+ * muestran pero no deshabilitan Iniciar (caso VPN: puede estar ya en la red).
+ */
 function listaRequisitos(ctx, { vpn, pagina }) {
   const enEntry = pagina?.ok && pagina.pantalla === PANTALLA.ENTRY;
   const items = [
-    [vpn.conectado, vpn.conectado ? 'VPN conectada' : 'VPN desconectada: conectala en el apartado VPN'],
+    [vpn.conectado, vpn.conectado
+      ? 'VPN conectada'
+      : 'VPN de la extension desconectada: si no estas en la red de LG, conectala en el apartado VPN', true],
     [enEntry, enEntry
       ? `Pestana en Complex Voucher Entry (batchId ${pagina.batchId})`
       : `La pestana activa no esta en Complex Voucher Entry${pagina?.reason ? ` (${pagina.reason})` : ''}`],
@@ -106,22 +116,29 @@ function listaRequisitos(ctx, { vpn, pagina }) {
   }
   if (ctx.yaProcesada) items.push([false, `Ya procesada antes (batch ${ctx.yaProcesada.batchId || '-'}): limpia el resultado o elige otra`]);
   if (enEntry && pagina.batchId !== 0) items.push([false, 'La pantalla ya tiene un batchId: abre un Complex Voucher nuevo (batchId=0)']);
-  return items;
+  return items.map(([ok, texto, opcional = false]) => ({ ok, texto, opcional }));
 }
+
+/** Solo los requisitos no opcionales bloquean el Iniciar. */
+const puedeIniciar = (items) => items.every(({ ok, opcional }) => ok || opcional);
 
 function renderRequisitos(container, ctx, requisitos) {
   const items = listaRequisitos(ctx, requisitos);
   container.querySelector('#fa-requisitos').innerHTML = items
-    .map(([ok, texto]) => `<li class="${ok ? 'lt-stat-ok' : 'lt-err'}">${ok ? 'OK' : 'Falta'}: ${escapeHtml(texto)}</li>`)
+    .map(({ ok, texto, opcional }) => {
+      const clase = ok ? 'lt-stat-ok' : (opcional ? 'lt-stat-skipped' : 'lt-err');
+      const etiqueta = ok ? 'OK' : (opcional ? 'Nota' : 'Falta');
+      return `<li class="${clase}">${etiqueta}: ${escapeHtml(texto)}</li>`;
+    })
     .join('');
-  container.querySelector('#fa-iniciar').disabled = !items.every(([ok]) => ok);
+  container.querySelector('#fa-iniciar').disabled = !puedeIniciar(items);
 }
 
 // --- acciones -----------------------------------------------------------------
 
 async function onIniciar(container, ctx, requisitos) {
   if ((await getRun())?.active) return;
-  if (!listaRequisitos(ctx, requisitos).every(([ok]) => ok)) return;
+  if (!puedeIniciar(listaRequisitos(ctx, requisitos))) return;
   const config = {
     pasoAPaso: container.querySelector('#fa-paso-a-paso').checked,
     bitacora: container.querySelector('#fa-bitacora').checked,

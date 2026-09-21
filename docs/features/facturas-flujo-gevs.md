@@ -11,7 +11,7 @@ Complemento: `facturas-datos.md` (de donde sale cada valor) y `facturas.md` (la 
 
 | Cosa | Valor |
 |---|---|
-| Portal | `http://lgegltase9q.lge.com:8032/OA_HTML/jsp/xxevf/common/main/epMain.jsp?parameter=gevseptop=full` (Global Easy Voucher System, GEVS). Se llega por SSO (`sso.lge.com`) y solo con la VPN de la extension |
+| Portal | `http://lgegltase9q.lge.com:8032/OA_HTML/jsp/xxevf/common/main/epMain.jsp?parameter=gevseptop=full` (Global Easy Voucher System, GEVS). Se llega por SSO (`sso.lge.com`), desde la red de LG (en la oficina no hace falta VPN; fuera, la VPN de la extension) |
 | Entrada | GEVS > My Form List > **Complex Voucher** (`#myFormList table.table_line_complex ... span`, fila "Personal Expense Claim / Complex Voucher"). Abre una pestaña nueva con `RF.jsp?function_id=43271&resp_id=76103&resp_appl_id=20056&...params2=formId=55071&batchId=0` |
 | Pantalla de carga | `OA.jsp?page=/lge/oracle/apps/xxevf/xxevf20061/webui/ComplexVoucherEntryPG&formId=55071&batchId=0&initMode=C&ListOption=G&_ti=1512028276&oapc=N&oas=...` titulo "Complex Voucher Entry(LGECL)" |
 | Tras Save | la misma pagina con `batchId=<asignado>&initMode=U` (`50150561` en el registro). El encabezado muestra `Batch No : ESCL-EV-20163-20260915-0001` |

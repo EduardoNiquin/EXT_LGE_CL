@@ -9,11 +9,14 @@ import {
   CONCURRENCY_DEFAULT,
   CONCURRENCY_MIN,
   CONCURRENCY_WARN,
+  CSV_MIME,
   DEFAULT_RANGE_DAYS,
   DEFAULT_SECTIONS,
   DETAIL_SECTION_CHOICES,
+  DOWNLOAD_FOLDER,
   FINISH_REASON,
   MAX_RANGE_DAYS,
+  ORDERS_PER_MINUTE,
   PART_SIZE_DEFAULT,
   PART_SIZE_MAX,
   PART_SIZE_MIN,
@@ -22,6 +25,7 @@ import {
   SOURCE_MODE,
   clampConcurrency,
   clampPartSize,
+  partFileName,
 } from '../constants.js';
 import {
   clearResult,
@@ -65,7 +69,6 @@ let resultsTimer = null;
 // por cada avance. Se repinta como mucho cada tanto, leyendo lo ultimo.
 const RESULTS_RENDER_THROTTLE_MS = 2000;
 
-const CSV_MIME = 'text/csv;charset=utf-8';
 // Copiar al portapapeles arma TODO el CSV como un solo string en memoria, que es
 // justo lo que la exportacion por partes evita: con muchas filas se avisa.
 const COPY_WARN_ROWS = 2000;
@@ -100,7 +103,7 @@ export async function render(container) {
         <p class="lt-hint">Entra a la ficha de cada orden del rango y deja lo que hay ahi en un CSV, una fila por orden: cliente y direcciones completas, items, totales, pago e historial. Pide las paginas con tu misma sesion, sin navegar la pestana ni abrir ventanas.</p>
         <div class="mg-notice">
           <strong>Antes de iniciar</strong>
-          <span>Deja una pestana abierta en el admin de Magento con la sesion iniciada. Magento filtra hasta ${MAX_RANGE_DAYS + 1} dias por consulta; un rango mas largo se pide en bloques y se junta solo.</span>
+          <span>Deja una pestana abierta en el admin de Magento con la sesion iniciada. Magento filtra hasta ${MAX_RANGE_DAYS + 1} dias por consulta; un rango mas largo se pide en bloques y se junta solo. <strong>No hay tope de ordenes</strong>, pero el ritmo es de ~${ORDERS_PER_MINUTE} fichas/min: 47.000 ordenes son unas 20 h con esta pestana abierta. Para una corrida asi, marca "bajar cada archivo al cerrarlo".</span>
         </div>
 
         <div class="dt-row">
@@ -151,6 +154,10 @@ export async function render(container) {
           </div>
         </div>
         <p class="lt-hint" id="io-concurrency-hint"></p>
+        <label class="dt-check">
+          <input type="checkbox" id="io-auto-download" ${config.autoDownload ? 'checked' : ''}>
+          <span>Bajar cada archivo al cerrarlo (copia de respaldo)</span>
+        </label>
         <p class="lt-hint" id="io-part-size-hint"></p>
 
         <div class="io-sections">
@@ -303,6 +310,11 @@ function wireForm(container) {
     persistDraft(container);
   });
 
+  container.querySelector('#io-auto-download').addEventListener('change', () => {
+    updatePartSizeHint(container);
+    persistDraft(container);
+  });
+
   container.querySelectorAll('[data-section]').forEach((box) => {
     box.addEventListener('change', () => persistDraft(container));
   });
@@ -331,6 +343,7 @@ function readConfig(container) {
     orders: container.querySelector('#io-orders').value,
     concurrency: clampConcurrency(container.querySelector('#io-concurrency').value),
     partSize: clampPartSize(container.querySelector('#io-part-size').value),
+    autoDownload: !!container.querySelector('#io-auto-download')?.checked,
     sections: readSections(container),
     allColumns: !!container.querySelector('#io-all-columns')?.checked,
   };
@@ -351,6 +364,7 @@ function defaultConfig() {
     orders: '',
     concurrency: CONCURRENCY_DEFAULT,
     partSize: PART_SIZE_DEFAULT,
+    autoDownload: false,
     sections: { ...DEFAULT_SECTIONS },
     // Por defecto solo las columnas que se miran a diario (ESSENTIAL_COLUMNS).
     allColumns: false,
@@ -400,7 +414,11 @@ function updatePartSizeHint(container) {
   const hint = container.querySelector('#io-part-size-hint');
   if (!hint) return;
   const value = clampPartSize(container.querySelector('#io-part-size').value);
-  hint.textContent = `El resultado se corta en archivos de ${value} orden(es) (entre ${PART_SIZE_MIN} y ${PART_SIZE_MAX}). Un rango amplio en un solo archivo se cae por memoria, porque cada guardado reescribe todo lo capturado. Al terminar se bajan de a uno o todos unidos.`;
+  const auto = !!container.querySelector('#io-auto-download')?.checked;
+  const base = `El resultado se corta en archivos de ${value} orden(es) (entre ${PART_SIZE_MIN} y ${PART_SIZE_MAX}). Un rango amplio en un solo archivo se cae por memoria, porque cada guardado reescribe todo lo capturado. Al terminar se bajan de a uno o todos unidos.`;
+  hint.textContent = auto
+    ? `${base} Con la copia de respaldo marcada, cada ${value} ordenes ese CSV se guarda solo en Descargas/${DOWNLOAD_FOLDER}/<fecha>/parte-001.csv, numerado en orden: si la pestana se cierra a mitad de camino, lo bajado ya esta a salvo. Esos archivos llevan las columnas conocidas al cerrar cada parte.`
+    : base;
 }
 
 function updateOrdersHint(container) {
@@ -474,6 +492,10 @@ async function onStart(container) {
       orderNumbers: form.mode === SOURCE_MODE.LIST ? numbers : [],
       concurrency: form.concurrency,
       partSize: form.partSize,
+      autoDownload: form.autoDownload,
+      // El perfil de columnas de los archivos que se bajan solos hay que
+      // decidirlo ANTES de correr: se toma el que esta marcado al iniciar.
+      allColumns: form.allColumns,
       sections: form.sections,
     },
   }));
@@ -518,7 +540,7 @@ async function onExport(container) {
       const matrix = buildMatrix(await readResultPart(part), { allColumns, columns });
       if (!matrix.rows.length) continue;
       const blob = new Blob([matrixToCsv(matrix)], { type: CSV_MIME });
-      await downloadBlob(blob, partFilename(stamp, part.index, total));
+      await downloadBlob(blob, exportFileName(stamp, part.index, total));
       if (total > 1) button.textContent = `Bajando ${part.index + 2}/${total}...`;
     }
   });
@@ -623,10 +645,12 @@ async function resolveColumns(index, allColumns) {
   return columns;
 }
 
-function partFilename(stamp, partIndex, total) {
-  return total > 1
-    ? `magento-ordenes-${stamp}-parte-${partIndex + 1}-de-${total}.csv`
-    : `magento-ordenes-${stamp}.csv`;
+/**
+ * Varias partes van a su propia carpeta y numeradas (`partFileName`, el mismo
+ * nombre que usa la descarga automatica); una sola parte es un archivo suelto.
+ */
+function exportFileName(stamp, partIndex, total) {
+  return total > 1 ? partFileName(stamp, partIndex, total) : `magento-ordenes-${stamp}.csv`;
 }
 
 /** Deja el boton fuera de juego mientras dura la exportacion. */

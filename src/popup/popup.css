@@ -1302,6 +1302,38 @@ mark {
 .log-panel-empty { color: var(--text-subtle); font-style: italic; }
 
 /* ────────────────────────────────────────────────
+   Zona de carga de archivos (shared/ui/file-intake.js)
+   Pegar (Ctrl+V), arrastrar o el selector. El pegado es la via que funciona
+   con la politica de DLP corporativa, asi que manda en la jerarquia visual.
+   ──────────────────────────────────────────────── */
+.fi-zone {
+  margin: var(--space-2) 0;
+  padding: 12px;
+  border: 1.5px dashed var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  text-align: center;
+  cursor: pointer;
+  transition: background .15s, border-color .15s;
+}
+.fi-zone:hover, .fi-zone:focus-visible { border-color: var(--accent); }
+.fi-zone--over { border-color: var(--accent); background: var(--accent-soft); }
+.fi-zone__titulo { margin: 0; font-size: 12px; color: var(--text-primary); }
+.fi-zone__tecla {
+  display: inline-block;
+  margin-left: 4px;
+  padding: 1px 5px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 10px;
+  color: var(--text-secondary);
+}
+.fi-zone__nota { margin: 4px 0 8px; font-size: 10.5px; line-height: 1.45; color: var(--text-muted); }
+.fi-zone__btn { margin: 0; }
+
+/* ────────────────────────────────────────────────
    Toggle de tema (header)
    ──────────────────────────────────────────────── */
 .theme-toggle {

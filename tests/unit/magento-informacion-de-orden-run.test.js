@@ -252,7 +252,7 @@ describe('captura por rango', () => {
     expect(currentRun().okCount).toBe(3);
   });
 
-  it('no pide paginas cuyas ordenes pasarian del tope de la corrida', async () => {
+  it('no recorta la corrida: pide todas las paginas y avisa cuanto va a tardar', async () => {
     let gridCalls = 0;
     globalThis.fetch = vi.fn(async (url) => {
       if (isDetail(url)) return detailResponse(orderOf(url));
@@ -264,9 +264,11 @@ describe('captura por rango', () => {
     const { tickIfActive } = await loadRun();
     await tickIfActive();
 
-    // 5000 ordenes / 200 por pagina = 25 paginas, no las 30 del total.
-    expect(gridCalls).toBe(25);
-    expect(currentRun().log.some((entry) => entry.message.includes('primeras 5000'))).toBe(true);
+    // 6000 ordenes / 200 por pagina = las 30 paginas, sin recortar en 5000.
+    expect(gridCalls).toBe(30);
+    const log = currentRun().log.map((entry) => entry.message);
+    expect(log.some((message) => message.includes('se capturan las primeras'))).toBe(false);
+    expect(log.some((message) => message.includes('6000 ordenes a ~40 fichas/min'))).toBe(true);
   });
 
   it('pagina el listado antes de entrar a las fichas', async () => {
@@ -775,6 +777,79 @@ describe('el resultado en partes (varios CSV)', () => {
     expect(index.parts).toHaveLength(1);
     expect(index.total).toBeGreaterThan(0);
     expect(records()).toHaveLength(index.total);
+  });
+});
+
+describe('la copia de respaldo (bajar cada parte al cerrarla)', () => {
+  const gridOf = (n) => gridResponse(Array.from({ length: n }, (_, i) => order(i + 1)), n);
+  const serveAll = (n) => vi.fn(async (url) => (
+    isDetail(url) ? detailResponse(orderOf(url)) : gridOf(n)));
+
+  /** El service worker de mentira: es el que ve `chrome.downloads`, no el content. */
+  function fakeDownloads(result = { ok: true }) {
+    const pedidos = [];
+    globalThis.chrome.runtime = {
+      sendMessage: async (message) => {
+        pedidos.push(message);
+        return typeof result === 'function' ? result(message) : result;
+      },
+    };
+    return pedidos;
+  }
+
+  it('baja cada parte cerrada, numerada y en la carpeta de la corrida', async () => {
+    const pedidos = fakeDownloads();
+    globalThis.fetch = serveAll(120);
+
+    seedRun(rangeConfig({ concurrency: 8, partSize: 50, autoDownload: true }));
+    const { tickIfActive } = await loadRun();
+    await tickIfActive();
+
+    expect(pedidos).toHaveLength(3);
+    expect(pedidos.every((pedido) => pedido.type === 'shared:downloads:text')).toBe(true);
+    // Numerados con ceros adelante: el orden del explorador es el de captura.
+    const nombres = pedidos.map((pedido) => pedido.filename);
+    expect(nombres[0]).toMatch(/^magento-ordenes\/[\d-]+\/parte-001\.csv$/);
+    expect(nombres[1]).toContain('parte-002.csv');
+    expect(nombres[2]).toContain('parte-003.csv');
+    expect(new Set(nombres.map((name) => name.split('/')[1])).size).toBe(1); // una sola carpeta
+
+    // Cada archivo es el CSV de SU parte: encabezado + sus filas.
+    const primera = pedidos[0].text.split('\r\n');
+    expect(primera).toHaveLength(51);
+    expect(primera[0].startsWith('\uFEFF"Orden"')).toBe(true);
+    expect(primera[1]).toContain('"1"');
+    // La ultima queda a medio llenar y se baja igual al terminar.
+    expect(pedidos[2].text.split('\r\n')).toHaveLength(21);
+
+    const log = currentRun().log.map((entry) => entry.message);
+    expect(log.filter((message) => message.startsWith('Archivo guardado:'))).toHaveLength(3);
+    expect(log.some((message) => message.includes('3 archivo(s) ya guardados'))).toBe(true);
+  });
+
+  it('una descarga fallida no corta la corrida ni pierde los datos', async () => {
+    fakeDownloads({ ok: false, error: 'sin espacio en disco' });
+    globalThis.fetch = serveAll(60);
+
+    seedRun(rangeConfig({ concurrency: 8, partSize: 50, autoDownload: true }));
+    const { tickIfActive } = await loadRun();
+    await tickIfActive();
+
+    const run = currentRun();
+    expect(run.finishReason).toBe('done');
+    expect(records()).toHaveLength(60);
+    expect(run.log.some((entry) => entry.message.includes('sin espacio en disco'))).toBe(true);
+  });
+
+  it('sin la casilla marcada no se pide ninguna descarga', async () => {
+    const pedidos = fakeDownloads();
+    globalThis.fetch = serveAll(60);
+
+    seedRun(rangeConfig({ concurrency: 8, partSize: 50 }));
+    const { tickIfActive } = await loadRun();
+    await tickIfActive();
+
+    expect(pedidos).toHaveLength(0);
   });
 });
 

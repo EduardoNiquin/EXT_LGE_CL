@@ -38,6 +38,12 @@ escribir, idempotencia ante reloads y puntos de parada explicitos.
   el material para darle a una IA si algo salio mal.
 - Adjuntos: factura (PDF) y detalle obligatorios, subidos por el usuario en el popup y emparejados por numero de factura
   en el nombre (o `Invoice URL`); distribution se ignora por ahora.
+- **Como entran los archivos (Excel y adjuntos): pegando con Ctrl+V.** Dentro de la red de LG la politica de DLP deja el
+  dialogo de "Subir archivo" sin devolver nada, asi que la via buena es copiar el archivo en el Explorador (Ctrl+C) y
+  pegarlo en el popup; el navegador entrega los bytes sin abrir ningun dialogo. Mismo truco que en el modulo
+  DevolucionesSeller del portal. La zona (`shared/ui/file-intake.js`) acepta las tres vias -pegar, arrastrar y el
+  selector de siempre- y el selector sigue ahi para los equipos sin el bloqueo. Ojo con el orden: al pasar al Explorador
+  el popup se cierra, asi que se copia primero y se pega al reabrirlo (el portapapeles sobrevive).
 - Description: `F <num> - <title> - <Mes en ingles> <Year>` a partir del `Impact Month`.
 - Redondeo al entero mas cercano; IVA = round(NET' * 0.19); Credit = NET' + IVA' (cuadre garantizado).
 
@@ -90,11 +96,13 @@ src/features/facturas/
     ├── view.js         tabs Datos | Adjuntos | Plan | Ejecutar
     ├── contexto.js     cargarContexto(): draft + adjuntos + receta + elegibilidad + plan de la factura elegida
     └── sections/       datos.js (Excel y tabla de facturas) - adjuntos.js - plan.js (previsualizacion) -
-                        ejecutar.js (requisitos, paso a paso, bitacora, Iniciar/Continuar/Terminar/Detener,
-                        aviso "te toca el Submit", progreso y registro)
+                        ejecutar.js (requisitos -la VPN es solo una nota, no bloquea-, paso a paso, bitacora,
+                        Iniciar/Continuar/Terminar/Detener, aviso "te toca el Submit", progreso y registro)
+                        datos.js y adjuntos.js cargan con la zona de pegado (Ctrl+V) de shared/ui/file-intake.js
 ```
 Fuera de la feature: `wireReloadTickLifecycle({ topFrameOnly })` en `shared/run-store` (default `true`, sin cambio de
-comportamiento), `shared/ui/format.js` (escapeHtml/formatTime/formatBytes/formatClp), wiring en `service-worker.js`,
+comportamiento), `shared/ui/format.js` (escapeHtml/formatTime/formatBytes/formatClp),
+`shared/ui/file-intake.js` (zona pegar/arrastrar/selector, estilos `.fi-zone` en `popup.css`), wiring en `service-worker.js`,
 `content/index.js` y `popup/features.js`, dependencia `xlsx` (SheetJS CE 0.20.3 desde cdn.sheetjs.com; sin eval,
 compatible con el CSP; lee los valores cacheados de las formulas). Manifest: permiso **`contentSettings`** (el SW
 permite emergentes solo en los dos hosts de GEVS, porque OAF abre el LOV con `window.open` y sin gesto Chrome lo
@@ -155,12 +163,17 @@ El popup muestra el `sesionId` y, al terminar, la carpeta.
 4. Driver hasta Save + LOV. **Hecho y verificado** con dos corridas reales (borrador borrado despues).
 5. Adjuntos (SW + `upload.js`): **verificado**. Submit: **a cargo de la persona** (2026-09-20); la extension solo lee la Reference.
 7. Bitacora (Registro de acciones) y Submit manual. **Escrito** (2026-09-20), sin probar en GEVS real.
+8. Carga por Ctrl+V en Datos y Adjuntos (`shared/ui/file-intake.js`) + la VPN como nota y no como requisito.
+   **Hecho y verificado en el popup real** (2026-09-21, Chrome for Testing): pegar un `.png` en Datos avisa que no es
+   un Excel, pegar un `.xlsx` llega al parser, pegar texto no se intercepta y en Adjuntos lo pegado se guarda en
+   IndexedDB y se borra desde la tabla. Falta probarlo con el bloqueo de DLP real en un PC de la red de LG.
 6. Cierre: docs, CLAUDE.md, memoria. Hecho.
 
 ## Como probar
 
-1. `npm run browser` (o el MCP chrome-devtools con `reload_extension`), conectar la VPN desde la extension, loguearse en
-   GEVS y abrir Complex Voucher (My Form List > Complex Voucher).
+1. `npm run browser` (o el MCP chrome-devtools con `reload_extension`), llegar a la red de LG (si el PC no esta ya en
+   ella, conectar la VPN desde la extension), loguearse en GEVS y abrir Complex Voucher (My Form List > Complex
+   Voucher).
 2. En DevTools del iframe del formulario (o `npm run browser:eval -- --page=active --expr="..."`):
    `__extLgeCl.facturas.diagnose()` debe dar `pantalla: "entry"` y `batchId: 0`; `leerPantalla()` sobre un Draft
    existente debe devolver los valores de la tabla del flujo.

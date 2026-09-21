@@ -13,11 +13,18 @@ import {
   isFilterError,
   moneyValue,
   parseJsonField,
+  slimGridItem,
   stripHtml,
 } from '../../src/features/magento/informacion_de_orden/grid-parse.js';
 import { normalizePayment } from '../../src/features/magento/informacion_de_orden/payment.js';
 import { parseOrderNumbers } from '../../src/features/magento/informacion_de_orden/parse-input.js';
-import { GATEWAY, clampConcurrency } from '../../src/features/magento/informacion_de_orden/constants.js';
+import {
+  GATEWAY,
+  clampConcurrency,
+  clampPartSize,
+  partFileName,
+  runStamp,
+} from '../../src/features/magento/informacion_de_orden/constants.js';
 import {
   addTiming,
   describeSummary,
@@ -390,6 +397,66 @@ describe('clampConcurrency', () => {
     expect(clampConcurrency('x')).toBe(6);
     expect(clampConcurrency(undefined)).toBe(6);
     expect(clampConcurrency('')).toBe(6);
+  });
+});
+
+describe('clampPartSize', () => {
+  it('encierra las ordenes por archivo en el rango permitido', () => {
+    expect(clampPartSize(500)).toBe(500);
+    expect(clampPartSize(1)).toBe(50); // por debajo del minimo
+    expect(clampPartSize(99999)).toBe(5000); // por encima del maximo
+    expect(clampPartSize('x')).toBe(500);
+    expect(clampPartSize('')).toBe(500);
+  });
+});
+
+describe('nombres de los archivos de una corrida', () => {
+  it('el sello sale de cuando empezo la corrida, sin caracteres de ruta', () => {
+    const stamp = runStamp(Date.UTC(2026, 8, 20, 14, 5, 6));
+    expect(stamp).toBe('2026-09-20-14-05-06');
+  });
+
+  it('numera con ceros adelante para que el orden alfabetico sea el de captura', () => {
+    expect(partFileName('S', 0)).toBe('magento-ordenes/S/parte-001.csv');
+    expect(partFileName('S', 8)).toBe('magento-ordenes/S/parte-009.csv');
+    expect(partFileName('S', 93, 94)).toBe('magento-ordenes/S/parte-094-de-094.csv');
+    // Lo que importa: ordenar como texto no desordena las partes.
+    const nombres = [0, 8, 9, 99].map((index) => partFileName('S', index));
+    expect([...nombres].sort()).toEqual(nombres);
+  });
+});
+
+describe('slimGridItem', () => {
+  const fila = {
+    increment_id: '123001427905',
+    entity_id: '35732098',
+    created_at: '2026-09-10 22:40:08',
+    payment_method: 'transbank_webpay',
+    additional_information: '{"raw_details_info":"{}"}',
+    marketplace_name: '',
+    // Ruido: columnas del grid que el CSV no usa y el HTML de las acciones.
+    customer_email: 'alguien@ejemplo.cl',
+    shipping_name: 'Alguien',
+    actions: {
+      view: { href: 'https://shop.lg.com/obsadm/sales/order/view/order_id/35732098/' },
+      edit: { href: 'x', label: '<span>Editar</span>' },
+    },
+  };
+
+  it('deja las claves que el CSV usa y tira el resto', () => {
+    const slim = slimGridItem(fila);
+    expect(slim.increment_id).toBe('123001427905');
+    expect(slim.additional_information).toBe(fila.additional_information);
+    expect(slim.actions).toEqual({ view: { href: fila.actions.view.href } });
+    expect(slim.customer_email).toBeUndefined();
+    expect(slim.shipping_name).toBeUndefined();
+    // Una clave ausente no se inventa como vacia (cambiaria la celda del CSV).
+    expect('local_time' in slim).toBe(false);
+  });
+
+  it('no revienta con una fila vacia ni sin acciones', () => {
+    expect(slimGridItem(null)).toEqual({});
+    expect(slimGridItem({ increment_id: '1' })).toEqual({ increment_id: '1' });
   });
 });
 

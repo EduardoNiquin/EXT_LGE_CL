@@ -3,9 +3,10 @@
 Entra a la **ficha de cada orden** (`/sales/order/view/order_id/<entity_id>`) y deja lo que hay ahí
 en un **CSV, una fila por orden**, con el número de orden como primera columna. **Read-only.**
 
-El resultado sale **en varios CSV** (uno cada `partSize` órdenes, 500 por defecto), con un botón para
-**bajarlos todos unidos** en un solo archivo. No es una comodidad: un rango amplio en una sola tanda
-se caía por memoria (ver "El resultado en partes").
+**No hay tope de órdenes:** si el rango tiene 47.000, se capturan las 47.000. El resultado sale **en
+varios CSV** (uno cada `partSize` órdenes, 500 por defecto), con un botón para **bajarlos todos
+unidos** en un solo archivo y una casilla para que **cada archivo se baje solo al cerrarse**. No es
+una comodidad: un rango amplio en una sola tanda se caía por memoria (ver "El resultado en partes").
 
 "Entrar" es pedir **por `fetch` el mismo enlace que abre el operador** y leer su HTML con
 `DOMParser`. Es el mismo origen y la misma sesión que la pestaña, así que el servidor devuelve
@@ -25,13 +26,15 @@ src/features/magento/informacion_de_orden/
 ├── constants.js     MODULE_ID, STORAGE_KEYS, SOURCE_MODE, RUN_PHASE, ORDER_STATUS, FINISH_REASON,
 │                    FILTER_ERROR_PREFIX, MAX_RANGE_DAYS(28), STORE_ID(123), PAGE_SIZE(200),
 │                    CONCURRENCY_{MIN,DEFAULT,WARN}(1/6/10) + clampConcurrency(),
-│                    PART_SIZE_{MIN,DEFAULT,MAX}(50/500/5000) + clampPartSize(), DETAIL_SECTION(+CHOICES,
+│                    PART_SIZE_{MIN,DEFAULT,MAX}(50/500/5000) + clampPartSize(), MAX_ORDERS/MAX_PAGES
+│                    (frenos de emergencia), LONG_RUN_WARN_ORDERS, ORDERS_PER_MINUTE, DOWNLOAD_FOLDER,
+│                    CSV_MIME, runStamp(), partFileName(), DETAIL_SECTION(+CHOICES,
 │                    DEFAULT_SECTIONS, expandSections), DETAIL_SELECTORS, TAB_URL_RE, SECTION_LABEL,
 │                    GRID_COLUMNS, PAYMENT_COLUMNS, ITEM_COLUMNS, META_COLUMNS, ESSENTIAL_COLUMNS,
 │                    MONEY_SECTIONS, DATE_FIELD_PREFIXES, MONEY_ITEM_COLUMNS, LABELED_ITEM_COLUMNS
 ├── grid-request.js  puro: toGridDate · buildGridParams · buildGridUrl · rangeDays · splitDateRange
 ├── grid-parse.js    puro: isFilterError · filterErrorMessage · extractGridData · extractUpdateUrl
-│                          · stripHtml · moneyValue · parseJsonField
+│                          · stripHtml · moneyValue · parseJsonField · slimGridItem
 ├── detail-parse.js  puro (sobre un Document): parseOrderDetail · parseLogFragment · parseNotesFragment
 ├── format.js        puro: normalizeMoney · moneyNumber · normalizeDateTime · splitLabeled ·
 │                          parseComment · parseJsonText · scalarCell · listCell
@@ -46,11 +49,17 @@ src/features/magento/informacion_de_orden/
 └── popup/   section.js
 ```
 
+La descarga desde el content script va por **`shared/downloads/`** (`requestDownload` + el
+`wireDownloadsBackground()` que el service worker registra).
+
 ## Las dos fases
 
 1. **Descubrir** — el grid dice qué órdenes hay en el rango (o resuelve las que pidió el usuario) y,
    sobre todo, da el **enlace** de cada una: es lo único que no se puede deducir, porque la URL lleva
    el `entity_id` interno y la key de la sesión. Sale de `actions.view.href` del propio grid.
+   De cada fila se guarda solo lo que el CSV usa (**`slimGridItem`**): sin tope de órdenes el
+   descubrimiento junta decenas de miles de filas en memoria antes de pedir la primera ficha, y la
+   fila completa del grid (~40 columnas más el HTML de sus acciones) son cientos de MB por nada.
 2. **Capturar** — se entra a la ficha de cada orden con un pool en paralelo y se lee lo que hay ahí.
 
 **El rango se parte en bloques** (`splitDateRange`: ventanas de hasta 29 dias de calendario, desde
@@ -64,9 +73,12 @@ bloque por bloque en fila india.
 
 **`chrome.storage.local["magento:informacion-de-orden:run"]`** — solo progreso:
 `{ active, claimed, phase, startedAt, finishedAt, finishReason?, error?, config:{from,to,mode,
-orderNumbers[],concurrency,sections{}}, endpoint, totalRecords, total, doneCount, okCount,
-notFoundCount, errorCount, fetchStartedAt, stats:{count,requests,retries,bytes,ttfbMs,downloadMs,
-parseMs,logsMs}, log:[...] (cap 400) }`. `fetchStartedAt` marca desde cuando se entran fichas
+orderNumbers[],concurrency,partSize,autoDownload,allColumns,sections{}}, endpoint, totalRecords,
+total, doneCount, okCount, notFoundCount, errorCount, fetchStartedAt, stats:{count,requests,retries,
+bytes,ttfbMs,downloadMs,parseMs,logsMs}, parts, savedRecords, stamp, log:[...] (cap 400) }`.
+`partSize`/`autoDownload`/`allColumns` se fijan al iniciar (el perfil de columnas de los archivos que
+se bajan solos hay que decidirlo antes de correr); `parts`/`savedRecords`/`stamp` se escriben al
+terminar. `fetchStartedAt` marca desde cuando se entran fichas
 (el ritmo no cuenta el descubrimiento) y `stats` acumula el `timing` de cada ficha (`stats.js`).
 
 **`…:result`** — el **índice** del resultado, sin registros:
@@ -339,6 +351,31 @@ guardada en el índice) y no se recalcula al exportar: si cada archivo se armara
 propias filas, dos partes con campos distintos saldrían con encabezados distintos y no se podrían
 unir. Con el perfil corto el encabezado ya es fijo (`ESSENTIAL_COLUMNS`), así que no hace falta.
 
+### La copia de respaldo (bajar cada parte al cerrarla)
+
+Casilla **Bajar cada archivo al cerrarlo**. Con 47.000 órdenes la corrida son ~20 h en una sola
+pestaña: esperar hasta el final para bajar algo es apostar a que nada la interrumpa. Con la casilla
+marcada, cada parte que se cierra se guarda como
+`Descargas/magento-ordenes/<sello de la corrida>/parte-001.csv` — numerado con ceros adelante, así el
+orden alfabético del explorador es el de captura (`partFileName`). La última parte, a medio llenar,
+se baja al terminar (o al cancelar).
+
+**Va por el service worker** (`shared/downloads/`): un content script **no ve `chrome.downloads`**, y
+en el service worker **no existe `URL.createObjectURL`** (no está en `ServiceWorkerGlobalScope`), así
+que el texto viaja en el mensaje y el SW arma una **data URL en base64** — el mismo camino que ya
+usaban `registro-acciones` y `e-promoters`. Medido el 20-09-2026 en Edge: un texto de **6,29 MB (data
+URL de 8 MB) se bajó completo**, así que una parte de 500 órdenes entra con holgura. El SW **espera a
+que el archivo esté escrito** (`downloads.onChanged` → `complete`) antes de contestar: disparar
+decenas de descargas sin esperar puede dejar archivos a medias, que es lo último que debe hacer una
+copia de respaldo. Una descarga fallida **no corta la corrida**: queda en el registro y los datos
+siguen en la extensión.
+
+**El sello de la corrida es derivado de `startedAt`** (`runStamp`), no aleatorio: el content script y
+el popup llegan al mismo nombre sin coordinarse. Los archivos automáticos llevan **las columnas
+conocidas al cerrar cada parte**; si una orden posterior trae una columna nueva, los ya bajados no la
+tienen (el "Descargar todo unido" del final sí sale homogéneo, porque ahí la unión ya es la de toda
+la corrida). Una exportación manual usa su propio sello, así que nunca pisa los archivos automáticos.
+
 **La vista previa sale de la primera parte**, no de todo el resultado: leer y matrizar miles de
 registros para mostrar 150 filas era la otra mitad del problema de memoria. *Copiar CSV* sí arma todo
 en un string (es lo que el portapapeles necesita), así que a partir de 2000 filas pregunta antes.
@@ -383,7 +420,8 @@ Rango Desde/Hasta con aviso de la division automatica en ventanas · radio **Tod
 **sin tope**, 6 por defecto, que se normaliza al salir del campo (vacio o 0 dejarian el pool sin
 carriles) y avisa a partir de `CONCURRENCY_WARN` (10) sin bloquear · **Ordenes por archivo**
 (`partSize`, 500 por defecto, entre 50 y 5000: en cuantos CSV queda el resultado y cuanto se
-reescribe de una sola vez) · las cuatro
+reescribe de una sola vez) · casilla **Bajar cada archivo al cerrarlo** (copia de respaldo; el aviso
+de arriba dice el ritmo y cuanto tardaria una corrida de 47.000 ordenes) · las cuatro
 casillas de secciones con su explicación · Iniciar/Detener/Limpiar · progreso en vivo (contadores y,
 debajo, **fichas/min, espera y descarga medias, KB por ficha, reintentos y cuanto falta**) · tabla de
 resultados con **la misma matriz que el CSV** (primeras 150 filas, leidas de la PRIMERA parte; se
@@ -406,13 +444,16 @@ parte, perfil corto / completo) · `result()` (el indice: partes, total y column
 
 ## Tests
 
-Cuatro archivos, 120 casos. Los dos que tocan DOM usan **happy-dom** (`@vitest-environment happy-dom`),
+Cuatro archivos, 129 casos. Los dos que tocan DOM usan **happy-dom** (`@vitest-environment happy-dom`),
 agregado al proyecto para esto.
 
 - `magento-informacion-de-orden.test.js` — lo puro: fecha y filtros obligatorios del grid, los tres
   `ORDER_FILTER_ERROR`, extracción del JSON y del `update_url`, `stripHtml`/`moneyValue`,
   `normalizePayment` × 6 (Webpay VN y SI, MP pasarela, MP `account_money` con `card: []`, MP
-  incrustado, marketplace, método desconocido), `parseOrderNumbers`, `clampConcurrency` y
+  incrustado, marketplace, método desconocido), `parseOrderNumbers`, `clampConcurrency`,
+  `clampPartSize`, **los nombres de archivo** (`runStamp` sin caracteres de ruta y `partFileName` con
+  ceros adelante, comprobando que ordenar como texto no desordena las partes), **`slimGridItem`**
+  (deja las claves del CSV, tira el ruido, no inventa claves ausentes) y
   `stats.js` (acumulacion inmutable, resumen con ritmo/ETA/promedios, formato de duraciones).
 - `magento-informacion-de-orden-ficha.test.js` — el parser de la ficha sobre HTML real: las dos
   tablas de cabecera por etiqueta, direcciones completas, pago y envío, totales con el nombre de la
@@ -425,7 +466,8 @@ agregado al proyecto para esto.
   el perfil corto emita `ESSENTIAL_COLUMNS` completo aunque falten datos), y **el CSV en partes**
   (que la unión acumulada orden por orden sea la misma que la del CSV armado de una vez, que las
   partes compartan encabezado y unidas den exactamente el archivo completo, y que **sin** la unión
-  cada parte saldría con sus propias columnas).
+  cada parte saldría con sus propias columnas), y que **una fila del grid recortada
+  (`slimGridItem`) da exactamente el mismo registro que la completa**, pago incluido.
 - `magento-informacion-de-orden-format.test.js` — `format.js`: la ambigüedad del punto en los
   importes (miles vs decimal, los dos separadores, el signo), las 12 de AM/PM en las fechas,
   `splitLabeled` con valores que llevan espacios, y los tres tipos de comentario del historial.
@@ -442,6 +484,10 @@ agregado al proyecto para esto.
   colarse en el registro de la orden), el espaciado del volcado, **el corte en partes** (los cortes
   exactos y cada parte en su clave, la unión de columnas en el índice, que una parte cerrada no se
   vuelva a escribir, el conteo de archivos en el registro y la parte abierta volcada al cancelar),
+  **la copia de respaldo** (una descarga por parte cerrada, numerada y en la carpeta de la corrida,
+  con el CSV de esa parte; que una descarga fallida no corte la corrida ni pierda datos; y que sin la
+  casilla no se pida ninguna), **que el rango no se recorte** (las 30 páginas de 6000 órdenes, con el
+  aviso de duración en vez del viejo "primeras 5000"),
   el modo lista con su `not-found`,
   el ciclo de vida (fuera del admin, ya reclamado, cancelar, reconcile) y **dos pestañas a la vez**
   (dos instancias del modulo sobre el mismo storage: solo una captura; y si otro token pisa el
@@ -450,14 +496,17 @@ agregado al proyecto para esto.
 ## Pendientes / limitaciones
 
 - **Una petición de ~600 KB por orden y un tunel de ~320 KB/s**: el techo es ~32 fichas/min
-  (un mes de ~5000 ordenes, unas 2,5 h). Ni mas carriles ni el servidor lo cambian. Lo unico que
+  (un mes de ~5000 ordenes, unas 2,5 h; 47.000 ordenes, unas 20 h **con la pestaña abierta todo ese
+  tiempo** — para eso está la copia de respaldo por archivo). Ni mas carriles ni el servidor lo cambian. Lo unico que
   lo cambiaria es traer los datos por otra via: la REST esta cerrada a la sesion (401), la
   exportacion CSV del grid (doc §4.9) trae las columnas del grid (enmascaradas, sin items ni
   historial), y queda por evaluar el API del VPS (`/api/magento/orders`, ya usado desde otro
   proyecto) si sus campos cubren lo que se necesita de la ficha.
-- El tope de la corrida sigue siendo `MAX_ORDERS` (5000) fichas. Ya no es un tope de memoria
-  —el resultado se guarda y se exporta por partes—, es para no dejar una corrida de horas colgada de
-  una sola pestaña.
+- **Ya no hay tope de órdenes por corrida.** `MAX_ORDERS` (200.000) y `MAX_PAGES` (1000 por bloque)
+  son frenos de emergencia para que un filtro que devuelve cualquier cosa no dispare una corrida
+  infinita, no topes de uso: pasado `LONG_RUN_WARN_ORDERS` (2000) el registro avisa cuánto va a
+  tardar en vez de recortar. Lo que sí sigue en pie es que **la corrida vive en una pestaña**: son
+  horas sin cerrarla ni navegarla.
 - **Unir las partes arma el archivo completo en el navegador**: es el único paso cuyo costo es el
   tamaño total. Si un resultado enorme no se deja unir, se bajan las partes por separado (el
   encabezado es el mismo en todas, así que se pegan sin retocar).

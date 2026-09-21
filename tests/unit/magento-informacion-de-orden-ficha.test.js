@@ -23,6 +23,7 @@ import {
   recordColumnKeys,
 } from '../../src/features/magento/informacion_de_orden/csv.js';
 import { DEFAULT_SECTIONS, ESSENTIAL_COLUMNS, expandSections } from '../../src/features/magento/informacion_de_orden/constants.js';
+import { slimGridItem } from '../../src/features/magento/informacion_de_orden/grid-parse.js';
 import { readField } from '../../src/features/magento/buscar-orden/transactions.js';
 
 const SECTIONS = expandSections(DEFAULT_SECTIONS);
@@ -536,5 +537,50 @@ describe('el CSV en partes', () => {
 
   it('el perfil corto no necesita union: las columnas son fijas', () => {
     expect(buildMatrix([uno]).headers).toEqual(buildMatrix([otro]).headers);
+  });
+});
+
+// El descubrimiento recorta las filas del grid antes de guardarlas en memoria
+// (sin tope de ordenes pueden ser decenas de miles). Lo que se recorta NO puede
+// cambiar ni una celda del CSV: esta es la prueba de eso.
+describe('la fila del grid recortada', () => {
+  const completa = {
+    increment_id: '123001427905',
+    entity_id: '35732098',
+    created_at: '2026-09-14 13:12:20',
+    local_time: '14/09/2026 09:12:20',
+    status: 'picking_for_delivery',
+    sale_channel: 'Web',
+    store_name: 'Chile Default Store View',
+    base_grand_total: '$588,565.00',
+    base_currency_code: 'CLP',
+    marketplace_name: '',
+    marketplace_order_id: '',
+    payment_method: 'transbank_webpay',
+    additional_information: JSON.stringify({
+      method_title: 'Webpay',
+      // `additional_information` es un string JSON, pero lo de adentro son
+      // objetos de verdad (ver payment.js).
+      raw_details_info: {
+        sessionId: 'S-1', authorizationCode: '123456', cardNumber: '4321',
+        installmentsNumber: 3, paymentTypeCode: 'SI', status: 'AUTHORIZED', amount: 588565, vci: 'TSY',
+      },
+    }),
+    // Lo que el recorte tira.
+    customer_email: 'alguien@ejemplo.cl',
+    shipping_address: 'Calle 123',
+    actions: { view: { href: 'https://shop.lg.com/obsadm/sales/order/view/order_id/35732098/' } },
+  };
+
+  it('da exactamente la misma fila que la fila completa', () => {
+    const detail = parse(FICHA);
+    const href = completa.actions.view.href;
+    const conTodo = buildRecord({ item: completa, detail, viewHref: href });
+    const recortada = buildRecord({ item: slimGridItem(completa), detail, viewHref: href });
+    expect(recortada).toEqual(conTodo);
+    // Y el pago sale entero, que es el dato que solo esta en el grid.
+    const { headers, rows } = buildMatrix([recortada], TODO);
+    expect(rows[0][headers.indexOf('Codigo autorizacion')]).toBe('123456');
+    expect(rows[0][headers.indexOf('Cuotas')]).toBe('3');
   });
 });

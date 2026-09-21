@@ -20,12 +20,16 @@
 import {
   CLAIM_SETTLE_MS,
   CLAIM_WATCHDOG_MS,
+  CSV_MIME,
+  DOWNLOAD_FOLDER,
   FINISH_REASON,
   HEARTBEAT_MS,
   HEARTBEAT_STALE_MS,
+  LONG_RUN_WARN_ORDERS,
   MAX_ORDERS,
   MAX_PAGES,
   MAX_RANGE_DAYS,
+  ORDERS_PER_MINUTE,
   ORDER_STATUS,
   ORDER_VIEW_PATH,
   PAGE_SIZE,
@@ -38,6 +42,8 @@ import {
   clampConcurrency,
   clampPartSize,
   expandSections,
+  partFileName,
+  runStamp,
 } from '../../constants.js';
 import { addTiming, describeSummary, formatDuration, summarizeRun } from '../../stats.js';
 import {
@@ -48,7 +54,14 @@ import {
   updateRun,
   writeResultPart,
 } from '../../state.js';
-import { buildRecord, makeMissingRecord, mergeColumns, recordColumnKeys } from '../../csv.js';
+import {
+  buildMatrix,
+  buildRecord,
+  makeMissingRecord,
+  matrixToCsv,
+  mergeColumns,
+  recordColumnKeys,
+} from '../../csv.js';
 import { adminBaseFrom, isAdminPage } from '../detector.js';
 import { fetchGridPage } from '../client.js';
 import { fetchOrderDetail } from '../order-page.js';
@@ -56,7 +69,8 @@ import { ExtError, isAbortError, toMessage } from '../../../../../shared/errors/
 import { logger } from '../../../../../shared/utils/logger.js';
 import { resolveGridEndpoint } from '../endpoint.js';
 import { sleep } from '../../../../../shared/dom/wait.js';
-import { stripHtml } from '../../grid-parse.js';
+import { requestDownload } from '../../../../../shared/downloads/index.js';
+import { slimGridItem, stripHtml } from '../../grid-parse.js';
 import { splitDateRange } from '../../grid-request.js';
 
 const log = logger('magento/informacion-de-orden');
@@ -250,7 +264,16 @@ async function runCapture({ run, signal }) {
     return;
   }
 
-  const collector = createCollector({ signal, partSize: clampPartSize(config.partSize) });
+  const collector = createCollector({
+    signal,
+    partSize: clampPartSize(config.partSize),
+    // Copia de respaldo: cada parte que se cierra se baja como CSV. En una
+    // corrida de horas es lo que hace que lo capturado no dependa de que la
+    // pestana siga viva hasta el final.
+    autoDownload: !!config.autoDownload,
+    allColumns: !!config.allColumns,
+    stamp: runStamp(run.startedAt),
+  });
   // Las que el grid no devolvio se anotan ya: salen en el CSV marcadas.
   targets.forEach((target, index) => {
     if (target.missing) collector.setSlot(index, makeMissingRecord(target.incrementId, target.missing));
@@ -277,6 +300,12 @@ async function runCapture({ run, signal }) {
     level: 'info',
     message: `${written.total} fila(s) en ${written.parts} archivo(s) CSV de hasta ${written.partSize}.`,
   });
+  if (config.autoDownload && written.downloaded) {
+    await appendLog({
+      level: 'info',
+      message: `${written.downloaded} archivo(s) ya guardados en Descargas/${DOWNLOAD_FOLDER}/${written.stamp}/.`,
+    });
+  }
 }
 
 /**
@@ -363,7 +392,9 @@ async function discoverFromRanges({ dateRanges, endpoint, concurrency, signal })
     const block = blocks[index];
     const data = await fetchGridPage({ endpoint, query: queryOf(block, 1), signal });
     block.totalRecords = data.totalRecords || 0;
-    block.pages[0] = data.items;
+    // Recortadas ya: sin tope de ordenes, el descubrimiento puede juntar decenas
+    // de miles de filas en memoria antes de entrar a la primera ficha.
+    block.pages[0] = data.items.map(slimGridItem);
     if (multi) {
       await appendLog({
         level: 'info',
@@ -383,9 +414,16 @@ async function discoverFromRanges({ dateRanges, endpoint, concurrency, signal })
     message: `${totalRecords} orden(es) en el rango (${blocks.length + rest.length} pagina(s) del listado).`,
   });
   if (totalRecords > MAX_ORDERS) {
+    // Freno de emergencia, no un tope de uso: 200.000 fichas es un filtro que
+    // devolvio cualquier cosa, no un rango que alguien quiso exportar.
     await appendLog({
       level: 'warn',
-      message: `Se capturan las primeras ${MAX_ORDERS} ordenes de ${totalRecords}.`,
+      message: `Son ${totalRecords} ordenes, mas que el freno de ${MAX_ORDERS}: se capturan las primeras ${MAX_ORDERS}.`,
+    });
+  } else if (totalRecords >= LONG_RUN_WARN_ORDERS) {
+    await appendLog({
+      level: 'warn',
+      message: `${totalRecords} ordenes a ~${ORDERS_PER_MINUTE} fichas/min: unas ${formatDuration((totalRecords / ORDERS_PER_MINUTE) * 60000)}. No cierres ni navegues esta pestana hasta que termine.`,
     });
   }
 
@@ -393,7 +431,7 @@ async function discoverFromRanges({ dateRanges, endpoint, concurrency, signal })
     const { block, page } = rest[index];
     try {
       const data = await fetchGridPage({ endpoint, query: queryOf(block, page), signal });
-      block.pages[page - 1] = data.items;
+      block.pages[page - 1] = data.items.map(slimGridItem);
     } catch (err) {
       if (isAbortError(err, signal)) return;
       // Perder una pagina del listado es perder esas ordenes, pero no la
@@ -476,7 +514,7 @@ async function discoverFromList({ config, dateRanges, endpoint, concurrency, sig
     try {
       const match = await findOrderInRanges({ endpoint, dateRanges, incrementId, signal });
       targets[index] = match
-        ? toTarget(match)
+        ? toTarget(slimGridItem(match))
         : { incrementId, missing: { status: ORDER_STATUS.NOT_FOUND } };
       if (!match && !signal.aborted) {
         await appendLog({ level: 'warn', message: `Orden ${incrementId}: no esta en el rango indicado.` });
@@ -532,8 +570,11 @@ function toTarget(item) {
  *
  * La union de columnas se acumula aca (no al exportar): todas las partes tienen
  * que salir con el mismo encabezado para poder unirse en un solo archivo.
+ *
+ * Con `autoDownload`, cada parte que se cierra se baja tambien como CSV (via el
+ * service worker: un content script no ve `chrome.downloads`).
  */
-function createCollector({ signal, partSize }) {
+function createCollector({ signal, partSize, autoDownload = false, allColumns = false, stamp = '' }) {
   const pending = new Map(); // indice global -> registro todavia en memoria
   const closed = []; // partes ya completas y escritas, en orden
   let columns = [];
@@ -543,6 +584,8 @@ function createCollector({ signal, partSize }) {
   let dirty = false;
   let openStored = 0; // registros de la parte abierta ya escritos
   let queue = Promise.resolve(); // los volcados van de a uno (ver flush)
+  const downloaded = new Set(); // partes ya intentadas (una sola vez cada una)
+  let saved = 0; // y de esas, las que quedaron escritas en disco
 
   /** Los registros de la parte abierta, en el orden del listado. */
   function openRecords() {
@@ -575,6 +618,39 @@ function createCollector({ signal, partSize }) {
 
   const totalOf = (parts) => parts.reduce((sum, part) => sum + part.count, 0);
 
+  /**
+   * Baja la parte que se acaba de cerrar, si se pidio la copia de respaldo. Una
+   * descarga fallida NO corta la corrida: los registros siguen en storage y se
+   * pueden bajar al final.
+   *
+   * El archivo sale con las columnas conocidas al cerrar ESA parte: si una orden
+   * posterior trae una columna nueva, los archivos ya bajados no la tienen. El
+   * "Descargar todo unido" del final si sale homogeneo, porque ahi la union ya
+   * es la de toda la corrida.
+   */
+  async function autoDownloadPart(part, records) {
+    if (!autoDownload || !records.length || downloaded.has(part.index)) return;
+    downloaded.add(part.index);
+    const filename = partFileName(stamp, part.index);
+    try {
+      const text = matrixToCsv(buildMatrix(records, { allColumns, columns }));
+      const result = await requestDownload({ filename, text, mime: CSV_MIME });
+      if (result.ok) saved += 1;
+      await appendLog(result.ok
+        ? { level: 'info', message: `Archivo guardado: ${filename} (${records.length} fila(s)).` }
+        : {
+          level: 'error',
+          message: `No se pudo guardar ${filename}: ${result.error}. Los datos siguen en la extension.`,
+        });
+    } catch (err) {
+      log.warn('no se pudo bajar la parte', { filename, error: toMessage(err) });
+      await appendLog({
+        level: 'error',
+        message: `No se pudo guardar ${filename}: ${toMessage(err)}. Los datos siguen en la extension.`,
+      });
+    }
+  }
+
   async function writeOpenPart(force) {
     const complete = isComplete();
     if (!dirty && !force && !complete) return;
@@ -600,6 +676,9 @@ function createCollector({ signal, partSize }) {
       });
       snapshot = { parts, total: totalOf(parts) };
       openStored = records.length;
+      // Se baja cuando la parte queda cerrada: completa, o al terminar la
+      // corrida (`force`), que es cuando se cierra la ultima a medio llenar.
+      if (complete || force) await autoDownloadPart(part, records);
       if (complete) {
         closed.push(part);
         for (let index = partStart; index < partStart + partSize; index += 1) pending.delete(index);
@@ -625,7 +704,13 @@ function createCollector({ signal, partSize }) {
     },
     /** Lo que quedo escrito, para el registro de la corrida. */
     describe() {
-      return { parts: snapshot.parts.length, total: snapshot.total, partSize };
+      return {
+        parts: snapshot.parts.length,
+        total: snapshot.total,
+        partSize,
+        stamp,
+        downloaded: saved,
+      };
     },
     /**
      * Los volcados van de a UNO: cada carril llama a flush al terminar su ficha,

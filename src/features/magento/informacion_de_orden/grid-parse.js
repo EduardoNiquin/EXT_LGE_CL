@@ -7,9 +7,44 @@
 //   2. El endpoint del grid devuelve HTML, no JSON: el JSON va embebido.
 //   3. Varios campos traen HTML dentro y los importes vienen formateados.
 
-import { FILTER_ERROR_PREFIX, GRID_ENDPOINT_RE } from './constants.js';
+import { FILTER_ERROR_PREFIX, GRID_COLUMNS, GRID_ENDPOINT_RE } from './constants.js';
 
 const SCRIPT_RE = /<script[^>]+type=["']text\/x-magento-init["'][^>]*>([\s\S]*?)<\/script>/gi;
+
+// -----------------------------------------------------------------------------
+// Recorte del item del grid
+// -----------------------------------------------------------------------------
+
+// Lo unico que el CSV usa de una fila del grid. El resto de las columnas de
+// `sales_order_grid` (y el HTML de sus acciones) no se mira nunca.
+const ITEM_KEYS = [
+  ...GRID_COLUMNS.map((column) => column.key),
+  'payment_method', // la columna "Metodo de pago"
+  'method', // fallback de payment_method en algunas filas
+  'additional_information', // de aca sale TODO el pago normalizado (payment.js)
+];
+
+/**
+ * Deja de una fila del grid solo lo que el CSV usa.
+ *
+ * No es cosmetico: el descubrimiento junta en memoria las filas de TODAS las
+ * paginas antes de entrar a las fichas, y sin tope de ordenes eso pueden ser
+ * decenas de miles. Con la fila completa (~40 columnas mas el HTML de las
+ * acciones) una corrida de 47.000 ordenes arrastraba cientos de MB por nada.
+ *
+ * `actions.view.href` se conserva porque es el enlace a la ficha, el unico dato
+ * que no se puede deducir.
+ */
+export function slimGridItem(item) {
+  const source = item || {};
+  const out = {};
+  for (const key of ITEM_KEYS) {
+    if (source[key] !== undefined) out[key] = source[key];
+  }
+  const href = source.actions?.view?.href;
+  if (href) out.actions = { view: { href } };
+  return out;
+}
 
 // -----------------------------------------------------------------------------
 // Errores de filtro (no son errores HTTP)

@@ -70,8 +70,19 @@ export const STORE_VIEW_LABEL = 'Chile Default Store View';
 export const GRID_NAMESPACE = 'sales_order_grid';
 export const PAGE_SIZE = 200; // ordenes por consulta en modo rango
 export const LIST_PAGE_SIZE = 10; // modo lista: se busca una orden puntual
-export const MAX_PAGES = 200; // tope duro de paginas de descubrimiento
-export const MAX_ORDERS = 5000; // tope duro de fichas por corrida
+// Frenos de emergencia, NO topes de uso: estan para que un filtro que devuelve
+// cualquier cosa no dispare una corrida infinita. Antes `MAX_ORDERS` valia 5000 y
+// recortaba el rango en silencio ("se capturan las primeras 5000"), que es lo que
+// no dejaba exportar un rango grande completo: ahora se capturan todas y lo que
+// hay es un aviso de cuanto va a tardar.
+export const MAX_PAGES = 1000; // paginas de descubrimiento por bloque (200k ordenes)
+export const MAX_ORDERS = 200000; // fichas por corrida
+
+// A partir de aca la corrida es de horas y el registro lo dice con la estimacion.
+export const LONG_RUN_WARN_ORDERS = 2000;
+// Medido contra el admin real por la VPN: el techo teorico son ~32 fichas/min con
+// fichas de 600 KB, y una corrida buena dio 49,8. 40 es la estimacion honesta.
+export const ORDERS_PER_MINUTE = 40;
 
 // -----------------------------------------------------------------------------
 // Concurrencia (el campo "Consultas simultaneas" del popup)
@@ -479,6 +490,35 @@ export const PREVIEW_ROWS = 150;
 // todas, por eso el indice guarda la union de columnas de la corrida).
 
 export const RESULT_VERSION = 2;
+
+// Carpeta (dentro de Descargas) donde van los CSV de una corrida que deja varios
+// archivos. Con 90 partes, tirarlos sueltos en Descargas no es una opcion.
+export const DOWNLOAD_FOLDER = 'magento-ordenes';
+export const CSV_MIME = 'text/csv;charset=utf-8';
+
+/**
+ * Sello de una corrida: identifica sus archivos y es DERIVADO de cuando empezo,
+ * asi que el content script y el popup llegan al mismo nombre sin coordinarse.
+ */
+export function runStamp(startedAt) {
+  const date = new Date(Number(startedAt) || Date.now());
+  return date.toISOString().slice(0, 19).replace(/[:T]/g, '-');
+}
+
+/**
+ * Nombre del archivo de una parte. El numero va con ceros adelante para que el
+ * orden alfabetico del explorador sea el orden de captura, y con `total` se
+ * agrega "de-N" (al terminar se sabe cuantas son; durante la corrida, no).
+ *
+ * @param {string} stamp
+ * @param {number} index  numero de parte, 0-based
+ * @param {number} [total]
+ */
+export function partFileName(stamp, index, total = 0) {
+  const number = String(index + 1).padStart(3, '0');
+  const of = total > 0 ? `-de-${String(total).padStart(3, '0')}` : '';
+  return `${DOWNLOAD_FOLDER}/${stamp}/parte-${number}${of}.csv`;
+}
 
 export const PART_SIZE_MIN = 50;
 // 500 ordenes por archivo: con fichas de ~90 columnas son unos pocos MB por

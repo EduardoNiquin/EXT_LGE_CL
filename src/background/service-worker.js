@@ -10,6 +10,7 @@ import { wireGestionBackground } from '../features/devoluciones/falabella/gestio
 import { wireRegistroAccionesBackground } from '../features/registro-acciones/background/grabador.js';
 import { wireVpnBackground } from '../features/vpn/background/conexion.js';
 import { wireFacturasBackground } from '../features/facturas/background/index.js';
+import { wireDownloadsBackground } from '../shared/downloads/background.js';
 import '../features/e-promoters/debug.js';
 import '../features/registro-acciones/debug.js';
 import '../features/vpn/debug.js';
@@ -43,6 +44,10 @@ wireVpnBackground();
 
 // Facturas: entrega los adjuntos (base64) al content script del iframe de upload de GEVS.
 wireFacturasBackground();
+
+// Descargas: baja un texto por pedido de un content script, que no ve
+// `chrome.downloads` (Informacion de Orden baja un CSV por cada tanda cerrada).
+wireDownloadsBackground();
 
 chrome.runtime.onInstalled.addListener((details) => {
   log.info('Extensión instalada/actualizada', { reason: details?.reason, version });

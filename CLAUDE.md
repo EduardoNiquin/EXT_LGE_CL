@@ -34,7 +34,11 @@ EXT_LGE_CL/
 │       ├── dev-mode/index.js  Flag modo dev (`dev-mode:enabled`, cross-context)
 │       ├── diagnostics/       Ring buffer de errores (`diagnostics:errors`) + installGlobalErrorCapture()
 │       ├── run-store/         createRunStore + createPersistedValue + wireAsync/ReloadTickLifecycle
-│       └── log-config/        Cache de scopes habilitados (`log-config:scopes`)
+│       ├── downloads/         requestDownload(content) + wireDownloadsBackground(SW): bajar un texto
+│       │                      desde donde no existe chrome.downloads (data URL, el SW espera el archivo)
+│       ├── log-config/        Cache de scopes habilitados (`log-config:scopes`)
+│       └── ui/                format.js (escapeHtml/formatTime/formatBytes/formatClp) + log-panel.js + persist.js
+│                              file-intake.js: zona de carga pegar (Ctrl+V)/arrastrar/selector (`.fi-zone`)
 ├── tests/{unit,e2e}/   keys/ (.pem, gitignored)   build/ (gitignored)
 └── eslint.config.js  vite.config.js  package.json  .mcp.json  EXTENSION_INSTALL.md
 ```
@@ -121,6 +125,10 @@ Sumar comandos: `features/<feature>/debug.js` → `register('<feature>', {...})`
 - **`webNavigation` + `unlimitedStorage` (Registro de acciones):** `onCommitted` da `transitionType`/`transitionQualifiers` (link, form_submit, server_redirect) y `onHistoryStateUpdated` es la única forma de ver los `pushState` de una SPA desde el mundo aislado; `unlimitedStorage` es para la cola de eventos en IndexedDB. No agregan aviso nuevo al usuario sobre el `<all_urls>` que ya se pide.
 - **`proxy` + `webRequest` + `webRequestAuthProvider` (VPN):** `chrome.proxy` es la unica API que puede cambiar el proxy del navegador (`declarativeNetRequest` no puede). Una extension MV3 **no puede montar un tunel** —no hay sockets TCP crudos—, solo apuntar a uno que exista: por eso el origen por defecto es un proxy HTTPS en el VPS y no hay nada que instalar en el PC. Es HTTPS y no SOCKS5 porque **Chromium no sabe autenticarse contra un proxy SOCKS** (no implementa la RFC 1929), asi que un SOCKS5 publicado seria un proxy abierto con salida a LG; con HTTP hay 407 y `Proxy-Authorization`, y `webRequestAuthProvider` es lo que deja responderlo. `webRequest` es observacional (`onErrorOccurred`), para volver a directo al instante sin esperar el minuto de la alarma. Ninguno agrega aviso nuevo al usuario sobre el `<all_urls>` que ya se pide.
 - **`contentSettings` (Facturas):** GEVS abre su ventana LOV ("Search and Select") con `window.open`, y sin un gesto del usuario Chrome la bloquea, asi que una carga automatizada nunca la veria. El SW permite emergentes SOLO en los dos hosts de GEVS (`chrome.contentSettings.popups.set`); ningun otro uso.
+- **Carga de archivos por Ctrl+V (`shared/ui/file-intake.js`, hoy en Facturas):** dentro de la red de LG la politica de
+  DLP deja el dialogo de "Subir archivo" (y el arrastre) sin devolver nada, pero copiar el archivo en el Explorador y
+  pegarlo en la pagina si entrega los bytes. Por eso toda carga nueva usa la zona compartida (pegar + arrastrar +
+  selector) y no un `<input type="file">` suelto. El mismo truco se usa en el modulo DevolucionesSeller del portal.
 - **Content script `world:"MAIN"` en `uploadResult.jsp` (Facturas):** esa pagina hace `alert("File is Uploaded.")`, un dialogo nativo que bloquea la pestana entera (content scripts incluidos) hasta que alguien lo cierra; desde el mundo aislado no se puede anular. El script solo reemplaza `window.alert` por un aviso en consola.
 - **Vite sobre Webpack:** config simple, builds rápidos (Rolldown/Vite 8). **MV3 solo:** Chrome elimina MV2 en jun 2026. **ESM en todo.**
 - **Manifests separados Chrome/Edge:** las stores requieren IDs distintos.
@@ -138,7 +146,7 @@ Scaffolding + CI completos. Pipeline release corporativo (.crx firmado + políti
 |---|---|---|---|
 | Colocar TAGs | GP1 Marketing Info Mapping: Lectura, Tag Delivery, Quitar Delivery, Tag Producto, Tag Oferta (batch por SKU) | SPA + ports | `colocar-tags.md` |
 | Magento · Buscar orden | Encontrar la orden por los datos del pago (read-only, CSV) | tick-por-reload | `magento-buscar-orden.md` |
-| Magento · Informacion de Orden | Entra a la ficha de cada orden de un rango (o de una lista) y exporta lo que hay ahi a CSV, una fila por orden (read-only). El resultado se guarda y se baja **por partes** (N ordenes por archivo) con opcion de unirlas: en una sola tanda un rango amplio se caia por memoria | storage-driven async | `magento-informacion-de-orden.md` |
+| Magento · Informacion de Orden | Entra a la ficha de cada orden de un rango (o de una lista) y exporta lo que hay ahi a CSV, una fila por orden (read-only). **Sin tope de ordenes**; el resultado se guarda y se baja **por partes** (N ordenes por archivo) con opcion de unirlas, y con copia de respaldo opcional que baja cada parte al cerrarla: en una sola tanda un rango amplio se caia por memoria | storage-driven async | `magento-informacion-de-orden.md` |
 | Magento · Crear Softbundles | Package rules en lote (padre + hijos); único módulo con acción destructiva opcional | tick-por-reload | `magento-softbundles.md` |
 | Magento · Global Shipping Rules | Recorre las rules y exporta CSV (read-only) | tick-por-reload | `magento-global-shipping-rules.md` |
 | Lead Times | Manage Address Level 2: lead times por región/comuna | tick-por-reload | `lead-times.md` |
