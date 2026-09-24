@@ -156,7 +156,7 @@ Scaffolding + CI completos. Pipeline release corporativo (.crx firmado + políti
 | LG.com | Información web (captura GraphQL/REST en PDP/PLP/PBP) + Revisar Destacados (SW + pestañas de fondo + alarms) | bridge MAIN + SW | `lgcom.md` |
 | SellerCenter Falabella | SoporteSeller — Detalle Orden desde CSV; Buscar caso (Salesforce LWC) | storage-driven async | `seller-center-falabella.md` |
 | Devoluciones | Falabella: cargar/guardar evidencias + gestión automática (apelar o levantar ticket). Walmart/Paris pendientes | SW + content multi-frame | `devoluciones.md` |
-| E-promoters | Informe ordenes: API/CSV → filtrado → CSV. Corre entero en el service worker | SW puro | `e-promoters.md` |
+| E-promoters | Informe ordenes: API/CSV → filtrado → CSV. Corre entero en el service worker. La API es el detalle de ordenes del portal OBS (repo `obs`, `GET /api/magento/detalle-ordenes`) | SW puro | `e-promoters.md` |
 | PIM | Creación de producto: verificar si un SKU existe en PIM/STG (+ Spec Assign) | storage-driven async | `pim.md` |
 | SoloTodo | Generar reporte de export en el backoffice (React/MUI) | storage-driven async | `solotodo.md` |
 | GATO | Tic-tac-toe multijugador secreto (Firebase REST); solo popup | popup-only | `gato.md` |

@@ -108,17 +108,16 @@ export const OUTPUT_COLUMNS = [
 // -----------------------------------------------------------------------------
 // API de ordenes Magento
 // -----------------------------------------------------------------------------
-// Mismas credenciales que el PowerQuery de Excel (X-Api-Token = MAGENTO_PA_TOKEN).
-// El servidor filtra por order_date (timestamp en otra zona horaria), asi que
-// pedimos una ventana mas ancha (+-1 dia) y luego filtramos exacto por
-// "Local Time" en el cliente.
+// Detalle de ordenes del portal OBS (repo `obs`, tablas `detalle_ordenes*`, canal
+// obs): ahi llega tanto lo de Power Automate como el CSV que se sube desde
+// Configuracion. La API vieja (`/api/magento/orders`) lee otra tabla que ya no se
+// llena. El server filtra por la fecha en hora de Chile (from/to inclusive, sin
+// desfase) y entrega solo las columnas de su lista blanca, con las cabeceras del
+// CSV de Magento. Mismo token que el PowerQuery de Excel (MAGENTO_PA_TOKEN).
 export const API = {
-  BASE_URL: 'https://147.93.176.66/api/magento/orders',
+  BASE_URL: 'https://147.93.176.66/api/magento/detalle-ordenes',
   TOKEN: '9f27700e322dc0dcd3413d9c16ba3f737b730897ab553729378a1014279b5e62',
   TOKEN_HEADER: 'X-Api-Token',
-  LIMIT: 50000,
-  FORMAT: 'json',          // la API entrega JSON o CSV; usamos JSON (mismas keys)
-  WINDOW_PAD_DAYS: 1,      // colchon a cada lado para el desfase de zona horaria
 };
 
 export const LOG_CAP = 400;

@@ -54,29 +54,15 @@ async function setPhase(phase, extra = {}) {
 // API
 // -----------------------------------------------------------------------------
 
-/** Suma/resta dias a una fecha YYYY-MM-DD y devuelve YYYY-MM-DD. */
-function shiftDate(ymd, days) {
-  const d = new Date(`${ymd}T00:00:00Z`);
-  d.setUTCDate(d.getUTCDate() + days);
-  return d.toISOString().slice(0, 10);
-}
-
-function buildApiUrl(from, to) {
-  // El server filtra por order_date (otra zona horaria); pedimos una ventana mas
-  // ancha (+-WINDOW_PAD_DAYS) y el filtro exacto por "Local Time" lo hace el
-  // cliente (processReport).
-  const serverFrom = from ? shiftDate(from, -API.WINDOW_PAD_DAYS) : '';
-  const serverTo = to ? shiftDate(to, API.WINDOW_PAD_DAYS) : '';
-  const params = new URLSearchParams();
-  if (serverFrom) params.set('from', serverFrom);
-  if (serverTo) params.set('to', `${serverTo}T23:59:59`);
-  params.set('format', API.FORMAT);
-  params.set('limit', String(API.LIMIT));
-  return `${API.BASE_URL}?${params.toString()}`;
-}
-
+/**
+ * Pide las ordenes del rango. El server ya filtra por la fecha en hora de Chile
+ * (ambos extremos inclusive); processReport vuelve a filtrar igual, sin costo.
+ * Devuelve tambien `hasta` (la orden mas nueva que tiene el portal) para poder
+ * explicar un rango vacio.
+ */
 async function fetchFromApi(from, to, signal) {
-  const url = buildApiUrl(from, to);
+  if (!from || !to) throw new Error('Para usar la API hay que elegir Desde y Hasta.');
+  const url = `${API.BASE_URL}?${new URLSearchParams({ from, to })}`;
   log.info('pidiendo datos a la API', { url });
   const res = await fetch(url, {
     method: 'GET',
@@ -84,11 +70,24 @@ async function fetchFromApi(from, to, signal) {
     signal,
   });
   if (!res.ok) {
-    throw new Error(`La API respondio ${res.status} ${res.statusText || ''}`.trim());
+    let detail = '';
+    try { detail = (await res.json())?.message || ''; } catch { /* sin cuerpo JSON */ }
+    throw new Error(`La API respondio ${res.status} ${res.statusText || ''}${detail ? ` — ${detail}` : ''}`.trim());
   }
   const json = await res.json();
-  const records = Array.isArray(json?.data) ? json.data : (Array.isArray(json) ? json : []);
-  return records;
+  return {
+    records: Array.isArray(json?.data) ? json.data : [],
+    hasta: typeof json?.hasta === 'string' ? json.hasta : null,
+  };
+}
+
+/** Mensaje para un rango sin filas: dice hasta cuando hay datos si se sabe. */
+function emptyReason(source, hasta, from) {
+  if (source !== SOURCE.API) return 'El archivo no tiene filas.';
+  if (hasta && hasta.slice(0, 10) < from) {
+    return `El portal tiene ordenes solo hasta el ${hasta.slice(0, 16)}. Falta subir el CSV de Magento de los dias siguientes (Configuracion → Ordenes en el portal OBS).`;
+  }
+  return 'La API no devolvio ordenes en ese rango.';
 }
 
 // -----------------------------------------------------------------------------
@@ -155,12 +154,22 @@ export async function runInforme(payload) {
 
     // 1. Obtener registros (API o CSV cargado).
     let records;
+    let hasta = null;
     if (source === SOURCE.API) {
       await setPhase(PHASE.DOWNLOADING);
       await appendLog({ level: 'info', message: PHASE_LABEL[PHASE.DOWNLOADING] });
-      records = await fetchFromApi(from, to, controller.signal);
+      ({ records, hasta } = await fetchFromApi(from, to, controller.signal));
       throwIfCancelled();
-      await appendLog({ level: 'info', message: `Descargadas ${records.length} fila(s) de la API` });
+      await appendLog({
+        level: 'info',
+        message: `Descargadas ${records.length} fila(s) de la API${hasta ? ` (el portal tiene datos hasta ${hasta.slice(0, 16)})` : ''}`,
+      });
+      if (records.length && hasta && hasta.slice(0, 10) < to) {
+        await appendLog({
+          level: 'warn',
+          message: `Rango incompleto: el portal tiene ordenes solo hasta el ${hasta.slice(0, 16)}; faltan las posteriores.`,
+        });
+      }
     } else {
       await setPhase(PHASE.PARSING);
       await appendLog({ level: 'info', message: PHASE_LABEL[PHASE.PARSING] });
@@ -172,7 +181,7 @@ export async function runInforme(payload) {
     }
 
     if (!records.length) {
-      throw new Error('El origen no devolvio filas. Revisa el rango de fechas o el archivo.');
+      throw new Error(emptyReason(source, hasta, from));
     }
 
     // 2. Filtros + dedupe (pipeline puro).
