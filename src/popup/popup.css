@@ -2127,12 +2127,60 @@ mark {
 
 .bn-play { padding: 10px 12px; font-size: 13px; }
 
-/* --- Partida --- */
-.bn-game { gap: 10px; }
-.bn-topbar {
-  display: flex; align-items: center; justify-content: space-between;
-  gap: 8px;
+/* --- Partida (escena 3D + HUD en HTML encima) --- */
+/* Durante la partida el popup se ensancha al maximo que permite Chrome; en el
+   side panel ya ocupa todo el ancho y alto. */
+body.bn-wide:not([data-context="sidepanel"]) { width: 800px; height: 600px; max-height: 600px; }
+body.bn-wide #app { overflow: hidden; }
+
+.bn-game { gap: 0; padding: 0; }
+.bn-stage {
+  position: relative;
+  height: calc(100vh - 64px);
+  min-height: 320px;
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: #0b3f63;
+  container-type: size;
+  container-name: bn-stage;
 }
+.bn-canvas { position: absolute; inset: 0; }
+.bn-canvas-el { display: block; width: 100%; height: 100%; touch-action: none; }
+.bn-stage-msg {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; gap: 8px;
+  color: #d6ecff; font-size: 12px; font-weight: 600;
+}
+
+/* Paneles HUD: vidrio oscuro sobre el agua. Las variables se redefinen aqui
+   para que los componentes de siempre (bandeja, botones, textos) se lean bien. */
+.bn-hud {
+  position: absolute; inset: 0; pointer-events: none;
+  display: flex; justify-content: space-between; align-items: flex-start;
+  padding: 10px; gap: 10px;
+}
+.bn-panel {
+  --text: #f3f8fc; --text-muted: rgba(230, 242, 252, 0.82); --text-subtle: rgba(214, 232, 248, 0.6);
+  --surface-2: rgba(255, 255, 255, 0.08); --surface-3: rgba(255, 255, 255, 0.12);
+  --border: rgba(255, 255, 255, 0.16);
+  pointer-events: auto;
+  display: flex; flex-direction: column; gap: 8px;
+  width: 132px; padding: 10px;
+  border-radius: var(--radius);
+  background: rgba(6, 28, 44, 0.66);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(6px);
+  color: var(--text);
+}
+.bn-panel:empty { display: none; }
+.bn-panel--right { align-items: stretch; }
+
+/* Escenario angosto (side panel vertical): paneles arriba y abajo. */
+@container bn-stage (max-aspect-ratio: 6 / 5) {
+  .bn-hud { flex-direction: column; justify-content: space-between; align-items: stretch; }
+  .bn-panel { width: auto; flex-direction: row; flex-wrap: wrap; align-items: center; }
+  .bn-panel .bn-turn, .bn-panel .bn-event { flex: 1 1 100%; }
+}
+
 .bn-rival { display: flex; flex-direction: column; min-width: 0; }
 .bn-rival-label {
   font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em;
@@ -2143,99 +2191,23 @@ mark {
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .bn-timer {
-  font-size: 22px; font-weight: 800; font-variant-numeric: tabular-nums;
-  min-width: 44px; text-align: center; padding: 4px 10px;
+  font-size: 26px; font-weight: 800; font-variant-numeric: tabular-nums;
+  text-align: center; padding: 4px 10px;
   border-radius: var(--radius-sm); background: var(--surface-3);
   color: var(--text);
 }
-.bn-timer--low { background: var(--danger-bg); color: var(--danger); }
+.bn-timer--low { background: rgba(229, 57, 53, 0.35); color: #ffcdd2; }
 
 .bn-turn {
-  text-align: center; font-size: 12px; font-weight: 600;
+  font-size: 12px; font-weight: 600; line-height: 1.35;
   color: var(--text-muted); min-height: 16px;
 }
-.bn-turn--you { color: var(--accent); }
+.bn-turn--you { color: #ffd166; }
 
-/* --- Batalla Naval: tablero 16x16 --- */
-.bn-board {
-  display: grid;
-  grid-template-columns: repeat(16, 1fr);
-  grid-template-rows: repeat(16, 1fr);
-  gap: 1px;
-  width: 100%;
-  aspect-ratio: 1 / 1;
-  padding: 3px;
-  border-radius: 10px;
-  background: linear-gradient(135deg, #0e4f78, #0a3a5c);
-}
-.bn-cell {
-  position: relative;
-  border: none;
-  border-radius: 2px;
-  padding: 0;
-  background: linear-gradient(135deg, #3ba7dd, #2b8ec4);
-  font-size: 9px; line-height: 1;
-  display: flex; align-items: center; justify-content: center;
-  cursor: pointer; font-family: inherit; color: #eaf6ff;
-  animation: bn-sea 5s ease-in-out infinite;
-  transition: filter var(--transition), transform var(--transition);
-}
-/* Marea suave: desfases por celda para que el mar "se mueva" levemente. */
-@keyframes bn-sea {
-  0%, 100% { filter: brightness(1); }
-  50%      { filter: brightness(1.13) saturate(1.08); }
-}
-.bn-cell:nth-child(4n+1) { animation-delay: -1.2s; }
-.bn-cell:nth-child(4n+2) { animation-delay: -2.6s; }
-.bn-cell:nth-child(4n+3) { animation-delay: -3.9s; }
-.bn-cell:not(:disabled):hover { filter: brightness(1.3); transform: scale(1.12); z-index: 1; }
-.bn-cell:disabled { cursor: default; }
-
-/* Barcos propios (grises) y del rival (revelados: cafe oscuro). */
-.bn-cell--ship {
-  background: linear-gradient(135deg, #78909c, #546e7a);
-  animation: none;
-}
-.bn-cell--ship-enemy {
-  background: linear-gradient(135deg, #8d6e63, #5d4037);
-  animation: none;
-}
-.bn-cell--bomb { font-size: 10px; }
-.bn-cell--hit {
-  background: linear-gradient(135deg, #ef5350, #c62828);
-  color: #fff;
-  animation: none;
-}
-.bn-cell--sunk {
-  background: linear-gradient(135deg, #4e342e, #212121);
-  color: #ffab91;
-  animation: none;
-}
-.bn-cell--boom {
-  background: linear-gradient(135deg, #ff9800, #e65100);
-  animation: none;
-  font-size: 10px;
-}
-.bn-cell--miss { color: rgba(234, 246, 255, 0.85); font-size: 12px; }
-
-/* Pieza "en mano" (ghost translucido): gris si cabe, rojo si no. */
-.bn-cell--ghost-ok {
-  background: linear-gradient(135deg, #78909c, #546e7a);
-  opacity: 0.55;
-  animation: none;
-}
-.bn-cell--ghost-bad {
-  background: linear-gradient(135deg, #ef5350, #b71c1c);
-  opacity: 0.55;
-  animation: none;
-}
-
-/* Flash de feedback (lo que paso en el turno del rival / tu disparo). */
-.bn-cell--flash { animation: bn-flash 1.6s ease-out 1; z-index: 1; }
-@keyframes bn-flash {
-  0%   { box-shadow: 0 0 0 3px #ffee58, 0 0 12px 4px rgba(255, 238, 88, 0.9); transform: scale(1.25); }
-  60%  { box-shadow: 0 0 0 2px rgba(255, 238, 88, 0.6), 0 0 8px 2px rgba(255, 238, 88, 0.4); }
-  100% { box-shadow: none; transform: scale(1); }
+/* Grilla accesible: invisible, solo para teclado y lector de pantalla. */
+.bn-a11y {
+  position: absolute; width: 1px; height: 1px; overflow: hidden;
+  clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap;
 }
 
 /* Barra de piezas (despliegue): barcos a la izquierda, bombas a la derecha. */
@@ -2295,6 +2267,43 @@ mark {
 }
 .bn-result-msg { font-size: 16px; font-weight: 800; color: var(--text); }
 .bn-actions { display: flex; gap: 8px; width: 100%; }
+.bn-actions--stack { flex-direction: column; }
+
+/* Dentro de los paneles del HUD. */
+.bn-panel .bn-tray { flex-direction: column; align-items: stretch; background: transparent; border: none; padding: 0; }
+.bn-panel .bn-tray-ships { flex-direction: column; align-items: flex-start; gap: 4px; }
+.bn-panel .bn-tray-bombs { justify-content: flex-start; }
+.bn-panel .bn-tray-ships { align-items: stretch; }
+.bn-piece--ship {
+  flex-direction: column; align-items: flex-start; gap: 0;
+  width: 100%; padding: 4px 6px 3px;
+  border: 1px solid rgba(255, 255, 255, 0.1); background: rgba(255, 255, 255, 0.04);
+}
+.bn-piece--ship .bn-ship-icon { display: block; max-width: 100%; height: auto; }
+.bn-piece-label {
+  font-size: 10px; font-weight: 600; color: var(--text-muted); line-height: 1.1;
+}
+.bn-piece-label b { color: var(--text); }
+.bn-piece--ship:not(:disabled):hover { background: rgba(255, 255, 255, 0.1); }
+.bn-piece--sel.bn-piece--ship { opacity: 1; border-color: #ffd166; background: rgba(255, 209, 102, 0.16); box-shadow: 0 0 0 1px #ffd166 inset; }
+.bn-piece--placed.bn-piece--ship { opacity: 0.28; }
+.bn-piece--bomb { display: flex; align-items: center; justify-content: center; }
+.bn-mine-icon { display: block; }
+.bn-panel .bn-legend { justify-content: flex-start; }
+.bn-panel .bn-score { flex-direction: column; align-items: flex-start; gap: 2px; }
+.bn-panel .bn-score-sep { display: none; }
+.bn-panel .bn-event { text-align: left; background: var(--surface-3); color: var(--text); }
+.bn-panel .bn-event--enemy { background: rgba(229, 57, 53, 0.3); color: #ffe3e0; }
+
+/* Resultado: cartel centrado sobre la escena. */
+.bn-stage > .bn-result {
+  --text: #f3f8fc; --text-muted: rgba(230, 242, 252, 0.82);
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  width: min(320px, 84%); z-index: 2;
+  background: rgba(6, 28, 44, 0.86); border: 1px solid rgba(255, 255, 255, 0.14);
+  backdrop-filter: blur(6px); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+}
+.bn-stage > .bn-result[hidden] { display: none; }
 
 .bn-hero--sm { padding: 2px 0; }
 .bn-hero--sm span { font-size: 12px; letter-spacing: 0.1em; }
@@ -2679,3 +2688,48 @@ mark {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.25; }
 }
+
+/* Batalla Naval: aviso "R para girar" (centro del escenario; luego pastilla arriba). */
+.bn-rotate-hint {
+  position: absolute; left: 50%; top: 12px; z-index: 3;
+  transform: translate(-50%, 0) scale(1);
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 8px 6px 12px; border-radius: 999px;
+  background: rgba(6, 28, 44, 0.8); border: 1px solid rgba(255, 209, 102, 0.45);
+  backdrop-filter: blur(6px); box-shadow: 0 6px 18px rgba(0, 0, 0, 0.3);
+  color: #f3f8fc; font-size: 12px; font-weight: 600; white-space: nowrap;
+  pointer-events: none;
+  transition: top 280ms ease, transform 280ms ease, padding 280ms ease, font-size 280ms ease;
+}
+.bn-rotate-hint[hidden] { display: none; }
+.bn-rotate-hint--big {
+  top: 50%; transform: translate(-50%, -50%) scale(1);
+  flex-direction: column; gap: 6px; padding: 16px 22px; border-radius: var(--radius);
+  font-size: 15px;
+}
+.bn-rotate-hint kbd {
+  display: inline-block; min-width: 1.6em; padding: 1px 6px; margin: 0 2px;
+  border-radius: 5px; border: 1px solid rgba(255, 255, 255, 0.35); border-bottom-width: 3px;
+  background: rgba(255, 255, 255, 0.12); color: #ffd166; font: inherit; font-weight: 800; text-align: center;
+}
+.bn-rotate-dir {
+  font-size: 10px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase;
+  padding: 2px 8px; border-radius: 999px; background: rgba(255, 209, 102, 0.18); color: #ffd166;
+}
+.bn-rotate-btn {
+  pointer-events: auto; cursor: pointer;
+  padding: 3px 10px; border-radius: 999px; border: 1px solid rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.1); color: #f3f8fc; font: inherit; font-size: 11px; font-weight: 700;
+}
+.bn-rotate-btn:hover { background: rgba(255, 255, 255, 0.2); }
+
+/* Batalla Naval: rendicion (dos pasos). */
+.bn-surrender { display: flex; flex-direction: column; gap: 6px; margin-top: 2px; }
+.bn-surrender:empty { display: none; }
+.bn-surrender-btn { width: 100%; font-size: 12px; }
+.bn-surrender-q { font-size: 11px; font-weight: 600; color: #ffd7d3; line-height: 1.3; }
+.bn-surrender .bn-actions { gap: 6px; }
+.bn-surrender .bn-actions .ct-btn { flex: 1; padding: 6px 4px; font-size: 11px; }
+.bn-surrender-yes { background: #c62828; color: #fff; border-color: #c62828; }
+.bn-surrender-yes:hover { background: #b71c1c; }
+.bn-panel .ct-btn:disabled { opacity: 0.45; cursor: default; filter: saturate(0.6); }

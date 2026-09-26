@@ -68,7 +68,8 @@
       "mcp__chrome-devtools__wait_for",
       "mcp__chrome-devtools__type_text",
       "mcp__chrome-devtools__hover",
-      "mcp__chrome-devtools__fill_form"
+      "mcp__chrome-devtools__fill_form",
+      "mcp__blender__get_addon_status"
     ]
   },
   "enabledMcpjsonServers": [

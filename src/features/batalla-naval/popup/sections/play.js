@@ -36,15 +36,28 @@ import {
   listSearchers,
   pollTicket,
   challengePlayer,
-  getGame,
-  submitSetup,
-  startBattle,
-  fireShot,
-  passTurn,
-  requestRematch,
-  markLeft,
+  getGame as netGetGame,
+  submitSetup as netSubmitSetup,
+  startBattle as netStartBattle,
+  fireShot as netFireShot,
+  passTurn as netPassTurn,
+  requestRematch as netRequestRematch,
+  markLeft as netMarkLeft,
+  surrender as netSurrender,
   getLeaderboard,
 } from '../../net.js';
+import {
+  makeAiGame,
+  submitHumanSetup,
+  applyShot as aiApplyShot,
+  passTurn as aiPassTurn,
+  rematch as aiRematch,
+  surrender as aiSurrender,
+  aiMove,
+  AI_ROLE,
+  AI_NAME,
+  AI_THINK_MS,
+} from '../../ai-game.js';
 import {
   otherRole,
   cellKey,
@@ -52,9 +65,10 @@ import {
   clampShip,
   canPlaceShip,
   canPlaceBomb,
-  isSunk,
   coordLabel,
 } from '../../game.js';
+import { placementVisualState, battleVisualState } from '../scene/visual-state.js';
+import { shipIconSvg, shipName, mineIconSvg } from '../icons.js';
 import { logger } from '../../../../shared/utils/logger.js';
 
 const log = logger('batalla-naval');
@@ -69,6 +83,9 @@ function teardown() {
   clearInterval(ctrl.pollTimer);
   clearInterval(ctrl.tickTimer);
   clearInterval(ctrl.presenceTimer);
+  clearTimeout(ctrl.aiTimer);
+  clearTimeout(ctrl.hintTimer);
+  releaseBoard();
   if (ctrl.keyHandler) document.removeEventListener('keydown', ctrl.keyHandler);
   if (ctrl.uid) {
     clearPresence(ctrl.uid);
@@ -112,15 +129,16 @@ export async function render(container) {
     presenceTimer: null,
     lastPassDeadline: 0,
     rematchPending: false,
+    aiTimer: null,      // jugada pendiente de la IA (partida local)
+    board: null,        // tablero 3D (scene/board3d.js), vive mientras dura la partida
+    boardPromise: null,
   };
 
   // Rotar con R el barco seleccionado durante el despliegue.
   ctrl.keyHandler = (e) => {
-    if (e.key !== 'r' && e.key !== 'R') return;
-    const p = ctrl?.place;
-    if (ctrl?.shell !== 'placing' || !p || p.submitted || p.sel?.kind !== 'ship') return;
-    p.sel.dir = p.sel.dir === 'h' ? 'v' : 'h';
-    updatePlacementBoard();
+    if (e.code !== 'KeyR' && e.key !== 'r' && e.key !== 'R') return;
+    if (e.ctrlKey || e.metaKey || e.altKey || e.target?.closest?.('input, textarea')) return;
+    if (rotateSelected()) e.preventDefault();
   };
   document.addEventListener('keydown', ctrl.keyHandler);
 
@@ -148,10 +166,13 @@ async function persist(patch) {
 function clearTimers() {
   clearInterval(ctrl.pollTimer);
   clearInterval(ctrl.tickTimer);
+  clearTimeout(ctrl.aiTimer);
+  ctrl.aiTimer = null;
 }
 
 async function route() {
   clearTimers();
+  releaseBoard();
   ctrl.shell = null;
   switch (ctrl.run.phase) {
     case PHASE.SEARCHING:   return renderSearching();
@@ -161,6 +182,58 @@ async function route() {
     case PHASE.FINISHED:    return reconnectGame();
     default:                return renderIdle();
   }
+}
+
+// --- Backend de la partida: Firebase o local (IA) ------------------------------------
+// Misma interfaz para ambos; la partida local vive en run.ai (chrome.storage) y
+// cada operacion la reemplaza por la version nueva que devuelve ai-game.js.
+
+function isAiGame() {
+  return ctrl?.run?.mode === 'ai';
+}
+
+async function saveAi(game) {
+  await persist({ ai: game });
+  return game;
+}
+
+const localApi = {
+  getGame: async () => ctrl.run.ai || null,
+  submitSetup: async (_id, _role, ships, bombs) => saveAi(submitHumanSetup(ctrl.run.ai, ships, bombs)),
+  startBattle: async () => ctrl.run.ai,
+  fireShot: async (_id, role, r, c) => saveAi(aiApplyShot(ctrl.run.ai, role, r, c)),
+  passTurn: async (_id, role) => saveAi(aiPassTurn(ctrl.run.ai, role)),
+  requestRematch: async () => saveAi(aiRematch(ctrl.run.ai)),
+  markLeft: async () => {},
+  surrender: async (_id, role) => saveAi(aiSurrender(ctrl.run.ai, role)),
+};
+
+const netApi = {
+  getGame: netGetGame,
+  submitSetup: netSubmitSetup,
+  startBattle: netStartBattle,
+  fireShot: netFireShot,
+  passTurn: netPassTurn,
+  requestRematch: netRequestRematch,
+  markLeft: netMarkLeft,
+  surrender: netSurrender,
+};
+
+function api() {
+  return isAiGame() ? localApi : netApi;
+}
+
+/** Si le toca a la IA, agenda su disparo (una sola jugada pendiente a la vez). */
+function scheduleAiMove() {
+  const g = ctrl.game;
+  if (!isAiGame() || ctrl.aiTimer || g?.status !== GAME_STATUS.PLAYING || g.turn !== AI_ROLE) return;
+  const owner = ctrl;
+  ctrl.aiTimer = setTimeout(async () => {
+    owner.aiTimer = null;
+    if (ctrl !== owner || !aliveAndAttached() || !isAiGame()) return;
+    ctrl.game = await saveAi(aiMove(ctrl.run.ai));
+    renderByStatus();
+  }, AI_THINK_MS);
 }
 
 // --- IDLE: nombre + jugadores activos + jugar / ranking ------------------------
@@ -178,6 +251,7 @@ async function renderIdle() {
       <p class="bn-presence" id="bn-presence">Buscando jugadores activos…</p>
       <button id="bn-play" class="ct-btn ct-btn--primary bn-play">Buscar partida</button>
       <div class="bn-actions">
+        <button id="bn-ai" class="ct-btn ct-btn--ghost">Jugar contra la IA</button>
         <button id="bn-rank" class="ct-btn ct-btn--ghost">Clasificaciones</button>
       </div>
     </div>
@@ -218,7 +292,25 @@ async function renderIdle() {
     const name = requireName();
     if (!name) return;
     await setDraft({ name });
-    await persist({ name, phase: PHASE.SEARCHING, gameId: null, role: null, opponentName: null });
+    await persist({ name, phase: PHASE.SEARCHING, mode: null, ai: null, gameId: null, role: null, opponentName: null });
+    await route();
+  });
+
+  // Partida local contra la IA: no pasa por matchmaking ni puntua en el ranking.
+  container.querySelector('#bn-ai').addEventListener('click', async () => {
+    const name = requireName();
+    if (!name) return;
+    await setDraft({ name });
+    await persist({
+      name,
+      phase: PHASE.PLAYING,
+      mode: 'ai',
+      gameId: 'ai',
+      role: 'P1',
+      opponentName: AI_NAME,
+      ai: makeAiGame(name),
+      place: null,
+    });
     await route();
   });
 
@@ -432,7 +524,7 @@ async function reconnectGame() {
     await persist({ phase: PHASE.IDLE });
     return route();
   }
-  ctrl.game = await getGame(gameId).catch(() => null);
+  ctrl.game = await api().getGame(gameId).catch(() => null);
   if (!ctrl.game) {
     await persist({ phase: PHASE.IDLE, gameId: null, role: null });
     return route();
@@ -440,10 +532,11 @@ async function reconnectGame() {
   ctrl.shell = null;
   renderByStatus();
 
-  ctrl.pollTimer = setInterval(async () => {
+  // Partida local: no hay nada que sondear (la IA juega via scheduleAiMove).
+  if (!isAiGame()) ctrl.pollTimer = setInterval(async () => {
     if (!aliveAndAttached()) return teardown();
     try {
-      const g = await getGame(gameId);
+      const g = await api().getGame(gameId);
       if (!g) return;
       ctrl.game = g;
       renderByStatus();
@@ -473,7 +566,7 @@ function renderByStatus() {
     const setup = g.setup || {};
     if (setup[ROLE.P1]?.ready && setup[ROLE.P2]?.ready && !ctrl.startPending) {
       ctrl.startPending = true;
-      startBattle(ctrl.run.gameId)
+      api().startBattle(ctrl.run.gameId)
         .then((ng) => {
           if (!aliveAndAttached()) return;
           if (ng) { ctrl.game = ng; renderByStatus(); }
@@ -489,9 +582,13 @@ function renderByStatus() {
     renderBattleShell();
   }
   applyBattleState();
+  scheduleAiMove();
 }
 
-/** Grilla 16x16 de botones (compartida por despliegue y batalla). */
+/**
+ * Grilla 16x16 de botones invisibles (solo teclado / lector de pantalla): el
+ * tablero visible es el canvas 3D, que no es accesible por si mismo.
+ */
 function boardCellsHtml() {
   let html = '';
   for (let r = 0; r < GRID; r++) {
@@ -500,6 +597,116 @@ function boardCellsHtml() {
     }
   }
   return html;
+}
+
+// --- Tablero 3D -------------------------------------------------------------------
+// Three.js y los modelos se cargan con import() dinamico solo al entrar a la
+// partida (el inicio del popup no los paga). El tablero se crea una vez por
+// partida y su canvas se re-monta al pasar de despliegue a batalla.
+
+/** Monta el tablero 3D en `stageEl` (lo crea si hace falta). */
+async function mountBoard(stageEl) {
+  document.body.classList.add('bn-wide');
+  const owner = ctrl;
+  if (!owner.boardPromise) {
+    owner.boardPromise = import('../scene/board3d.js')
+      .then(({ createBoard3D }) => createBoard3D({
+        onCellClick: (r, c) => onBoardClick(r, c),
+        onCellHover: (cell) => onBoardHover(cell),
+      }))
+      .then((board) => {
+        if (ctrl !== owner || !owner.alive || owner.boardPromise === null) {
+          board.dispose();
+          return null;
+        }
+        owner.board = board;
+        return board;
+      });
+  }
+  let board;
+  try {
+    board = await owner.boardPromise;
+  } catch (err) {
+    log.error('No se pudo cargar el tablero 3D', err);
+    owner.boardPromise = null;
+    if (stageEl.isConnected) stageEl.innerHTML = '<p class="bn-stage-msg">No se pudo cargar el tablero 3D.</p>';
+    return null;
+  }
+  if (!board || ctrl !== owner || !stageEl.isConnected) return null;
+  stageEl.querySelector('.bn-stage-msg')?.remove();
+  board.attach(stageEl);
+  return board;
+}
+
+function releaseBoard() {
+  if (!ctrl) return;
+  ctrl.board?.dispose();
+  ctrl.board = null;
+  ctrl.boardPromise = null;
+  document.body.classList.remove('bn-wide');
+}
+
+/** Gira el barco en mano (R o el boton del aviso). Devuelve true si giro. */
+function rotateSelected() {
+  const p = ctrl?.place;
+  if (ctrl?.shell !== 'placing' || !p || p.submitted || p.sel?.kind !== 'ship') return false;
+  p.sel.dir = p.sel.dir === 'h' ? 'v' : 'h';
+  updatePlacementBoard();
+  showRotateHint(p.sel.dir === 'h' ? 'Horizontal' : 'Vertical');
+  return true;
+}
+
+/**
+ * Aviso en el centro del escenario mientras hay un barco en mano: recuerda que
+ * se gira con R. Al tomar el barco se muestra grande unos segundos y despues
+ * queda como una pastilla discreta (para no tapar donde se esta apuntando).
+ */
+function showRotateHint(flash = null) {
+  const el = ctrl?.container.querySelector('#bn-rotate-hint');
+  if (!el) return;
+  const p = ctrl.place;
+  const holding = !!p && !p.submitted && p.sel?.kind === 'ship';
+  el.hidden = !holding;
+  if (!holding) {
+    ctrl.hintSelKey = null;
+    return;
+  }
+  const dir = p.sel.dir === 'h' ? 'Horizontal' : 'Vertical';
+  el.querySelector('.bn-rotate-dir').textContent = flash || dir;
+  const key = p.sel.id;
+  if (ctrl.hintSelKey !== key || flash) {
+    ctrl.hintSelKey = key;
+    el.classList.add('bn-rotate-hint--big');
+    clearTimeout(ctrl.hintTimer);
+    ctrl.hintTimer = setTimeout(() => el.classList.remove('bn-rotate-hint--big'), flash ? 900 : 2600);
+  }
+}
+
+function onBoardClick(r, c) {
+  if (ctrl?.shell === 'placing') onPlaceCellClick(r, c);
+  else if (ctrl?.shell === 'battle') onFireClick(r, c);
+}
+
+function onBoardHover(cell) {
+  const p = ctrl?.place;
+  if (ctrl?.shell !== 'placing' || !p) return;
+  p.hover = cell && p.sel ? cell : null;
+  updatePlacementBoard();
+}
+
+/** HTML comun del escenario: canvas 3D + paneles HUD encima + grilla accesible. */
+function stageHtml(left, right, extra = '') {
+  return `
+    <div class="bn-stage" id="bn-stage">
+      <div class="bn-canvas" id="bn-canvas"><p class="bn-stage-msg"><span class="ct-spinner ct-spinner--inline"></span> Preparando el mar…</p></div>
+      <div class="bn-hud">
+        <div class="bn-panel bn-panel--left">${left}</div>
+        <div class="bn-panel bn-panel--right">${right}</div>
+      </div>
+      ${extra}
+    </div>
+    <div class="bn-a11y" id="bn-board" aria-label="Tablero">${boardCellsHtml()}</div>
+  `;
 }
 
 // --- Despliegue: colocar barcos y bombas ----------------------------------------
@@ -538,20 +745,26 @@ function renderPlacementShell() {
   const { container } = ctrl;
   container.innerHTML = `
     <div class="bn-view bn-game">
-      <div class="bn-topbar">
+      ${stageHtml(`
         <div class="bn-rival">
           <span class="bn-rival-label">Rival</span>
           <span class="bn-rival-name">${esc(ctrl.run.opponentName || 'Rival')}</span>
         </div>
         <span class="bn-phase-tag">Despliegue</span>
-      </div>
-      <p class="bn-turn" id="bn-place-hint"></p>
-      <div class="bn-tray" id="bn-tray"></div>
-      <div class="bn-board" id="bn-board">${boardCellsHtml()}</div>
-      <div class="bn-actions">
-        <button id="bn-ready" class="ct-btn ct-btn--primary" disabled>¡Listo!</button>
-        <button id="bn-exit" class="ct-btn ct-btn--ghost">Salir</button>
-      </div>
+        <p class="bn-turn" id="bn-place-hint"></p>
+      `, `
+        <div class="bn-tray" id="bn-tray"></div>
+        <div class="bn-actions bn-actions--stack">
+          <button id="bn-ready" class="ct-btn ct-btn--primary" disabled>¡Listo!</button>
+          <button id="bn-exit" class="ct-btn ct-btn--ghost">Salir</button>
+        </div>
+      `, `
+        <div class="bn-rotate-hint" id="bn-rotate-hint" hidden role="status">
+          <span class="bn-rotate-text">Pulsa <kbd>R</kbd> para girar el barco</span>
+          <span class="bn-rotate-dir">Horizontal</span>
+          <button type="button" class="bn-rotate-btn" id="bn-rotate-btn" title="Girar (R)">↻ Girar</button>
+        </div>
+      `)}
     </div>
   `;
 
@@ -561,27 +774,26 @@ function renderPlacementShell() {
     onTrayClick(piece);
   });
 
-  const board = container.querySelector('#bn-board');
-  board.addEventListener('click', (e) => {
+  // Grilla accesible (teclado): mismo efecto que el clic/hover en el canvas.
+  const cells = container.querySelector('#bn-board');
+  cells.addEventListener('click', (e) => {
     const cell = e.target.closest('.bn-cell');
-    if (!cell) return;
-    onPlaceCellClick(Number(cell.dataset.r), Number(cell.dataset.c));
+    if (cell) onPlaceCellClick(Number(cell.dataset.r), Number(cell.dataset.c));
   });
-  // El "mouse se vuelve la pieza": preview translucido siguiendo el hover.
-  board.addEventListener('mouseover', (e) => {
+  cells.addEventListener('focusin', (e) => {
     const cell = e.target.closest('.bn-cell');
-    if (!cell || !ctrl.place?.sel) return;
-    ctrl.place.hover = { r: Number(cell.dataset.r), c: Number(cell.dataset.c) };
-    updatePlacementBoard();
-  });
-  board.addEventListener('mouseleave', () => {
-    if (!ctrl.place) return;
-    ctrl.place.hover = null;
-    updatePlacementBoard();
+    if (cell) onBoardHover({ r: Number(cell.dataset.r), c: Number(cell.dataset.c) });
   });
 
   container.querySelector('#bn-ready').addEventListener('click', onReady);
   container.querySelector('#bn-exit').addEventListener('click', leaveGame);
+  container.querySelector('#bn-rotate-btn').addEventListener('click', () => rotateSelected());
+
+  mountBoard(container.querySelector('#bn-canvas')).then((board) => {
+    if (!board || ctrl?.shell !== 'placing') return;
+    board.setMode('placing');
+    updatePlacementBoard();
+  });
 }
 
 function trayHtml() {
@@ -590,11 +802,13 @@ function trayHtml() {
   const ships = FLEET.map((f) => {
     const placed = placedIds.has(f.id);
     const selected = p.sel?.kind === 'ship' && p.sel.id === f.id;
-    const cells = Array.from({ length: f.size }, () => '<span class="bn-piece-cell"></span>').join('');
     return `<button type="button"
-      class="bn-piece${placed ? ' bn-piece--placed' : ''}${selected ? ' bn-piece--sel' : ''}"
+      class="bn-piece bn-piece--ship${placed ? ' bn-piece--placed' : ''}${selected ? ' bn-piece--sel' : ''}"
       data-ship="${f.id}" ${p.submitted || placed ? 'disabled' : ''}
-      title="Barco ${f.size}x1${placed ? ' (clic en el tablero para recolocarlo)' : ''}">${cells}</button>`;
+      title="${shipName(f.id)} (${f.size} casillas)${placed ? ' · clic en el tablero para recolocarlo' : ''}">
+      ${shipIconSvg(f.id, f.size)}
+      <span class="bn-piece-label">${shipName(f.id)} <b>${f.size}</b></span>
+    </button>`;
   }).join('');
 
   const holding = p.sel?.kind === 'bomb' ? 1 : 0;
@@ -604,7 +818,7 @@ function trayHtml() {
     return `<button type="button"
       class="bn-piece bn-piece--bomb${state === 'placed' ? ' bn-piece--placed' : ''}${state === 'sel' ? ' bn-piece--sel' : ''}"
       data-bomb="${i}" ${p.submitted || state === 'placed' ? 'disabled' : ''}
-      title="Bomba (1 casilla, invisible para el rival)">💣</button>`;
+      title="Mina (1 casilla, invisible para el rival)">${mineIconSvg(24)}</button>`;
   }).join('');
 
   return `<div class="bn-tray-ships">${ships}</div><div class="bn-tray-bombs">${bombs}</div>`;
@@ -673,33 +887,32 @@ function updatePlacementBoard() {
   const p = ctrl.place;
   if (!p) return;
 
-  const shipKeys = new Set();
-  for (const s of p.ships) for (const cc of shipCells(s)) shipKeys.add(cellKey(cc.r, cc.c));
-  const bombKeys = new Set(p.bombs.map((b) => cellKey(b.r, b.c)));
-
-  const ghost = new Set();
-  let ghostOk = false;
-  let ghostBomb = false;
+  let ghost = null;
   if (!p.submitted && p.sel && p.hover) {
     if (p.sel.kind === 'ship') {
       const cand = clampShip({ id: p.sel.id, size: p.sel.size, r: p.hover.r, c: p.hover.c, dir: p.sel.dir });
-      ghostOk = canPlaceShip(cand, p.ships, p.bombs);
-      for (const cc of shipCells(cand)) ghost.add(cellKey(cc.r, cc.c));
+      ghost = { kind: 'ship', ...cand, ok: canPlaceShip(cand, p.ships, p.bombs) };
     } else {
-      ghostBomb = true;
-      ghostOk = canPlaceBomb(p.hover.r, p.hover.c, p.ships, p.bombs);
-      ghost.add(cellKey(p.hover.r, p.hover.c));
+      ghost = { kind: 'bomb', r: p.hover.r, c: p.hover.c, ok: canPlaceBomb(p.hover.r, p.hover.c, p.ships, p.bombs) };
     }
   }
 
+  const board = ctrl.board;
+  if (board && ctrl.shell === 'placing') {
+    board.setState(placementVisualState(p));
+    board.setGhost(ghost);
+  }
+
+  // Grilla accesible: estado legible por lector de pantalla.
+  const shipKeys = new Set();
+  for (const s of p.ships) for (const cc of shipCells(s)) shipKeys.add(cellKey(cc.r, cc.c));
+  const bombKeys = new Set(p.bombs.map((b) => cellKey(b.r, b.c)));
   ctrl.container.querySelectorAll('.bn-cell').forEach((cell) => {
-    const k = `${cell.dataset.r}_${cell.dataset.c}`;
-    const isGhost = ghost.has(k);
-    cell.classList.toggle('bn-cell--ship', shipKeys.has(k));
-    cell.classList.toggle('bn-cell--bomb', bombKeys.has(k));
-    cell.classList.toggle('bn-cell--ghost-ok', isGhost && ghostOk);
-    cell.classList.toggle('bn-cell--ghost-bad', isGhost && !ghostOk);
-    cell.textContent = (bombKeys.has(k) || (isGhost && ghostBomb)) ? '💣' : '';
+    const r = Number(cell.dataset.r);
+    const c = Number(cell.dataset.c);
+    const k = cellKey(r, c);
+    const what = shipKeys.has(k) ? ', tu barco' : (bombKeys.has(k) ? ', tu mina' : '');
+    cell.setAttribute('aria-label', `${coordLabel(r, c)}${what}`);
     cell.disabled = !!p.submitted;
   });
 }
@@ -712,6 +925,7 @@ function applyPlacementState() {
   const trayEl = container.querySelector('#bn-tray');
   if (trayEl) trayEl.innerHTML = trayHtml();
   updatePlacementBoard();
+  showRotateHint();
 
   const complete = !p.sel && p.ships.length === FLEET.length && p.bombs.length === BOMBS_PER_PLAYER;
   const readyBtn = container.querySelector('#bn-ready');
@@ -739,11 +953,11 @@ async function onReady() {
   const btn = ctrl.container.querySelector('#bn-ready');
   if (btn) btn.disabled = true;
   try {
-    await submitSetup(ctrl.run.gameId, ctrl.run.role, p.ships, p.bombs);
+    await api().submitSetup(ctrl.run.gameId, ctrl.run.role, p.ships, p.bombs);
     p.submitted = true;
     applyPlacementState();
     // Si el rival ya estaba listo, intentamos arrancar de inmediato.
-    const ng = await startBattle(ctrl.run.gameId);
+    const ng = await api().startBattle(ctrl.run.gameId);
     if (aliveAndAttached() && ng) {
       ctrl.game = ng;
       renderByStatus();
@@ -787,24 +1001,23 @@ function renderBattleShell() {
   const { container } = ctrl;
   container.innerHTML = `
     <div class="bn-view bn-game">
-      <div class="bn-topbar">
+      ${stageHtml(`
         <div class="bn-rival">
           <span class="bn-rival-label">Rival</span>
           <span class="bn-rival-name" id="bn-rival-name">—</span>
         </div>
         <div class="bn-timer" id="bn-timer">30</div>
-      </div>
-      <p class="bn-turn" id="bn-turn"></p>
-      <p class="bn-event" id="bn-event" hidden></p>
-      <div class="bn-board" id="bn-board">${boardCellsHtml()}</div>
-      <div class="bn-legend">
-        <span><i class="bn-dot bn-dot--ship"></i> Tu barco</span>
-        <span>✸ Impacto</span>
-        <span>💣 Tu bomba</span>
-        <span>• Agua</span>
-      </div>
-      <div class="bn-score" id="bn-score"></div>
-      <div class="bn-result" id="bn-result" hidden></div>
+        <p class="bn-turn" id="bn-turn"></p>
+        <div class="bn-score" id="bn-score"></div>
+        <div class="bn-surrender" id="bn-surrender"></div>
+      `, `
+        <p class="bn-event" id="bn-event" hidden></p>
+        <div class="bn-legend">
+          <span>🔥 Impacto</span>
+          <span>⚫ Agua</span>
+          <span>✹ Tu mina</span>
+        </div>
+      `, '<div class="bn-result" id="bn-result" hidden></div>')}
     </div>
   `;
 
@@ -813,6 +1026,12 @@ function renderBattleShell() {
     if (!cell || cell.disabled) return;
     await onFireClick(Number(cell.dataset.r), Number(cell.dataset.c));
   });
+
+  mountBoard(container.querySelector('#bn-canvas')).then((board) => {
+    if (!board || ctrl?.shell !== 'battle') return;
+    board.setMode('battle');
+    applyBattleState();
+  });
 }
 
 async function onFireClick(r, c) {
@@ -820,7 +1039,7 @@ async function onFireClick(r, c) {
   if (!snap.isMyTurn) return;
   if (snap.shots[`${snap.myRole}_${r}_${c}`]) return; // ya disparaste ahi
   try {
-    ctrl.game = await fireShot(ctrl.run.gameId, ctrl.run.role, r, c);
+    ctrl.game = await api().fireShot(ctrl.run.gameId, ctrl.run.role, r, c);
     renderByStatus();
   } catch (err) {
     log.warn('fireShot fallo', err);
@@ -844,7 +1063,7 @@ function tickClock() {
   if (snap.moveDeadline === ctrl.lastPassDeadline) return; // ya lo pasamos
   ctrl.lastPassDeadline = snap.moveDeadline;
 
-  passTurn(ctrl.run.gameId, ctrl.run.role)
+  api().passTurn(ctrl.run.gameId, ctrl.run.role)
     .then((ng) => { if (aliveAndAttached() && ng) { ctrl.game = ng; renderByStatus(); } })
     .catch((err) => log.warn('passTurn fallo', err));
 }
@@ -864,66 +1083,30 @@ function applyBattleState() {
   const rivalEl = container.querySelector('#bn-rival-name');
   if (rivalEl) rivalEl.textContent = snap.oppName;
 
-  // Mapas por celda.
-  const mine = new Map(); // mis barcos (siempre visibles para mi)
-  for (const s of snap.mySetup.ships || []) {
-    const sunk = isSunk(s);
-    for (const cc of shipCells(s)) {
-      const k = cellKey(cc.r, cc.c);
-      mine.set(k, { hit: !!s.hits?.[k], sunk });
-    }
-  }
-  const enemy = new Map(); // del rival: solo celdas impactadas o barcos caidos
-  for (const s of snap.oppSetup.ships || []) {
-    const sunk = isSunk(s);
-    for (const cc of shipCells(s)) {
-      const k = cellKey(cc.r, cc.c);
-      const hit = !!s.hits?.[k];
-      if (sunk || hit) enemy.set(k, { hit, sunk });
-    }
-  }
-  const bombs = new Map(); // mias (siempre) + explotadas de cualquiera
-  for (const b of snap.mySetup.bombs || []) {
-    bombs.set(cellKey(b.r, b.c), { mine: true, exploded: !!b.exploded });
-  }
-  for (const b of snap.oppSetup.bombs || []) {
-    if (b.exploded) bombs.set(cellKey(b.r, b.c), { mine: false, exploded: true });
-  }
-  const misses = new Set();
-  const myShots = new Set();
-  for (const sh of Object.values(snap.shots)) {
-    if (!sh) continue;
-    const k = cellKey(sh.r, sh.c);
-    if (sh.by === snap.myRole) myShots.add(k);
-    if (sh.res === 'miss') misses.add(k);
+  // Escena 3D: barcos, minas, aguas y restos (con niebla de guerra). Los
+  // cambios nuevos (impacto, agua, mina, hundido) los anima el propio tablero.
+  const vs = battleVisualState(snap);
+  const myShots = new Set(vs.shotByMe);
+  const board = ctrl.board;
+  if (board && board.mode === 'battle') {
+    board.setState(vs);
+    board.setTargetable(snap.isMyTurn ? (r, c) => !myShots.has(cellKey(r, c)) : null);
   }
 
+  // Grilla accesible (teclado / lector de pantalla).
+  const hitKeys = new Set(vs.enemyHits);
+  for (const s of vs.myShips) s.hits.forEach((k) => hitKeys.add(k));
+  const missKeys = new Set(vs.misses);
   container.querySelectorAll('.bn-cell').forEach((cell) => {
-    const k = `${cell.dataset.r}_${cell.dataset.c}`;
-    const m = mine.get(k);
-    const e = enemy.get(k);
-    const b = bombs.get(k);
-
-    cell.classList.toggle('bn-cell--ship', !!m);
-    cell.classList.toggle('bn-cell--ship-enemy', !!e);
-    cell.classList.toggle('bn-cell--hit', !!(m?.hit || e?.hit));
-    cell.classList.toggle('bn-cell--sunk', !!(m?.sunk || e?.sunk));
-    cell.classList.toggle('bn-cell--bomb', !!b && !b.exploded);
-    cell.classList.toggle('bn-cell--boom', !!b?.exploded);
-    cell.classList.toggle('bn-cell--miss', misses.has(k) && !m && !e && !b);
-
-    let icon = '';
-    if (b && !b.exploded) icon = '💣';
-    else if (b?.exploded) icon = '💥';
-    else if (m?.sunk || e?.sunk) icon = '☠';
-    else if (m?.hit || e?.hit) icon = '✸';
-    else if (misses.has(k)) icon = '•';
-    cell.textContent = icon;
-
+    const r = Number(cell.dataset.r);
+    const c = Number(cell.dataset.c);
+    const k = cellKey(r, c);
+    const what = hitKeys.has(k) ? ', impacto' : (missKeys.has(k) ? ', agua' : '');
+    cell.setAttribute('aria-label', `${coordLabel(r, c)}${what}`);
     cell.disabled = !snap.isMyTurn || myShots.has(k);
   });
 
-  // Feedback del ultimo evento (una sola vez por seq): mensaje + flash.
+  // Mensaje del ultimo evento (una sola vez por seq).
   const eventEl = container.querySelector('#bn-event');
   if (snap.last?.seq && snap.last.seq !== ctrl.seenSeq) {
     ctrl.seenSeq = snap.last.seq;
@@ -932,20 +1115,6 @@ function applyBattleState() {
       eventEl.textContent = msg;
       eventEl.hidden = false;
       eventEl.classList.toggle('bn-event--enemy', snap.last.by !== snap.myRole);
-    }
-    const flash = [];
-    if (typeof snap.last.r === 'number') flash.push(cellKey(snap.last.r, snap.last.c));
-    for (const k of snap.last.dmg || []) {
-      if (!flash.includes(k)) flash.push(k);
-    }
-    for (const k of flash) {
-      const [r, c] = k.split('_');
-      const el = container.querySelector(`.bn-cell[data-r="${r}"][data-c="${c}"]`);
-      if (el) {
-        el.classList.remove('bn-cell--flash');
-        void el.offsetWidth; // reinicia la animacion
-        el.classList.add('bn-cell--flash');
-      }
     }
   }
 
@@ -968,6 +1137,8 @@ function applyBattleState() {
     return;
   }
 
+  renderSurrender(snap.status === GAME_STATUS.PLAYING);
+
   if (snap.status === GAME_STATUS.PLAYING) {
     if (resultEl) resultEl.hidden = true;
     ctrl.rematchPending = false;
@@ -983,9 +1154,15 @@ function applyBattleState() {
   if (turnEl) turnEl.textContent = '';
   if (run.phase !== PHASE.FINISHED) persist({ phase: PHASE.FINISHED });
 
-  const msg = snap.winner === snap.myRole
-    ? `¡Victoria! Hundiste la flota de ${esc(snap.oppName)} ⚓`
-    : `Derrota: ${esc(snap.oppName)} hundio tu flota`;
+  const won = snap.winner === snap.myRole;
+  let msg;
+  if (snap.last?.res === 'surrender') {
+    msg = won ? `¡Victoria! ${esc(snap.oppName)} se rindio ⚓` : `Te rendiste. Gana ${esc(snap.oppName)}`;
+  } else {
+    msg = won
+      ? `¡Victoria! Hundiste la flota de ${esc(snap.oppName)} ⚓`
+      : `Derrota: ${esc(snap.oppName)} hundio tu flota`;
+  }
   showResult(resultEl, msg, false);
 }
 
@@ -999,6 +1176,8 @@ function describeEvent(snap) {
   const sunk = (e.sunk || []).length;
 
   switch (e.res) {
+    case 'surrender':
+      return byMe ? 'Te rendiste.' : `${snap.oppName} se rindio.`;
     case 'pass':
       return byMe ? 'Se te acabo el tiempo: turno perdido.' : `${snap.oppName} dejo pasar su turno.`;
     case 'miss':
@@ -1019,6 +1198,54 @@ function describeEvent(snap) {
         : `${snap.oppName} detono tu bomba en ${at} 💥 No tenia barcos cerca.`;
     default:
       return '';
+  }
+}
+
+// Boton "Rendirse" con confirmacion en dos pasos (un clic suelto no te hace
+// perder la partida). Solo existe mientras la batalla esta en curso.
+function renderSurrender(visible) {
+  const el = ctrl.container.querySelector('#bn-surrender');
+  if (!el) return;
+  if (!visible) {
+    el.innerHTML = '';
+    el.dataset.mode = '';
+    ctrl.surrenderAsk = false;
+    return;
+  }
+  const mode = ctrl.surrenderAsk ? 'ask' : 'idle';
+  if (el.dataset.mode === mode && el.childElementCount) return;
+  el.dataset.mode = mode;
+  el.innerHTML = mode === 'ask'
+    ? `<p class="bn-surrender-q">¿Rendirte? Pierdes esta partida.</p>
+       <div class="bn-actions">
+         <button type="button" class="ct-btn bn-surrender-yes" id="bn-surrender-yes">Si, rendirme</button>
+         <button type="button" class="ct-btn ct-btn--ghost" id="bn-surrender-no">No</button>
+       </div>`
+    : '<button type="button" class="ct-btn ct-btn--ghost bn-surrender-btn" id="bn-surrender-btn">🏳 Rendirse</button>';
+  el.querySelector('#bn-surrender-btn')?.addEventListener('click', () => {
+    ctrl.surrenderAsk = true;
+    renderSurrender(true);
+  });
+  el.querySelector('#bn-surrender-no')?.addEventListener('click', () => {
+    ctrl.surrenderAsk = false;
+    renderSurrender(true);
+  });
+  el.querySelector('#bn-surrender-yes')?.addEventListener('click', onSurrender);
+}
+
+async function onSurrender() {
+  ctrl.surrenderAsk = false;
+  const btn = ctrl.container.querySelector('#bn-surrender-yes');
+  if (btn) btn.disabled = true;
+  clearTimeout(ctrl.aiTimer);
+  ctrl.aiTimer = null;
+  try {
+    const g = await api().surrender(ctrl.run.gameId, ctrl.run.role);
+    if (g) ctrl.game = g;
+    renderByStatus();
+  } catch (err) {
+    log.warn('surrender fallo', err);
+    renderSurrender(true);
   }
 }
 
@@ -1046,7 +1273,7 @@ async function onRematch() {
   ctrl.rematchPending = true;
   ctrl.lastPassDeadline = 0;
   try {
-    ctrl.game = await requestRematch(ctrl.run.gameId, ctrl.run.role, ctrl.uid);
+    ctrl.game = await api().requestRematch(ctrl.run.gameId, ctrl.run.role, ctrl.uid);
     renderByStatus();
   } catch (err) {
     log.warn('rematch fallo', err);
@@ -1056,10 +1283,12 @@ async function onRematch() {
 async function leaveGame() {
   clearTimers();
   const { gameId, role } = ctrl.run;
-  if (gameId && role) await markLeft(gameId, role);
+  if (gameId && role) await api().markLeft(gameId, role);
   await dequeue(ctrl.uid);
   await persist({
     phase: PHASE.IDLE,
+    mode: null,
+    ai: null,
     gameId: null,
     role: null,
     opponentName: null,

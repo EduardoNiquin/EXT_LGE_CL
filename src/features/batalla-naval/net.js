@@ -326,6 +326,36 @@ export async function passTurn(gameId, role) {
   return { ...game, ...patch };
 }
 
+/**
+ * Rendicion: `role` abandona la batalla y la gana el rival (cuenta como
+ * victoria para el marcador y el ranking). Se puede rendir cualquiera de los
+ * dos, en cualquier turno. El cierre de la partida se reclama de forma ATOMICA
+ * (ETag sobre `status`): si justo el rival cerro la partida con un disparo, la
+ * rendicion no hace nada y no se duplica el punto.
+ */
+export async function surrender(gameId, role) {
+  const cur = await rgetWithEtag(`games/${gameId}/status`);
+  if (cur.value !== GAME_STATUS.PLAYING) return getGame(gameId);
+  const claim = await rsetIfMatch(`games/${gameId}/status`, GAME_STATUS.FINISHED, cur.etag);
+  if (!claim.ok) return getGame(gameId);
+
+  const game = await getGame(gameId);
+  const winner = otherRole(role);
+  const seq = (game.seq || 0) + 1;
+  const score = { ...(game.score || {}) };
+  score[winner] = (score[winner] || 0) + 1;
+  await rupdate(`games/${gameId}`, {
+    winner,
+    score,
+    seq,
+    moveDeadline: null,
+    last: { by: role, res: 'surrender', seq, ts: Date.now() },
+  });
+  const winnerName = game.players?.[winner]?.name;
+  if (winnerName) incrementLeaderboard(winnerName).catch(() => {});
+  return getGame(gameId);
+}
+
 /** Marca que este rol quiere revancha; si ambos quieren, el host reinicia. */
 export async function requestRematch(gameId, role, uid) {
   await rupdate(`games/${gameId}/rematch`, { [role]: true });
