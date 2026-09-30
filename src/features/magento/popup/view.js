@@ -1,5 +1,6 @@
 import { toMessage } from '../../../shared/errors/index.js';
 import * as buscarOrden from '../buscar-orden/popup/section.js';
+import * as editarShippingRules from '../editar-shipping-rules/popup/section.js';
 import * as globalShippingRules from './sections/global-shipping-rules.js';
 import * as informacionDeOrden from '../informacion_de_orden/popup/section.js';
 import * as softbundles from '../softbundles/popup/section.js';
@@ -33,6 +34,13 @@ const MODULES = [
     description: 'Capturar rules y tarifas regionales en un CSV',
     abbr: 'GSR',
     render: globalShippingRules.render,
+  },
+  {
+    id: 'editar-shipping-rules',
+    name: 'Editar Shipping Rules',
+    description: 'Activar o desactivar rules en lote, con registro del antes y despues',
+    abbr: 'ESR',
+    render: editarShippingRules.render,
   },
 ];
 

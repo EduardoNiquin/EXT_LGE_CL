@@ -15,8 +15,10 @@
 // Restricciones de este archivo:
 //   - Corre en el contexto de la pagina: NO hay `chrome.*` ni imports.
 //   - Solo habla por `window.postMessage`.
-//   - Es de solo lectura salvo por el tamano de pagina de la grilla regional, y
-//     jamas debe romper la pagina: todo va en try/catch y ante la duda responde
+//   - Es de solo lectura salvo por el tamano de pagina de la grilla regional, la
+//     opcion de "Main Product" (Softbundles) y el campo `is_active` del
+//     formulario de una shipping rule (Editar Shipping Rules); ninguna de esas
+//     escrituras guarda nada por si sola. Jamas debe romper la pagina: todo va en try/catch y ante la duda responde
 //     que no pudo, para que el recorrido por DOM siga funcionando como antes.
 
 (() => {
@@ -311,10 +313,65 @@
     };
   }
 
+  // ---------------------------------------------------------------------------
+  // Editar Shipping Rules: leer / fijar "Active this shipping rule"
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Con la pestana en segundo plano Magento no dibuja el formulario (no hay ni
+   * un checkbox en el DOM), pero sus UI components si estan registrados. Por
+   * eso el campo se lee y se fija en el componente `single-checkbox` —igual que
+   * lo haria el click del usuario: el checkbox esta bindeado a ese `value`— y
+   * el Save del formulario envia lo que tiene su data source.
+   *
+   * Toca SOLO `is_active` y devuelve el `entity_id` del data source para que el
+   * mundo aislado confirme que el formulario abierto es la rule que esperaba.
+   */
+  function shippingRuleActive(payload) {
+    const ns = String((payload && payload.namespace) || '');
+    if (!ns) return { found: false, reason: 'no se indico el formulario' };
+    const registry = registryOf();
+    if (!registry) return { found: false, reason: 'la pagina no expone uiRegistry' };
+
+    const components = componentsOf(registry);
+    const provider = components.find((component) => safe(() => component.name) === `${ns}.${ns}_data_source`);
+    const field = components.find((component) => {
+      const name = String(safe(() => component.name) || '');
+      return name.indexOf(`${ns}.${ns}.`) === 0
+        && (safe(() => component.index) === 'is_active' || safe(() => component.dataScope) === 'data.is_active');
+    });
+    if (!provider || !field || typeof field.value !== 'function') {
+      return { found: false, reason: 'el formulario todavia no registra el campo is_active' };
+    }
+
+    const valueMap = safe(() => field.valueMap, null) || { true: '1', false: '0' };
+    const isOn = (value) => String(value) === String(valueMap.true) || value === true;
+    const entityId = String(safe(() => provider.data.entity_id) || '');
+    const before = isOn(readValue(field.value));
+
+    let after = before;
+    if (payload && typeof payload.set === 'boolean' && payload.set !== before) {
+      const done = safe(() => { field.value(valueMap[String(payload.set)]); return true; }, false);
+      if (!done) return { found: true, entityId, before, after, reason: 'el campo no acepto el valor' };
+      after = isOn(readValue(field.value));
+    }
+
+    return {
+      found: true,
+      entityId,
+      before,
+      after,
+      // Lo que el Save va a mandar: tiene que coincidir con el campo.
+      sourceValue: String(safe(() => provider.data.is_active) ?? ''),
+      field: String(safe(() => field.name) || ''),
+    };
+  }
+
   const OPS = {
     probe,
     'expand-regional': expandRegional,
     'force-product-option': forceProductOption,
+    'shipping-rule-active': shippingRuleActive,
   };
 
   function respond(id, ok, payload) {

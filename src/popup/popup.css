@@ -2524,6 +2524,143 @@ body.bn-wide #app { overflow: hidden; }
 }
 
 
+/* ---------------------------------------------------------------------------
+   Magento / Editar Shipping Rules
+   Pasos numerados (leer -> elegir -> accion), lista marcable con el estado de
+   cada rule, confirmacion en linea y el antes/despues de cada rule al correr.
+--------------------------------------------------------------------------- */
+/* El resultado va arriba de la seleccion: sin el borde superior de .lt-progress. */
+.esr-progress { border-top: none; padding-top: 0; }
+.esr-step { display: flex; gap: 10px; align-items: flex-start; }
+.esr-step-num {
+  flex: 0 0 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-size: 11px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 2px;
+}
+.esr-step-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.esr-catalog-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.esr-small { flex: 0 0 auto; padding: 5px 10px; font-size: 11px; }
+.esr-search { resize: vertical; min-height: 34px; }
+.esr-filters { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.esr-status { margin: 0; flex: 1 1 180px; }
+.esr-status .ct-tab { padding: 4px 6px; font-size: 11px; }
+.esr-carrier { flex: 1 1 120px; min-width: 0; padding: 4px 6px; font-size: 11px; }
+.esr-list-head { display: flex; justify-content: space-between; align-items: center; gap: 6px; }
+.esr-list-actions { display: flex; gap: 10px; }
+.esr-link {
+  border: none;
+  background: none;
+  padding: 0;
+  color: var(--accent);
+  font: inherit;
+  font-size: 11px;
+  cursor: pointer;
+}
+.esr-link:hover { text-decoration: underline; }
+
+.esr-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 240px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+.esr-rule { border-bottom: 1px solid var(--border-soft); }
+.esr-rule:last-child { border-bottom: none; }
+.esr-rule label { display: flex; align-items: center; gap: 8px; padding: 6px 8px; cursor: pointer; }
+.esr-rule:hover { background: var(--surface-2); }
+.esr-rule.is-selected { background: var(--accent-soft); }
+.esr-rule input { flex: 0 0 auto; margin: 0; accent-color: var(--accent); }
+.esr-rule-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.esr-rule-name {
+  font-size: 12px;
+  color: var(--text);
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.esr-rule-id { color: var(--text-subtle); font-weight: 400; font-variant-numeric: tabular-nums; }
+.esr-rule-sub { font-size: 10.5px; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.esr-empty { padding: 12px; font-size: 11px; color: var(--text-muted); text-align: center; }
+
+.esr-actions .ct-btn { flex: 1; }
+.esr-btn-on { background: var(--success); color: var(--on-accent); border: none; }
+.esr-btn-off { background: var(--danger); color: var(--on-accent); border: none; }
+.esr-btn-on:disabled, .esr-btn-off:disabled { opacity: 0.45; cursor: not-allowed; }
+.esr-btn-on:hover:not(:disabled), .esr-btn-off:hover:not(:disabled) { filter: brightness(1.08); }
+
+.esr-confirm {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-left-width: 3px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  font-size: 12px;
+}
+.esr-confirm--on { border-left-color: var(--success); }
+.esr-confirm--off { border-left-color: var(--danger); }
+.esr-confirm-list { margin: 0; padding-left: 16px; font-size: 11px; color: var(--text-secondary); }
+.esr-confirm .lt-hint { margin: 0; }
+
+.esr-run-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 260px;
+  overflow-y: auto;
+}
+.esr-run-item {
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  font-size: 11px;
+}
+.esr-run-item--ok        { background: var(--success-bg); border-color: var(--success-border); }
+.esr-run-item--error     { background: var(--danger-bg); border-color: var(--danger-border); }
+.esr-run-item--applying,
+.esr-run-item--saving    { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.esr-run-head { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
+.esr-run-status { flex: 0 0 auto; font-size: 10px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); }
+.esr-run-item--ok .esr-run-status    { color: var(--success); }
+.esr-run-item--error .esr-run-status { color: var(--danger); }
+.esr-run-change { margin-top: 2px; color: var(--text-secondary); }
+.esr-muted { color: var(--text-muted); }
+.esr-verified { color: var(--success); font-weight: 600; }
+.esr-run-actions { flex-wrap: wrap; }
+
+.esr-history > summary { font-size: 12px; }
+.esr-history-list { list-style: none; margin: 0; padding: 0; }
+.esr-history-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border-soft);
+  font-size: 11.5px;
+}
+.esr-history-actions { display: flex; gap: 8px; align-items: flex-start; flex: 0 0 auto; }
+.esr-history .esr-small { margin: 8px 10px; }
+.esr-history-empty { padding: 8px 10px; margin: 0; }
+
 /* === Magento - Informacion de Orden === */
 .io-view .lt-form-card { gap: 8px; }
 .io-hint--error { color: var(--danger); }

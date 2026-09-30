@@ -81,6 +81,9 @@ export const BRIDGE = {
     // widget filtra SOLO sobre lo que ya tiene cargado (~100 opciones), asi
     // que un producto legitimo puede no aparecer nunca por teclado.
     FORCE_PRODUCT: 'force-product-option',
+    // Editar Shipping Rules: lee o fija "Active this shipping rule" en el UI
+    // component del formulario (con la pestana oculta no hay checkbox en el DOM).
+    SHIPPING_RULE_ACTIVE: 'shipping-rule-active',
   },
   // Marca temporal sobre el wrap del ui-select: el DOM es lo unico que
   // comparten el mundo aislado y el MAIN, asi que es como se le dice al bridge
