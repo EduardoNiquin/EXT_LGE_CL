@@ -5,6 +5,7 @@ import { onMessage } from '../shared/messaging/messaging.js';
 import { wireDestacadosBackground } from '../features/lgcom/background/destacados.js';
 import { wireBusquedaBackground } from '../features/lgcom/background/busqueda.js';
 import { wireInformeBackground } from '../features/e-promoters/background/informe.js';
+import { wireVentasEnVivoBackground } from '../features/magento/ventas-en-vivo/background/index.js';
 import { wireDevolucionesBackground } from '../features/devoluciones/falabella/background/runner.js';
 import { wireGestionBackground } from '../features/devoluciones/falabella/gestion/background/runner.js';
 import { wireRegistroAccionesBackground } from '../features/registro-acciones/background/grabador.js';
@@ -29,6 +30,10 @@ wireBusquedaBackground();
 
 // E-promoters — Informe ordenes: procesa y descarga el CSV en segundo plano.
 wireInformeBackground();
+
+// Magento — Ventas en vivo: cada N minutos manda el export de ordenes al portal OBS
+// (alarma; registra tambien __extLgeCl.magentoVentasEnVivo en el SW).
+wireVentasEnVivoBackground();
 
 // Devoluciones: sondea la API, baja los resultados y los guarda en disco.
 wireDevolucionesBackground();

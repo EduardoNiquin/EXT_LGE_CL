@@ -4,6 +4,7 @@ import * as editarShippingRules from '../editar-shipping-rules/popup/section.js'
 import * as globalShippingRules from './sections/global-shipping-rules.js';
 import * as informacionDeOrden from '../informacion_de_orden/popup/section.js';
 import * as softbundles from '../softbundles/popup/section.js';
+import * as ventasEnVivo from '../ventas-en-vivo/popup/section.js';
 import { escapeHtml } from './utils.js';
 
 const MODULES = [
@@ -41,6 +42,13 @@ const MODULES = [
     description: 'Activar o desactivar rules en lote, con registro del antes y despues',
     abbr: 'ESR',
     render: editarShippingRules.render,
+  },
+  {
+    id: 'ventas-en-vivo',
+    name: 'Ventas en vivo',
+    description: 'Manda a OBS el export de ordenes cada pocos minutos para el panel En vivo',
+    abbr: 'VEV',
+    render: ventasEnVivo.render,
   },
 ];
 

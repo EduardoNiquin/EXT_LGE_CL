@@ -1,7 +1,7 @@
 // Arranque del apartado Magento en el content script. Es un paraguas: cada
 // modulo (Global Shipping Rules, Buscar orden, Informacion de Orden, Crear
 // Softbundles, Editar Shipping Rules) tiene su propio run en storage y
-// su propia state machine, y aca se enganchan todos con una sola llamada desde
+// su propia state machine (Ventas en vivo solo atiende el TICK del service worker), y aca se enganchan todos con una sola llamada desde
 // `src/content/index.js`.
 
 import { logger } from '../../../shared/utils/logger.js';
@@ -11,6 +11,7 @@ import { init as initBuscarOrden } from '../buscar-orden/content/index.js';
 import { init as initEditarShippingRules } from '../editar-shipping-rules/content/index.js';
 import { init as initInformacionDeOrden } from '../informacion_de_orden/content/index.js';
 import { init as initSoftbundles } from '../softbundles/content/index.js';
+import { initVentasEnVivo } from '../ventas-en-vivo/content/index.js';
 import { abortActiveRun, tickIfActive } from './flows/run.js';
 
 const log = logger('magento/content');
@@ -28,4 +29,5 @@ export function init() {
   initInformacionDeOrden();
   initSoftbundles();
   initEditarShippingRules();
+  initVentasEnVivo();
 }

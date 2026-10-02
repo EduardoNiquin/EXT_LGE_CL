@@ -75,8 +75,8 @@ export function filterErrorMessage(text) {
 // Extraccion del JSON embebido
 // -----------------------------------------------------------------------------
 
-/** Todos los JSON de los bloques `x-magento-init` del HTML. */
-function magentoInitPayloads(html) {
+/** Todos los JSON de los bloques `x-magento-init` del HTML (tambien lo usa Ventas en vivo). */
+export function magentoInitPayloads(html) {
   const out = [];
   const source = String(html || '');
   SCRIPT_RE.lastIndex = 0;
@@ -93,7 +93,7 @@ function magentoInitPayloads(html) {
 }
 
 /** Recorre un objeto buscando los nodos que cumplan `test`. */
-function dig(value, test, found = []) {
+export function dig(value, test, found = []) {
   if (!value || typeof value !== 'object') return found;
   if (test(value)) found.push(value);
   for (const key of Object.keys(value)) dig(value[key], test, found);

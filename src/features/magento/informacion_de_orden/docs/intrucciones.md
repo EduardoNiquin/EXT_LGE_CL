@@ -280,6 +280,13 @@ Se obtienen igual que el `update_url`:
 `r.get('sales_order_grid.sales_order_grid.listing_top.export_button').options`.
 Respetan los mismos filtros y las mismas reglas obligatorias.
 
+> **Nota (medido el 01-10-2026, Adobe Commerce 2.4.5-p16):** el export CSV del grid es **asincrono**. El GET a
+> `gridToCsv` (con `filters[store_id][]` obligatorio: sin el responde 500) no devuelve el CSV: redirige (302) al
+> listado de ordenes con "Message is added to queue, wait to get your file soon". El archivo aparece en 1-2 s en
+> **Export Files Listing** (`/obsadm/lg_order_export/export/index/key/<K>/`, enlace en el menu lateral), de donde se
+> descarga (`export_file/download/id/<id>/`) y se borra (`export_file/delete/id/<id>/`, POST con `form_key`).
+> Flujo completo en `docs/features/magento-ventas-en-vivo.md`.
+
 ---
 
 ## 5. Vía B — La ficha de la orden

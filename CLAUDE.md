@@ -150,6 +150,7 @@ Scaffolding + CI completos. Pipeline release corporativo (.crx firmado + políti
 | Magento · Crear Softbundles | Package rules en lote (padre + hijos); único módulo con acción destructiva opcional | tick-por-reload | `magento-softbundles.md` |
 | Magento · Global Shipping Rules | Recorre las rules y exporta CSV (read-only) | tick-por-reload | `magento-global-shipping-rules.md` |
 | Magento · Editar Shipping Rules | Activa/desactiva rules en lote (solo `is_active` + Save): catalogo por el endpoint del grid, filtros, confirmacion, antes/despues por rule, verificacion final, Excel/CSV e historial con Revertir. Funciona con la pestana en segundo plano (campo via bridge MAIN) | tick-por-reload + claim por pestana | `magento-editar-shipping-rules.md` |
+| Magento · Ventas en vivo | Cada N minutos (5) pide el export CSV estandar del grid de ordenes (filtrado por fecha de creacion) con la sesion del admin y lo manda tal cual al portal OBS (`POST /api/magento/detalle-ordenes/import`) para el panel En vivo de Ventas. Alarma en el SW; si el SW ve el login, saca el CSV desde una pestana del admin abierta | SW + alarms (+ content de respaldo) | `magento-ventas-en-vivo.md` |
 | Lead Times | Manage Address Level 2: lead times por región/comuna | tick-por-reload | `lead-times.md` |
 | Cupones | Cart Price Rules: quitar las condiciones del bloque Actions | tick-por-reload | `cupones.md` |
 | Información de Orden | Detalle de orden + decodificación de pagos Transbank/MercadoPago (read-only) | one-shot + búsqueda | `orden-info.md` |

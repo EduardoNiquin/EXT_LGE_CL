@@ -1,11 +1,13 @@
 import { cmd, register } from '../../shared/debug/index.js';
 // El apartado es un paraguas: este import registra tambien los comandos de sus
 // modulos (`__extLgeCl.magentoBuscarOrden.*`, `__extLgeCl.magentoInformacionDeOrden.*`,
-// `__extLgeCl.magentoSoftbundles.*`, `__extLgeCl.magentoEditarShippingRules.*`).
+// `__extLgeCl.magentoSoftbundles.*`, `__extLgeCl.magentoEditarShippingRules.*`,
+// `__extLgeCl.magentoVentasEnVivo.*`).
 import './buscar-orden/debug.js';
 import './informacion_de_orden/debug.js';
 import './softbundles/debug.js';
 import './editar-shipping-rules/debug.js';
+import './ventas-en-vivo/debug.js';
 import { BRIDGE, FINISH_REASON, REGIONAL_PAGE_SIZE } from './constants.js';
 import { clearRun, getRun, updateRun } from './state.js';
 import { diagnose } from './content/detector.js';
