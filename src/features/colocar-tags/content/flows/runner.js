@@ -75,6 +75,24 @@ let running = false;
 let activeCtrl = null;
 let claimWatchdog = null;
 
+// Dueno del run. El content script corre en TODAS las pestanas (`<all_urls>`),
+// asi que al cargar cualquier pagina no basta con ver un run reclamado para
+// darlo por interrumpido: puede ser de otra pestana que sigue viva (pasaba al
+// navegar en otra pestana durante una corrida). El frame que reclama deja un
+// token en `sessionStorage` (es por pestana y sobrevive a la recarga) y lo
+// mismo en el run; solo un frame que encuentra ESE token es la pestana que se
+// recargo. Si la pestana duena se cerro, lo resuelve el latido.
+const OWNER_KEY = 'ext-lge-cl:colocar-tags:owner';
+const HEARTBEAT_MS = 10_000;
+// Holgado a proposito: una pestana en segundo plano estrangula sus timers
+// (hasta 1 por minuto), y eso no la vuelve "muerta".
+const HEARTBEAT_STALE_MS = 150_000;
+// El token solo dice "esta pestana"; GP1 tiene iframes hermanos del mismo
+// origen (comparten `sessionStorage`) que cargan durante la corrida. Antes de
+// dar el run por muerto se le pregunta al dueno por un BroadcastChannel.
+const OWNER_PING_MS = 700;
+let ownerChannel = null;
+
 // -----------------------------------------------------------------------------
 // API pública (usada por content/index.js)
 // -----------------------------------------------------------------------------
@@ -100,8 +118,22 @@ export async function tickIfActive() {
 
   running = true;
   cancelClaimWatchdog();
+  let heartbeat = null;
   try {
-    await updateRun((r) => ({ ...r, claimed: true }));
+    const token = makeOwnerToken();
+    await updateRun((r) => (r?.claimed ? r : { ...r, claimed: true, ownerToken: token, heartbeatAt: Date.now() }));
+    // El flag `claimed` no es atomico entre pestanas: si otra lo gano, se cede.
+    const claimedRun = await getRun();
+    if (claimedRun?.ownerToken !== token) {
+      log.info('el run lo reclamo otro frame/pestana');
+      return;
+    }
+    writeOwnerToken(token);
+    ownerChannel = listenOwnerPings(token);
+    heartbeat = setInterval(() => {
+      updateRun((r) => (r?.active && r.ownerToken === token ? { ...r, heartbeatAt: Date.now() } : r))
+        .catch(() => {});
+    }, HEARTBEAT_MS);
     await appendLog({ level: 'info', message: `Procesando ${run.total} SKU(s) — ${KIND_RUNNERS[run.kind]?.label || run.kind}` });
 
     const ctrl = new AbortController();
@@ -113,6 +145,9 @@ export async function tickIfActive() {
     log.error('run falló', err);
     await finalize('error', toMessage(err));
   } finally {
+    if (heartbeat) clearInterval(heartbeat);
+    try { ownerChannel?.close(); } catch { /* no-op */ }
+    ownerChannel = null;
     activeCtrl = null;
     running = false;
   }
@@ -128,24 +163,73 @@ export function abortActiveRun() {
 }
 
 /**
- * Reconciliación al cargar la página: si quedó un run activo y ya reclamado,
- * significa que el frame que lo ejecutaba se recargó/cerró (el batch de GP1 no
- * sobrevive un reload de la SPA). Lo marcamos interrumpido para no dejar un run
- * "zombie" mostrando "Procesando…" para siempre. Sólo el top frame.
+ * Reconciliacion al cargar la pagina: un run activo y reclamado puede ser de
+ * ESTA pestana (que se recargo: el batch de GP1 no sobrevive el reload) o de
+ * otra que sigue corriendo. Solo se da por interrumpido si este frame tiene el
+ * token del dueno en su `sessionStorage`, o si el latido del dueno esta viejo
+ * (la pestana se cerro). Corre en todos los frames: MIM puede vivir en un iframe.
  */
 export async function reconcileOnInit() {
-  if (window !== window.top) return;
   const run = await getRun();
-  if (run && run.active && run.claimed) {
-    await appendLog({ level: 'warn', message: 'Run interrumpido: la pestaña se recargó durante el proceso.' });
-    await updateRun((r) => ({
-      ...r,
-      active: false,
-      finishedAt: Date.now(),
-      finishReason: 'error',
-      errorReason: 'Proceso interrumpido por recarga de la página.',
-    }));
+  if (!run || !run.active || !run.claimed) return;
+  const mine = !!run.ownerToken && readOwnerToken() === run.ownerToken;
+  const stale = Date.now() - (Number(run.heartbeatAt) || Number(run.startedAt) || 0) > HEARTBEAT_STALE_MS;
+  if (!mine && !stale) return;
+  if (mine && await ownerAlive(run.ownerToken)) return;
+  log.warn('run interrumpido', { mine, stale });
+  clearOwnerToken();
+  await appendLog({
+    level: 'warn',
+    message: mine
+      ? 'Run interrumpido: la pestaña se recargó durante el proceso.'
+      : 'Run interrumpido: la pestaña que lo ejecutaba dejó de responder.',
+  });
+  await updateRun((r) => (r?.active && r.ownerToken === run.ownerToken ? {
+    ...r,
+    active: false,
+    finishedAt: Date.now(),
+    finishReason: 'error',
+    errorReason: mine ? 'Proceso interrumpido por recarga de la página.' : 'La pestaña del proceso dejó de responder.',
+  } : r));
+}
+
+function listenOwnerPings(token) {
+  try {
+    const ch = new BroadcastChannel(OWNER_KEY);
+    ch.onmessage = (ev) => {
+      if (ev.data?.type === 'ping' && ev.data.token === token) ch.postMessage({ type: 'pong', token });
+    };
+    return ch;
+  } catch {
+    return null;
   }
+}
+
+function ownerAlive(token) {
+  return new Promise((resolve) => {
+    let ch;
+    try { ch = new BroadcastChannel(OWNER_KEY); } catch { resolve(false); return; }
+    const done = (alive) => { clearTimeout(timer); try { ch.close(); } catch { /* no-op */ } resolve(alive); };
+    const timer = setTimeout(() => done(false), OWNER_PING_MS);
+    ch.onmessage = (ev) => { if (ev.data?.type === 'pong' && ev.data.token === token) done(true); };
+    ch.postMessage({ type: 'ping', token });
+  });
+}
+
+function makeOwnerToken() {
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function readOwnerToken() {
+  try { return sessionStorage.getItem(OWNER_KEY); } catch { return null; }
+}
+
+function writeOwnerToken(token) {
+  try { sessionStorage.setItem(OWNER_KEY, token); } catch { /* frame sin storage */ }
+}
+
+function clearOwnerToken() {
+  try { sessionStorage.removeItem(OWNER_KEY); } catch { /* no-op */ }
 }
 
 // -----------------------------------------------------------------------------
@@ -166,8 +250,10 @@ async function runSkuBatch({ run, signal }) {
       continue;
     }
 
-    // Pre-flight a partir del 2º SKU: limpiar modal/messageboxes residuales.
-    if (i > 0) {
+    // Pre-flight: limpiar modal/messageboxes residuales. Tambien en el 1º SKU:
+    // una corrida cancelada mientras esperaba el modal lo deja abrirse despues,
+    // y la siguiente corrida arrancaba con ese modal ajeno encima.
+    {
       const cleaned = await ensureCleanModalState(signal).catch((err) => ({ ok: false, reason: toMessage(err) }));
       if (cleaned && cleaned.ok === false) {
         log.warn(`pre-flight falló para ${sku}`, cleaned);
@@ -229,7 +315,7 @@ async function setItem(index, patch) {
     if (!r || !Array.isArray(r.items)) return r;
     const items = r.items.slice();
     items[index] = { ...items[index], ...patch };
-    return { ...r, items, currentIndex: index };
+    return { ...r, items, currentIndex: index, heartbeatAt: Date.now() };
   });
 }
 

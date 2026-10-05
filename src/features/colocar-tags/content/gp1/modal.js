@@ -1,5 +1,5 @@
 import { SELECTORS } from '../../constants.js';
-import { waitForElement, waitForGone, waitFor } from '../../../../shared/dom/wait.js';
+import { waitForElement, waitFor } from '../../../../shared/dom/wait.js';
 
 /**
  * Determina si un elemento está visible al usuario. Cubre varias formas
@@ -48,19 +48,15 @@ export function waitForModalOpen(opts = {}) {
   });
 }
 
+// GP1 no saca #dialog2 del DOM al cerrarlo: lo oculta. Esperar a que "se
+// vaya" del DOM agotaba siempre el timeout (~5 s por SKU tras el save de
+// PROD, medido el 2026-10-04); oculto ya cuenta como cerrado.
 export function waitForModalClosed(opts = {}) {
-  return waitForGone(SELECTORS.modal, {
+  return waitFor(() => !isMarketingModalOpen(), {
     description: 'que cierre el modal de Marketing Info',
     timeout: 15000,
     ...opts,
-  }).catch(() =>
-    // si el modal queda en el DOM pero oculto, también cuenta como cerrado
-    waitFor(() => !isMarketingModalOpen(), {
-      description: 'que el modal pase a oculto',
-      timeout: 1000,
-      ...opts,
-    }),
-  );
+  });
 }
 
 /** Elemento DOM raíz para hacer querys dentro del modal abierto. */
