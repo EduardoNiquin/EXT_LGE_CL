@@ -3,6 +3,7 @@ import { dirname, resolve } from 'path';
 import { fileURLToPath } from 'url';
 import { defineConfig } from 'vite';
 import webExtension from 'vite-plugin-web-extension';
+import { secretoDesdeArchivo } from './scripts/secretos.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -59,7 +60,15 @@ function matchOriginAsFallback(browser) {
 export default defineConfig(({ mode }) => {
   const browser = ['chrome', 'edge'].includes(mode) ? mode : 'chrome';
 
+  // Credenciales de la API de Falabella SellerCenter, cifradas en cada build
+  // (ver scripts/secretos.mjs). Sin el archivo (CI) queda null y la feature pide
+  // credenciales en el popup.
+  const falabella = secretoDesdeArchivo(resolve(__dirname, 'keys/falabella-sellercenter.json'), ['userId', 'apiKey']);
+
   return {
+    define: {
+      __FSC_EMBEBIDO__: JSON.stringify(falabella),
+    },
     plugins: [
       webExtension({
         manifest: () => buildManifest(browser),

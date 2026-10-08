@@ -12,9 +12,11 @@ import { wireRegistroAccionesBackground } from '../features/registro-acciones/ba
 import { wireVpnBackground } from '../features/vpn/background/conexion.js';
 import { wireFacturasBackground } from '../features/facturas/background/index.js';
 import { wireDownloadsBackground } from '../shared/downloads/background.js';
+import { wirePaquetesBackground } from '../features/falabella-sellercenter/paquetes/background/run.js';
 import '../features/e-promoters/debug.js';
 import '../features/registro-acciones/debug.js';
 import '../features/vpn/debug.js';
+import '../features/falabella-sellercenter/debug.js';
 
 const log = logger('service-worker');
 const version = chrome?.runtime?.getManifest?.()?.version;
@@ -53,6 +55,9 @@ wireFacturasBackground();
 // Descargas: baja un texto por pedido de un content script, que no ve
 // `chrome.downloads` (Informacion de Orden baja un CSV por cada tanda cerrada).
 wireDownloadsBackground();
+
+// Falabella SellerCenter — Identificar paquetes: consulta la API y analiza en segundo plano.
+wirePaquetesBackground();
 
 chrome.runtime.onInstalled.addListener((details) => {
   log.info('Extensión instalada/actualizada', { reason: details?.reason, version });

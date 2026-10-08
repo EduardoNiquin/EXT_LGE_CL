@@ -15,6 +15,7 @@ import { render as renderMagento }     from '../features/magento/popup/view.js';
 import { render as renderRegistroAcciones } from '../features/registro-acciones/popup/view.js';
 import { render as renderVpn }         from '../features/vpn/popup/view.js';
 import { render as renderFacturas }    from '../features/facturas/popup/view.js';
+import { render as renderFalabellaSellercenter } from '../features/falabella-sellercenter/popup/view.js';
 
 export const features = [
   {
@@ -80,6 +81,14 @@ export const features = [
     abbr: 'SCF',
     keywords: ['seller', 'sellercenter', 'falabella', 'fallabella', 'soporte', 'soporteseller', 'detalle', 'orden', 'guia', 'guía', 'paquetes', 'csv', 'caso', 'casos', 'ticket', 'buscar', 'reclamo'],
     render: renderSellerCenterFalabella,
+  },
+  {
+    id: 'falabella-sellercenter',
+    name: 'Falabella SellerCenter',
+    description: 'Herramientas sobre la API de SellerCenter: paquetes mal separados en ordenes',
+    abbr: 'FSC',
+    keywords: ['falabella', 'fallabella', 'sellercenter', 'seller', 'api', 'orden', 'ordenes', 'paquete', 'paquetes', 'envio', 'envios', 'guia', 'excel', 'csv'],
+    render: renderFalabellaSellercenter,
   },
   {
     id: 'devoluciones',

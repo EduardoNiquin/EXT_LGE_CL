@@ -2870,3 +2870,16 @@ body.bn-wide #app { overflow: hidden; }
 .bn-surrender-yes { background: #c62828; color: #fff; border-color: #c62828; }
 .bn-surrender-yes:hover { background: #b71c1c; }
 .bn-panel .ct-btn:disabled { opacity: 0.45; cursor: default; filter: saturate(0.6); }
+
+/* Falabella SellerCenter — Identificar paquetes */
+.fsc-field { margin-top: 8px; }
+.fsc-sin-cred { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 8px 0; font-size: 12px; }
+.fsc-sin-cred .ct-btn { flex: 0 0 auto; padding: 4px 8px; font-size: 11px; }
+.fsc-detail { margin: 6px 0 0; }
+.fsc-text { width: 100%; font-family: ui-monospace, Consolas, monospace; font-size: 11px; resize: vertical; }
+.fsc-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.fsc-item { border: 1px solid var(--border); border-radius: 6px; padding: 6px 8px; background: var(--surface-2, var(--surface-3)); }
+.fsc-item-head { display: flex; justify-content: space-between; align-items: center; gap: 6px; }
+.fsc-item-head strong { font-variant-numeric: tabular-nums; }
+.fsc-badge { font-size: 10.5px; font-weight: 600; color: var(--warning); white-space: nowrap; }
+.fsc-item-sub { font-size: 11px; color: var(--text-muted); overflow-wrap: anywhere; }
