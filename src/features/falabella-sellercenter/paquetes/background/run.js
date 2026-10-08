@@ -7,7 +7,7 @@
 // 3. analizarItems decide si algun paquete junta 2+ productos.
 // El progreso se publica en el run (storage.local) y el popup lo muestra en vivo.
 
-import { API, FINISH_REASON, MESSAGES, PHASE } from '../../constants.js';
+import { API, ESTADOS, etiquetaEstado, FINISH_REASON, MESSAGES, PHASE } from '../../constants.js';
 import {
   appendLog,
   clearResult,
@@ -20,7 +20,7 @@ import {
 import { getMultipleOrderItems, getOrdersPage } from '../../api/cliente.js';
 import { timestampApi } from '../../api/firma.js';
 import { estadoCredenciales, resolverCredenciales } from '../../api/credenciales.js';
-import { analizarItems, diaDe, hallazgo, resumenOrden, ventanaApi } from '../analisis.js';
+import { analizarItems, diaDe, hallazgo, pasaFiltroEstados, resumenOrden, totales, ventanaApi } from '../analisis.js';
 import { isAbortError, toMessage } from '../../../../shared/errors/index.js';
 import { logger } from '../../../../shared/utils/logger.js';
 
@@ -45,13 +45,22 @@ async function enParalelo(tareas, n, signal) {
 
 const progreso = (patch) => updateRun((run) => (run ? { ...run, progress: { ...run.progress, ...patch } } : run));
 
+/** Estados elegidos validos; [] = todos (sin filtro). */
+function normalizarEstados(estados) {
+  const validos = ESTADOS.map((e) => e.id);
+  const lista = [...new Set((estados || []).filter((e) => validos.includes(e)))];
+  return lista.length === validos.length ? [] : lista;
+}
+
 /**
- * @param {{desde:string, hasta:string}} payload  dias de Chile, YYYY-MM-DD.
+ * @param {{desde:string, hasta:string, estados?:string[]}} payload
+ *   dias de Chile (YYYY-MM-DD) y estados de orden a incluir ([] o todos = sin filtro).
  */
-export async function runPaquetes({ desde, hasta } = {}) {
-  const motivo = await validar({ desde, hasta });
+export async function runPaquetes({ desde, hasta, estados } = {}) {
+  const motivo = await validar({ desde, hasta, estados });
   if (motivo) return { ok: false, reason: motivo };
   const { cred } = await resolverCredenciales();
+  const filtro = normalizarEstados(estados);
 
   running = true;
   controller = new AbortController();
@@ -59,11 +68,14 @@ export async function runPaquetes({ desde, hasta } = {}) {
 
   try {
     await clearResult();
-    await setRun(makeRun({ desde, hasta }));
+    await setRun(makeRun({ desde, hasta, estados: filtro }));
 
-    // 1. Ordenes de la ventana.
+    // 1. Ordenes de la ventana. Con filtro de estados se hace un recorrido por
+    //    estado (filtro `Status` de la API: menos paginas que leer todo) y se
+    //    une por OrderNumber.
     await updateRun((run) => ({ ...run, phase: PHASE.ORDERS }));
     const ventana = ventanaApi(desde, hasta, API.MARGEN_HORAS);
+    const recorridos = filtro.length ? filtro : [undefined];
     const porNumero = new Map(); // dedupe por OrderNumber
     const porEstado = {};
     let enRango = 0;
@@ -75,35 +87,46 @@ export async function runPaquetes({ desde, hasta } = {}) {
         const num = String(o.OrderNumber);
         if (porNumero.has(num)) continue;
         const r = resumenOrden(o);
+        if (!pasaFiltroEstados(r.estados, filtro)) continue;
         porNumero.set(num, r.itemsCount > 1 ? r : null); // solo guarda lo que se va a revisar
         enRango++;
         for (const e of r.estados) porEstado[e] = (porEstado[e] || 0) + 1;
       }
     };
 
-    const primera = await getOrdersPage(cred, { ...ventana, offset: 0 }, { signal });
-    tomar(primera.orders);
-    const paginasTotal = Math.max(1, Math.ceil(primera.total / API.PAGE_SIZE));
-    let paginasHechas = 1;
-    let ordenesLeidas = primera.orders.length;
-    await progreso({ paginasHechas, paginasTotal, ordenesApi: primera.total, ordenesLeidas });
-    await appendLog({ level: 'info', message: `La API tiene ${primera.total} orden(es) en la ventana (${paginasTotal} pagina(s) de ${API.PAGE_SIZE}).` });
-
+    let paginasHechas = 0;
+    let paginasTotal = recorridos.length; // al menos la primera de cada recorrido
+    let ordenesLeidas = 0;
+    let ordenesApi = 0;
     const tareas = [];
-    for (let p = 1; p < paginasTotal; p++) {
-      tareas.push(async () => {
-        const { orders } = await getOrdersPage(cred, { ...ventana, offset: p * API.PAGE_SIZE }, { signal });
-        tomar(orders);
-        paginasHechas++;
-        ordenesLeidas += orders.length;
-        progreso({ paginasHechas, ordenesLeidas }).catch(() => {});
-      });
-    }
+    const pagina = (status, offset) => async () => {
+      const { orders } = await getOrdersPage(cred, { ...ventana, status, offset }, { signal });
+      tomar(orders);
+      paginasHechas++;
+      ordenesLeidas += orders.length;
+      progreso({ paginasHechas, ordenesLeidas }).catch(() => {});
+    };
+
+    // Primera pagina de cada recorrido: da el total y define las siguientes.
+    await enParalelo(recorridos.map((status) => async () => {
+      const primera = await getOrdersPage(cred, { ...ventana, status, offset: 0 }, { signal });
+      tomar(primera.orders);
+      const paginas = Math.max(1, Math.ceil(primera.total / API.PAGE_SIZE));
+      for (let p = 1; p < paginas; p++) tareas.push(pagina(status, p * API.PAGE_SIZE));
+      paginasHechas++;
+      paginasTotal += paginas - 1;
+      ordenesApi += primera.total;
+      ordenesLeidas += primera.orders.length;
+      await progreso({ paginasHechas, paginasTotal, ordenesApi, ordenesLeidas });
+    }), API.CONCURRENCIA, signal);
+    const filtroTxt = filtro.length ? ` con estado ${filtro.map(etiquetaEstado).join(', ')}` : '';
+    await appendLog({ level: 'info', message: `La API tiene ${ordenesApi} orden(es)${filtroTxt} en la ventana (${paginasTotal} pagina(s) de ${API.PAGE_SIZE}).` });
+
     await enParalelo(tareas, API.CONCURRENCIA, signal);
     if (signal.aborted) throw new DOMException('Cancelado', 'AbortError');
 
     const multi = [...porNumero.values()].filter(Boolean);
-    await appendLog({ level: 'info', message: `${enRango} orden(es) creadas en el rango; ${multi.length} con 2 o mas productos.` });
+    await appendLog({ level: 'info', message: `${enRango} orden(es) creadas en el rango${filtroTxt}; ${multi.length} con 2 o mas productos.` });
 
     // 2. Items de las ordenes multi-producto.
     const lotes = [];
@@ -120,7 +143,7 @@ export async function runPaquetes({ desde, hasta } = {}) {
         if (!lista) continue;
         analizadas++;
         const a = analizarItems(lista);
-        if (a.problema) hallazgos.push(hallazgo(r, a));
+        if (a.problema) hallazgos.push(hallazgo(r, a, lista));
       }
       lotesHechos++;
       await progreso({ lotesHechos });
@@ -128,12 +151,13 @@ export async function runPaquetes({ desde, hasta } = {}) {
 
     // 3. Resultado.
     await updateRun((run) => ({ ...run, phase: PHASE.ANALYZING }));
-    hallazgos.sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+    hallazgos.sort((a, b) => a.createdAt.localeCompare(b.createdAt) || a.orderNumber.localeCompare(b.orderNumber));
     if (analizadas < multi.length) {
       await appendLog({ level: 'warn', message: `La API no devolvio items de ${multi.length - analizadas} orden(es) multi-producto.` });
     }
-    const stats = { enRango, multiProducto: multi.length, analizadas, conProblema: hallazgos.length, porEstado };
-    await setResult({ desde, hasta, hallazgos });
+    const t = totales(hallazgos);
+    const stats = { enRango, multiProducto: multi.length, analizadas, conProblema: t.ordenes, montoProblema: t.monto, porEstado };
+    await setResult({ desde, hasta, estados: filtro, hallazgos });
     await updateRun((run) => ({
       ...run,
       active: false,
@@ -145,7 +169,7 @@ export async function runPaquetes({ desde, hasta } = {}) {
     await appendLog({
       level: hallazgos.length ? 'warn' : 'info',
       message: hallazgos.length
-        ? `${hallazgos.length} orden(es) con productos juntos en un paquete.`
+        ? `${hallazgos.length} orden(es) con productos juntos en un paquete, por $${t.monto.toLocaleString('es-CL')} en total.`
         : 'Todas las ordenes multi-producto tienen un paquete por producto.',
     });
     log.info('analisis de paquetes listo', stats);
@@ -168,9 +192,10 @@ export async function runPaquetes({ desde, hasta } = {}) {
 }
 
 /** Motivo por el que no se puede arrancar, o null. */
-async function validar({ desde, hasta } = {}) {
+async function validar({ desde, hasta, estados } = {}) {
   if (running) return 'Ya hay un analisis en curso.';
   if (!desde || !hasta || desde > hasta) return 'Rango de fechas invalido.';
+  if (Array.isArray(estados) && !estados.length) return 'Elige al menos un estado.';
   if (!(await resolverCredenciales())) return 'Faltan las credenciales de la API. Cargalas en "Credenciales de la API".';
   return null;
 }

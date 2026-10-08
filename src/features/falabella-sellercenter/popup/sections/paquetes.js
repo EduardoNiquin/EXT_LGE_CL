@@ -1,12 +1,13 @@
 // UI de "Identificar paquetes en ordenes".
 //
-// El usuario elige un rango de dias y arranca; el analisis corre en el SERVICE
-// WORKER (sobrevive a cerrar el panel). Se muestra el avance en % y ordenes
-// leidas con un tiempo restante aproximado, y al final la lista de ordenes con
-// problema como texto (para copiar) y como Excel/CSV.
+// El usuario elige un rango de dias y los estados de orden, y arranca; el
+// analisis corre en el SERVICE WORKER (sobrevive a cerrar el panel). Se muestra
+// el avance en % y ordenes leidas con un tiempo restante aproximado, y al final
+// el total de ordenes con problema y su monto, una tarjeta desplegable por orden
+// (productos, precios, envio, estados) y las salidas: texto, Excel y CSV.
 
 import { utils, write } from 'xlsx';
-import { API, FINISH_REASON, MESSAGES, PHASE, PHASE_LABEL } from '../../constants.js';
+import { API, ESTADOS, etiquetaEstado, FINISH_REASON, MESSAGES, PHASE, PHASE_LABEL } from '../../constants.js';
 import {
   clearResult,
   clearRun,
@@ -17,9 +18,19 @@ import {
   subscribeToRun,
   updateRun,
 } from '../../state.js';
-import { buildCsv, buildTexto, exportFilename, filas, HEADERS } from '../../paquetes/export.js';
+import {
+  buildCsv,
+  buildTexto,
+  exportFilename,
+  filaTotalOrdenes,
+  filasOrdenes,
+  filasProductos,
+  HEADERS_ORDENES,
+  HEADERS_PRODUCTOS,
+} from '../../paquetes/export.js';
+import { totales } from '../../paquetes/analisis.js';
 import { sendMessage } from '../../../../shared/messaging/messaging.js';
-import { escapeHtml, formatTime } from '../../../../shared/ui/format.js';
+import { escapeHtml, formatClp, formatTime } from '../../../../shared/ui/format.js';
 import { toMessage } from '../../../../shared/errors/index.js';
 import { logger } from '../../../../shared/utils/logger.js';
 
@@ -29,6 +40,8 @@ const pad = (n) => String(n).padStart(2, '0');
 const ymd = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 const hoy = () => ymd(new Date());
 const haceDias = (n) => { const d = new Date(); d.setDate(d.getDate() - n); return ymd(d); };
+const clp = (n) => `$${formatClp(n || 0)}`;
+const TODOS = ESTADOS.map((e) => e.id);
 
 let unsubscribe = null;
 let reloj = null;
@@ -41,6 +54,7 @@ export async function render(container, { irA } = {}) {
   ]);
   const desde = draft?.desde || haceDias(7);
   const hasta = draft?.hasta || hoy();
+  const estados = Array.isArray(draft?.estados) && draft.estados.length ? draft.estados : TODOS;
   const minimo = haceDias(API.DIAS_HISTORIA);
   resultadoMostrado = null;
 
@@ -69,6 +83,21 @@ export async function render(container, { irA } = {}) {
           </label>
         </div>
         <p class="lt-hint epr-date-note">Fecha de creacion de la orden (hora de Chile, ambos dias incluidos). La API solo guarda unos ${API.DIAS_HISTORIA} dias hacia atras.</p>
+
+        <div class="fsc-estados">
+          <div class="fsc-estados-head">
+            <span class="epr-label">Estado de la orden</span>
+            <button type="button" id="fsc-estados-todos" class="fsc-link">Todos</button>
+          </div>
+          <div class="fsc-chips" role="group" aria-label="Estado de la orden">
+            ${ESTADOS.map((e) => `
+              <label class="fsc-chip">
+                <input type="checkbox" value="${e.id}" ${estados.includes(e.id) ? 'checked' : ''}>
+                <span>${escapeHtml(e.label)}</span>
+              </label>`).join('')}
+          </div>
+        </div>
+
         <div class="lt-actions">
           <button type="button" id="fsc-start" class="ct-btn ct-btn--primary">Analizar</button>
           <button type="button" id="fsc-cancel" class="ct-btn ct-btn--ghost" disabled>Cancelar</button>
@@ -94,9 +123,21 @@ export async function render(container, { irA } = {}) {
   const $ = (sel) => container.querySelector(sel);
   $('#fsc-ir-cred')?.addEventListener('click', () => irA?.('credenciales'));
 
-  const onDate = () => setDraft({ desde: $('#fsc-desde').value, hasta: $('#fsc-hasta').value }).catch(() => {});
-  $('#fsc-desde').addEventListener('change', onDate);
-  $('#fsc-hasta').addEventListener('change', onDate);
+  const guardar = () => setDraft({
+    desde: $('#fsc-desde').value,
+    hasta: $('#fsc-hasta').value,
+    estados: estadosElegidos(container),
+  }).catch(() => {});
+  $('#fsc-desde').addEventListener('change', guardar);
+  $('#fsc-hasta').addEventListener('change', guardar);
+  container.querySelectorAll('.fsc-chip input').forEach((el) => el.addEventListener('change', guardar));
+  $('#fsc-estados-todos').addEventListener('click', () => {
+    const chips = [...container.querySelectorAll('.fsc-chip input')];
+    const marcar = chips.some((el) => !el.checked);
+    chips.forEach((el) => { el.checked = marcar; });
+    guardar();
+  });
+
   $('#fsc-start').addEventListener('click', () => onStart(container));
   $('#fsc-cancel').addEventListener('click', onCancel);
   $('#fsc-clear').addEventListener('click', async () => {
@@ -118,15 +159,20 @@ export async function render(container, { irA } = {}) {
   }, 1000);
 }
 
+const estadosElegidos = (container) =>
+  [...container.querySelectorAll('.fsc-chip input:checked')].map((el) => el.value);
+
 async function onStart(container) {
   const desde = container.querySelector('#fsc-desde').value;
   const hasta = container.querySelector('#fsc-hasta').value;
+  const estados = estadosElegidos(container);
   if (!desde || !hasta) { alert('Selecciona Desde y Hasta.'); return; }
   if (desde > hasta) { alert('"Desde" no puede ser posterior a "Hasta".'); return; }
+  if (!estados.length) { alert('Elige al menos un estado.'); return; }
   try {
-    const res = await sendMessage({ type: MESSAGES.PAQUETES_START, payload: { desde, hasta } });
+    const res = await sendMessage({ type: MESSAGES.PAQUETES_START, payload: { desde, hasta, estados } });
     if (!res?.ok) { alert(res?.reason || 'No se pudo iniciar el analisis.'); return; }
-    log.info('analisis de paquetes iniciado', { desde, hasta });
+    log.info('analisis de paquetes iniciado', { desde, hasta, estados });
   } catch (err) {
     alert(`No se pudo iniciar: ${toMessage(err)}`);
   }
@@ -151,6 +197,7 @@ function renderRun(container, run) {
   const active = Boolean(run?.active);
 
   container.querySelectorAll('.lt-form-card input').forEach((el) => { el.disabled = active; });
+  $('#fsc-estados-todos').disabled = active;
   $('#fsc-start').disabled = active;
   $('#fsc-cancel').disabled = !active;
   $('#fsc-clear').classList.toggle('hidden', !run || active);
@@ -210,6 +257,8 @@ function renderAvance(container, run) {
   container.querySelector('#fsc-detail').innerHTML = partes.join(' · ');
 }
 
+const chipEstado = (id) => `<span class="fsc-estado fsc-estado--${escapeHtml(id)}">${escapeHtml(etiquetaEstado(id))}</span>`;
+
 async function renderResultado(container, run) {
   const box = container.querySelector('#fsc-result');
   if (run.active) { box.classList.add('hidden'); box.innerHTML = ''; resultadoMostrado = null; return; }
@@ -219,20 +268,24 @@ async function renderResultado(container, run) {
     return;
   }
   if (run.finishReason !== FINISH_REASON.DONE) { box.classList.add('hidden'); box.innerHTML = ''; return; }
-  if (resultadoMostrado === run.startedAt) return; // evita repintar (y perder la seleccion del texto)
+  if (resultadoMostrado === run.startedAt) return; // evita repintar (cierra los desplegables y pierde la seleccion)
   resultadoMostrado = run.startedAt;
 
   const result = await getResult();
   const hallazgos = result?.hallazgos || [];
   const s = run.stats || {};
+  const t = totales(hallazgos);
   box.classList.remove('hidden');
 
+  const filtro = result?.estados?.length
+    ? `<p class="lt-hint">Estados: ${result.estados.map(chipEstado).join(' ')}</p>`
+    : '';
   const resumen = `
+    ${filtro}
     <ul class="epr-stat-grid">
-      <li><span>Ordenes creadas en el rango</span><strong>${s.enRango ?? 0}</strong></li>
+      <li><span>Ordenes creadas en el rango</span><strong>${formatClp(s.enRango ?? 0)}</strong></li>
       <li><span>Con 2 o mas productos</span><strong>${s.multiProducto ?? 0}</strong></li>
       <li><span>Revisadas</span><strong>${s.analizadas ?? 0}</strong></li>
-      <li class="epr-stat-final"><span>Productos juntos en un paquete</span><strong>${hallazgos.length}</strong></li>
     </ul>`;
 
   if (!hallazgos.length) {
@@ -243,36 +296,44 @@ async function renderResultado(container, run) {
   const texto = buildTexto(hallazgos, result);
   box.innerHTML = `
     ${resumen}
-    <p class="oi-alert oi-alert--warning">${hallazgos.length} orden(es) a corregir: tienen productos que comparten paquete.</p>
+    <div class="fsc-totales">
+      <div class="fsc-total"><span>Ordenes con problema</span><strong>${t.ordenes}</strong></div>
+      <div class="fsc-total"><span>Monto total</span><strong>${clp(t.monto)}</strong></div>
+    </div>
     <div class="lt-actions">
       <button type="button" id="fsc-copy" class="ct-btn ct-btn--primary">Copiar texto</button>
       <button type="button" id="fsc-xlsx" class="ct-btn ct-btn--ghost">Excel</button>
       <button type="button" id="fsc-csv" class="ct-btn ct-btn--ghost">CSV</button>
     </div>
-    <textarea id="fsc-text" class="dt-input fsc-text" readonly rows="8">${escapeHtml(texto)}</textarea>
-    <ul class="fsc-list">
-      ${hallazgos.map((h) => `
-        <li class="fsc-item">
-          <div class="fsc-item-head">
-            <strong>${escapeHtml(h.orderNumber)}</strong>
-            <span class="fsc-badge">${h.productos} productos · ${h.paquetes} paquete(s)</span>
-          </div>
-          <div class="fsc-item-sub">${escapeHtml(h.createdAt.slice(0, 16))} · ${escapeHtml(h.estados.join(', '))}</div>
-          <div class="fsc-item-sub">${escapeHtml(h.skus)} · ${escapeHtml(h.packageIds.join(', '))}</div>
-        </li>`).join('')}
-    </ul>`;
+    <div class="fsc-list-head">
+      <span class="epr-label">Ordenes (${t.ordenes})</span>
+      <button type="button" id="fsc-expand" class="fsc-link">Abrir todas</button>
+    </div>
+    <div class="fsc-list">${hallazgos.map(tarjetaOrden).join('')}</div>
+    <details class="ct-diag">
+      <summary>Texto para copiar</summary>
+      <textarea id="fsc-text" class="dt-input fsc-text" readonly rows="8">${escapeHtml(texto)}</textarea>
+    </details>`;
 
   const copy = box.querySelector('#fsc-copy');
   copy.addEventListener('click', async () => {
     try {
       await navigator.clipboard.writeText(texto);
-      copy.textContent = 'Copiado';
     } catch {
-      box.querySelector('#fsc-text').select();
+      const area = box.querySelector('#fsc-text');
+      area.closest('details').open = true;
+      area.select();
       document.execCommand('copy');
-      copy.textContent = 'Copiado';
     }
+    copy.textContent = 'Copiado';
     setTimeout(() => { copy.textContent = 'Copiar texto'; }, 1500);
+  });
+  const expand = box.querySelector('#fsc-expand');
+  expand.addEventListener('click', () => {
+    const cards = [...box.querySelectorAll('.fsc-orden')];
+    const abrir = cards.some((d) => !d.open);
+    cards.forEach((d) => { d.open = abrir; });
+    expand.textContent = abrir ? 'Cerrar todas' : 'Abrir todas';
   });
   box.querySelector('#fsc-csv').addEventListener('click', () => {
     descargar(new Blob([buildCsv(hallazgos)], { type: 'text/csv;charset=utf-8' }), exportFilename(result.desde, result.hasta, 'csv'));
@@ -280,16 +341,79 @@ async function renderResultado(container, run) {
   box.querySelector('#fsc-xlsx').addEventListener('click', () => exportXlsx(hallazgos, result));
 }
 
+function tarjetaOrden(h) {
+  const m = h.montos || {};
+  const filas = (h.items || []).map((it) => `
+    <tr class="${it.compartido ? 'is-compartido' : ''} ${it.activo ? '' : 'is-inactivo'}">
+      <td>
+        <div class="fsc-sku">${escapeHtml(it.sku)}</div>
+        <div class="fsc-nombre">${escapeHtml(it.nombre)}</div>
+        <div class="fsc-pkg">${escapeHtml(it.paquete || 'sin paquete')}${it.compartido ? ' · <strong>compartido</strong>' : ''}</div>
+      </td>
+      <td class="fsc-num">
+        ${clp(it.precio)}
+        ${it.precioLista > it.precio ? `<div class="fsc-tachado">${clp(it.precioLista)}</div>` : ''}
+      </td>
+      <td>${chipEstado(it.estado)}</td>
+    </tr>`).join('');
+
+  return `
+    <details class="fsc-orden">
+      <summary>
+        <span class="fsc-orden-num">${escapeHtml(h.orderNumber)}</span>
+        <span class="fsc-orden-total">${clp(m.total)}</span>
+        <span class="fsc-orden-meta">
+          ${escapeHtml(h.createdAt.slice(0, 16))} · ${h.productos} productos en ${h.paquetes} paquete${h.paquetes === 1 ? '' : 's'}
+        </span>
+        <span class="fsc-orden-estados">${h.estados.map(chipEstado).join(' ')}</span>
+      </summary>
+      <div class="fsc-orden-body">
+        <table class="fsc-items">
+          <thead><tr><th>Producto</th><th class="fsc-num">Precio</th><th>Estado</th></tr></thead>
+          <tbody>${filas}</tbody>
+        </table>
+        <dl class="fsc-montos">
+          <dt>Productos</dt><dd>${clp(m.productos)}</dd>
+          ${m.descuento ? `<dt>Descuento (incluido)</dt><dd>-${clp(m.descuento)}</dd>` : ''}
+          <dt>Envio</dt><dd>${m.envio ? clp(m.envio) : 'Sin costo'}</dd>
+          <dt class="fsc-montos-total">Total orden</dt><dd class="fsc-montos-total">${clp(m.total)}</dd>
+        </dl>
+        ${h.guias.length ? `<p class="fsc-guia">Guia compartida: ${escapeHtml(h.guias.join(', '))}</p>` : ''}
+        ${h.promesa ? `<p class="fsc-guia">Promesa de despacho: ${escapeHtml(h.promesa.slice(0, 16))}</p>` : ''}
+      </div>
+    </details>`;
+}
+
 function exportXlsx(hallazgos, result) {
-  const rows = filas(hallazgos);
-  const sheet = utils.aoa_to_sheet([HEADERS, ...rows]);
-  sheet['!cols'] = [12, 19, 16, 16, 9, 9, 9, 34, 50, 18, 20, 19, 12].map((wch) => ({ wch }));
-  sheet['!autofilter'] = { ref: utils.encode_range({ s: { r: 0, c: 0 }, e: { r: rows.length, c: HEADERS.length - 1 } }) };
   const book = utils.book_new();
-  utils.book_append_sheet(book, sheet, 'Paquetes');
+
+  const ordenes = filasOrdenes(hallazgos);
+  const hojaOrdenes = utils.aoa_to_sheet([HEADERS_ORDENES, ...ordenes, filaTotalOrdenes(hallazgos)]);
+  hojaOrdenes['!cols'] = [12, 19, 18, 9, 9, 9, 34, 18, 20, 14, 10, 11, 14, 19, 12].map((wch) => ({ wch }));
+  hojaOrdenes['!autofilter'] = { ref: utils.encode_range({ s: { r: 0, c: 0 }, e: { r: ordenes.length, c: HEADERS_ORDENES.length - 1 } }) };
+  formatoMoneda(hojaOrdenes, ordenes.length + 1, [9, 10, 11, 12]);
+  utils.book_append_sheet(book, hojaOrdenes, 'Ordenes');
+
+  const productos = filasProductos(hallazgos);
+  const hojaProductos = utils.aoa_to_sheet([HEADERS_PRODUCTOS, ...productos]);
+  hojaProductos['!cols'] = [12, 19, 18, 7, 30, 46, 18, 12, 12, 18, 10, 20, 14, 10, 14].map((wch) => ({ wch }));
+  hojaProductos['!autofilter'] = { ref: utils.encode_range({ s: { r: 0, c: 0 }, e: { r: productos.length, c: HEADERS_PRODUCTOS.length - 1 } }) };
+  formatoMoneda(hojaProductos, productos.length, [7, 8, 12, 13, 14]);
+  utils.book_append_sheet(book, hojaProductos, 'Productos');
+
   const bytes = write(book, { type: 'array', bookType: 'xlsx' });
   const blob = new Blob([bytes], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
   descargar(blob, exportFilename(result.desde, result.hasta, 'xlsx'));
+}
+
+/** Formato $ con separador de miles en las columnas de montos (filas 1..n). */
+function formatoMoneda(sheet, n, cols) {
+  for (let r = 1; r <= n; r++) {
+    for (const c of cols) {
+      const cell = sheet[utils.encode_cell({ r, c })];
+      if (cell && typeof cell.v === 'number') cell.z = '"$"#,##0';
+    }
+  }
 }
 
 function descargar(blob, filename) {

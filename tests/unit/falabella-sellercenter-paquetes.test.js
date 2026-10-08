@@ -2,8 +2,12 @@ import { createHmac } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 import { queryOrdenada, timestampApi, urlFirmada } from '../../src/features/falabella-sellercenter/api/firma.js';
 import { comoLista } from '../../src/features/falabella-sellercenter/api/cliente.js';
-import { analizarItems, diaDe, hallazgo, resumenOrden, ventanaApi } from '../../src/features/falabella-sellercenter/paquetes/analisis.js';
-import { buildCsv, buildTexto, filas } from '../../src/features/falabella-sellercenter/paquetes/export.js';
+import {
+  analizarItems, diaDe, hallazgo, parseMonto, pasaFiltroEstados, resumenOrden, totales, ventanaApi,
+} from '../../src/features/falabella-sellercenter/paquetes/analisis.js';
+import {
+  buildCsv, buildTexto, filaTotalOrdenes, filasOrdenes, filasProductos,
+} from '../../src/features/falabella-sellercenter/paquetes/export.js';
 import { descifrar } from '../../src/features/falabella-sellercenter/api/embebido.js';
 import { cifrarSecreto } from '../../scripts/secretos.mjs';
 
@@ -88,21 +92,82 @@ describe('fechas', () => {
   });
 });
 
-describe('export', () => {
-  const h = hallazgo(resumenOrden({ OrderId: '1167611729', OrderNumber: '3254612276', CreatedAt: '2026-10-05 14:47:24', ItemsCount: '2', Statuses: [{ Status: 'ready_to_ship' }] }), analizarItems(MAL));
+// Cabecera real de 3254612276 (montos tal cual los manda la API).
+const ORDEN_MAL = {
+  OrderId: '1167611729', OrderNumber: '3254612276', CreatedAt: '2026-10-05 14:47:24', ItemsCount: '2',
+  Statuses: [{ Status: 'ready_to_ship' }], Price: '658970.00', GrandTotal: '658,970.00',
+  ProductTotal: '639,980.00', ShippingFeeTotal: '18,990.00', Voucher: '20002.00',
+};
+const MAL_CON_PRECIOS = MAL.map((it, i) => ({ ...it, OrderItemId: String(42764139 + i), PaidPrice: '319990.00', ItemPrice: '329991.00', ShippingAmount: '9495.00' }));
+const h = hallazgo(resumenOrden(ORDEN_MAL), analizarItems(MAL_CON_PRECIOS), MAL_CON_PRECIOS);
 
-  it('una fila por orden', () => {
-    expect(filas([h])[0].slice(0, 7)).toEqual(['3254612276', '2026-10-05 14:47:24', 'ready_to_ship', 'ready_to_ship', 2, 1, 1]);
+describe('montos y productos', () => {
+  it('parsea montos con coma de miles', () => {
+    expect(parseMonto('658,970.00')).toBe(658970);
+    expect(parseMonto('20002.00')).toBe(20002);
+    expect(parseMonto('')).toBe(0);
+    expect(parseMonto('abc')).toBe(0);
   });
-  it('CSV con BOM y protegido contra formulas', () => {
-    const csv = buildCsv([{ ...h, nombres: ['=HYPERLINK()'] }]);
+
+  it('montos de la orden: total = productos + envio', () => {
+    expect(h.montos).toEqual({ productos: 639980, envio: 18990, descuento: 20002, total: 658970 });
+    expect(h.montos.productos + h.montos.envio).toBe(h.montos.total);
+  });
+
+  it('productos con SKU y precio, primero los del paquete compartido', () => {
+    const items = [...MAL_CON_PRECIOS, item({ Sku: 'AAA', PackageId: 'PKG-A', PaidPrice: '1000.00' }), item({ Sku: 'CAN', Status: 'canceled', PackageId: 'PKG-0' })];
+    const lista = hallazgo(resumenOrden(ORDEN_MAL), analizarItems(items), items).items;
+    expect(lista.map((it) => [it.sku, it.compartido, it.activo])).toEqual([
+      ['55NU855BPSA.AWH.ESCL.CL.C', true, true],
+      ['55NU855BPSA.AWH.ESCL.CL.C', true, true],
+      ['AAA', false, true],
+      ['CAN', false, false],
+    ]);
+    expect(lista[0]).toMatchObject({ precio: 319990, precioLista: 329991, paquete: 'PKG00002M1XS5', guia: '140111000018569779' });
+  });
+
+  it('totales del resultado', () => {
+    const otra = { ...h, orderNumber: '1', montos: { ...h.montos, total: 30, envio: 0 } };
+    expect(totales([h, otra])).toEqual({ ordenes: 2, monto: 659000, envio: 18990 });
+    expect(totales([])).toEqual({ ordenes: 0, monto: 0, envio: 0 });
+  });
+
+  it('filtro de estados: vacio deja pasar todo; si no, basta con un estado', () => {
+    expect(pasaFiltroEstados(['pending'], [])).toBe(true);
+    expect(pasaFiltroEstados(['pending', 'canceled'], ['canceled'])).toBe(true);
+    expect(pasaFiltroEstados(['delivered'], ['pending', 'ready_to_ship'])).toBe(false);
+  });
+});
+
+describe('export', () => {
+  it('hoja Ordenes: una fila por orden con montos y estado legible', () => {
+    expect(filasOrdenes([h])[0]).toEqual([
+      '3254612276', '2026-10-05 14:47:24', 'Listo para despacho', 2, 1, 1,
+      '55NU855BPSA.AWH.ESCL.CL.C x2', 'PKG00002M1XS5', '140111000018569779',
+      639980, 18990, 20002, 658970, '', '1167611729',
+    ]);
+    expect(filaTotalOrdenes([h, h])).toEqual(['TOTAL (2 ordenes)', '', '', '', '', '', '', '', '', 1279960, 37980, 40004, 1317940, '', '']);
+  });
+
+  it('hoja Productos: una fila por producto; montos de la orden solo en la primera', () => {
+    const filas = filasProductos([h]);
+    expect(filas).toHaveLength(2);
+    expect(filas[0].slice(0, 5)).toEqual(['3254612276', '2026-10-05 14:47:24', 'Listo para despacho', '1 de 2', '55NU855BPSA.AWH.ESCL.CL.C']);
+    expect(filas[0].slice(7)).toEqual([319990, 329991, 'PKG00002M1XS5', 'Si', '140111000018569779', 639980, 18990, 658970]);
+    expect(filas[1].slice(12)).toEqual(['', '', '']);
+  });
+
+  it('CSV con BOM, una fila por producto y protegido contra formulas', () => {
+    const csv = buildCsv([{ ...h, items: [{ ...h.items[0], nombre: '=HYPERLINK()' }] }]);
     expect(csv.charCodeAt(0)).toBe(0xfeff);
+    expect(csv.split('\r\n')).toHaveLength(2);
     expect(csv).toContain(`"'=HYPERLINK()"`);
   });
-  it('texto para copiar', () => {
-    expect(buildTexto([h], { desde: '2026-10-01', hasta: '2026-10-07' })).toBe(
-      'Ordenes con productos agrupados en un solo paquete (2026-10-01 a 2026-10-07): 1\n'
-      + '3254612276 — 2 productos en 1 paquete(s) — 55NU855BPSA.AWH.ESCL.CL.C x2 — ready_to_ship — PKG00002M1XS5',
+
+  it('texto para copiar con total', () => {
+    expect(buildTexto([h], { desde: '2026-10-01', hasta: '2026-10-07', estados: ['ready_to_ship'] })).toBe(
+      'Ordenes con productos agrupados en un solo paquete (2026-10-01 a 2026-10-07 · estados: Listo para despacho): 1 · monto total $658.970\n'
+      + '3254612276 — 2 productos en 1 paquete(s) — 55NU855BPSA.AWH.ESCL.CL.C x2 — Listo para despacho — total $658.970 — PKG00002M1XS5',
     );
   });
 });

@@ -78,13 +78,14 @@ export async function llamar(cred, action, filtros = {}, { signal } = {}) {
 
 /**
  * Una pagina de GetOrders, ordenada por fecha de creacion (asi la paginacion no
- * se reordena cuando una orden se actualiza).
+ * se reordena cuando una orden se actualiza). `status` = filtro de un estado.
  * @returns {Promise<{total:number, orders:object[]}>}
  */
-export async function getOrdersPage(cred, { createdAfter, createdBefore, offset = 0, limit = API.PAGE_SIZE }, opts) {
+export async function getOrdersPage(cred, { createdAfter, createdBefore, status, offset = 0, limit = API.PAGE_SIZE }, opts) {
   const ok = await llamar(cred, 'GetOrders', {
     CreatedAfter: createdAfter,
     CreatedBefore: createdBefore,
+    Status: status,
     Limit: String(limit),
     Offset: String(offset),
     SortBy: 'created_at',

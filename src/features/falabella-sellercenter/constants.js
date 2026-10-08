@@ -61,6 +61,19 @@ export const API = {
 // Identificar paquetes
 // -----------------------------------------------------------------------------
 
+// Estados de orden/item de la API (valores del filtro `Status` de GetOrders).
+export const ESTADOS = [
+  { id: 'pending',       label: 'Pendiente' },
+  { id: 'ready_to_ship', label: 'Listo para despacho' },
+  { id: 'shipped',       label: 'Enviado' },
+  { id: 'delivered',     label: 'Entregado' },
+  { id: 'canceled',      label: 'Cancelado' },
+  { id: 'failed',        label: 'Fallido' },
+  { id: 'returned',      label: 'Devuelto' },
+];
+export const ESTADO_LABEL = Object.fromEntries(ESTADOS.map((e) => [e.id, e.label]));
+export const etiquetaEstado = (id) => ESTADO_LABEL[id] || id || '';
+
 // Items que ya no se despachan: no cuentan para decidir si la orden esta bien
 // separada (una orden de 2 con 1 cancelado es de 1 producto).
 export const ITEM_STATUS_INACTIVOS = ['canceled', 'failed', 'returned'];
