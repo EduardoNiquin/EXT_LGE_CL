@@ -5,6 +5,7 @@ import * as globalShippingRules from './sections/global-shipping-rules.js';
 import * as informacionDeOrden from '../informacion_de_orden/popup/section.js';
 import * as softbundles from '../softbundles/popup/section.js';
 import * as ventasEnVivo from '../ventas-en-vivo/popup/section.js';
+import * as stock from '../stock/popup/section.js';
 import { escapeHtml } from './utils.js';
 
 const MODULES = [
@@ -50,6 +51,15 @@ const MODULES = [
     abbr: 'VEV',
     render: ventasEnVivo.render,
   },
+  {
+    id: 'stock',
+    name: 'Stock',
+    description: 'Avisa con notificaciones cuando un producto de lg.com/cl queda sin stock, sale de la tienda o entra en poco stock',
+    abbr: 'STK',
+    render: stock.render,
+    // Alertas sin ver: se muestran en la tarjeta (el badge del icono no se usa).
+    contador: stock.contador,
+  },
 ];
 
 export function render(container) {
@@ -68,6 +78,7 @@ function renderMenu(container) {
               <span class="feature-name">${module.name}</span>
               <span class="feature-desc">${module.description}</span>
             </span>
+            ${module.contador ? `<span class="mg-module-count" data-contador="${module.id}" hidden></span>` : ''}
             <svg class="feature-arrow" viewBox="0 0 16 16" fill="none" aria-hidden="true">
               <path d="M6 3l5 5-5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
@@ -78,6 +89,21 @@ function renderMenu(container) {
   container.querySelectorAll('[data-module]').forEach((button) => {
     button.addEventListener('click', () => renderModule(container, button.dataset.module));
   });
+  pintarContadores(container);
+}
+
+/** Cuenta propia de cada modulo que la tenga (p. ej. alertas sin ver de Stock). */
+function pintarContadores(container) {
+  for (const module of MODULES) {
+    if (!module.contador) continue;
+    Promise.resolve(module.contador()).then((n) => {
+      const el = container.querySelector(`[data-contador="${module.id}"]`);
+      if (!el) return;
+      el.textContent = n > 99 ? '99+' : String(n);
+      el.hidden = !n;
+      el.title = `${n} sin ver`;
+    }).catch(() => { /* sin storage: sin cuenta */ });
+  }
 }
 
 function renderModule(container, id) {

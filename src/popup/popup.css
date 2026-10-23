@@ -2999,3 +2999,40 @@ body.bn-wide #app { overflow: hidden; }
 .cp-trace-list { max-height: 260px; overflow-y: auto; }
 .cp-trace-ctx { display: inline-block; min-width: 46px; font-size: 9.5px; font-weight: 700; text-transform: uppercase; color: var(--text-subtle); }
 .cp-trace-data { display: block; margin-top: 2px; font-size: 10px; color: var(--text-muted); white-space: pre-wrap; overflow-wrap: anywhere; }
+
+/* ============================================================================
+   Magento · Stock (alertas de stock de lg.com/cl desde el portal OBS)
+   ============================================================================ */
+.mg-module-count {
+  flex: none; min-width: 20px; padding: 1px 6px; border-radius: 999px; text-align: center;
+  font-size: 10.5px; font-weight: 700; background: var(--accent); color: var(--on-accent);
+}
+.stk-tipos { margin-top: 8px; }
+.stk-tipos .dt-label { display: block; margin-bottom: 6px; }
+.stk-btn-chico { padding: 4px 9px; font-size: 11px; }
+.stk-filtros { margin: 8px 0; }
+.stk-alertas { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.stk-alerta {
+  padding: 6px 8px; border: 1px solid var(--border-soft); border-left: 3px solid var(--border);
+  border-radius: var(--radius-sm); background: var(--surface);
+}
+.stk-alerta--nueva { border-left-color: var(--accent); background: var(--surface-2); }
+.stk-alerta-cab { display: flex; justify-content: space-between; align-items: center; gap: 6px; }
+.stk-alerta-hora { font-size: 10.5px; color: var(--text-subtle); font-variant-numeric: tabular-nums; }
+.stk-alerta-nombre { margin-top: 3px; font-size: 12px; font-weight: 600; color: var(--text); }
+.stk-alerta-det { font-size: 11px; color: var(--text-muted); overflow-wrap: anywhere; }
+.stk-alerta-det a, .stk-col-nombre a { color: var(--accent); }
+.stk-chip {
+  display: inline-block; padding: 1px 7px; border-radius: 999px; font-size: 10px; font-weight: 700;
+  border: 1px solid transparent; background: var(--surface-3); color: var(--text-muted);
+}
+.stk-chip--sin_stock, .stk-chip--agotado { background: var(--danger-bg); color: var(--danger); border-color: var(--danger-border); }
+.stk-chip--fuera_de_tienda, .stk-chip--fuera { background: var(--surface-3); color: var(--text-subtle); border-color: var(--border); }
+.stk-chip--poco_stock, .stk-chip--preventa { background: var(--accent-soft); color: var(--warning); border-color: var(--warning); }
+.stk-chip--en_stock { background: var(--success-bg); color: var(--success); border-color: var(--success-border); }
+.stk-tabla-wrap { max-height: 320px; }
+.stk-tabla { width: 100%; }
+.stk-tabla .stk-col-nombre { max-width: 210px; white-space: normal; }
+.stk-tabla .stk-col-nombre small { display: block; color: var(--text-subtle); font-size: 10px; }
+.stk-tabla .stk-num { text-align: right; font-variant-numeric: tabular-nums; }
+.stk-tabla .stk-poco { color: var(--warning); font-weight: 700; }
