@@ -1,4 +1,5 @@
 import { render as renderColocarTags } from '../features/colocar-tags/popup/view.js';
+import { render as renderCrearPromoId } from '../features/crear-promo-id/popup/view.js';
 import { render as renderLeadTimes }   from '../features/lead-times/popup/view.js';
 import { render as renderCupones }     from '../features/cupones/popup/view.js';
 import { render as renderOrdenInfo }   from '../features/orden-info/popup/view.js';
@@ -25,6 +26,14 @@ export const features = [
     abbr: 'TAG',
     keywords: ['tag', 'etiqueta', 'colocar', 'gp1', 'marketing'],
     render: renderColocarTags,
+  },
+  {
+    id: 'crear-promo-id',
+    name: 'Crear Promo-Id',
+    description: 'Crea una promocion en GP1 (Promotion Management) con una lista de SKUs',
+    abbr: 'PRM',
+    keywords: ['promo', 'promocion', 'promoción', 'promotion', 'promo-id', 'promo id', 'gp1', 'sku', 'modelos', 'stg', 'campaña', 'campana'],
+    render: renderCrearPromoId,
   },
   {
     id: 'magento',

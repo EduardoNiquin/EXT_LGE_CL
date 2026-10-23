@@ -50,6 +50,7 @@ export async function render(container) {
           <span>Grabar bitacora: lo que hace la extension y lo que haces tu (Submit incluido), en Markdown.
             Se descarga sola al terminar en Descargas/${escapeHtml(EXPORT_REGISTRO.carpeta)}/</span>
         </label>
+        <p class="lt-err hidden" id="fa-bloqueado">Iniciar esta deshabilitado: resuelve lo marcado como "Falta" arriba.</p>
         <div class="lt-actions">
           <button type="button" id="fa-iniciar" class="ct-btn ct-btn--primary">Iniciar (hasta Save)</button>
           <button type="button" id="fa-continuar" class="ct-btn ct-btn--primary hidden">Continuar</button>
@@ -132,7 +133,9 @@ function renderRequisitos(container, ctx, requisitos) {
       return `<li class="${clase}">${etiqueta}: ${escapeHtml(texto)}</li>`;
     })
     .join('');
-  container.querySelector('#fa-iniciar').disabled = !puedeIniciar(items);
+  const bloqueado = !puedeIniciar(items);
+  container.querySelector('#fa-iniciar').disabled = bloqueado;
+  container.querySelector('#fa-bloqueado').classList.toggle('hidden', !bloqueado);
 }
 
 // --- acciones -----------------------------------------------------------------
@@ -145,7 +148,10 @@ async function onIniciar(container, ctx, requisitos) {
     bitacora: container.querySelector('#fa-bitacora').checked,
   };
   const resumen = `${ctx.plan.customer}, ${nombreDocumento(ctx.plan.docType)} ${ctx.plan.invoiceNumber}: ${ctx.plan.resumen.filasDebit} filas, credito ${ctx.plan.resumen.credit}.`;
-  if (!confirm(`Cargar en GEVS hasta Save? El Submit lo haces tu despues.\n${resumen}\nBitacora: ${config.bitacora ? 'si' : 'no'}.`)) return;
+  const adjuntos = ctx.plan.adjuntos.length
+    ? ctx.plan.adjuntos.map((a) => `${a.rol}: ${a.nombre}`).join(', ')
+    : 'ninguno';
+  if (!confirm(`Cargar en GEVS hasta Save? El Submit lo haces tu despues.\n${resumen}\nAdjuntos: ${adjuntos}.\nBitacora: ${config.bitacora ? 'si' : 'no'}.`)) return;
   await setPlan(ctx.plan);
   const respuesta = await sendMessage({ type: MESSAGES.INICIAR, plan: ctx.plan, config });
   if (!respuesta?.ok) alert(`No se pudo iniciar: ${respuesta?.reason || 'sin respuesta del service worker'}`);

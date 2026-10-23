@@ -27,6 +27,8 @@ function textoOVacio(valor) {
  */
 export function fechaIso(valor) {
   if (!(valor instanceof Date) || Number.isNaN(valor.getTime())) return textoOVacio(valor);
+  // Una celda de fecha con 0 (formula sin dato) llega como 1899-12-30/31.
+  if (valor.getFullYear() < 1901) return '';
   const mm = String(valor.getMonth() + 1).padStart(2, '0');
   const dd = String(valor.getDate()).padStart(2, '0');
   return `${valor.getFullYear()}-${mm}-${dd}`;
@@ -69,8 +71,19 @@ function filasComoObjetos(matriz, rotulosClave) {
 
 // --- Master 1 -----------------------------------------------------------------
 
+/** Numero de factura como string; '' si falta o es 0 (formula sin dato). */
+function numeroFactura(valor) {
+  if (valor == null || valor === '' || valor === 0) return '';
+  return String(valor).trim();
+}
+
 /**
  * Filas de "Master 1_BU v2": una por factura x division.
+ *
+ * Desde 2026-10 Finanzas renombro columnas: la fecha de la factura vive en
+ * "Invoice Received" (antes "Invoice Date"; "Invoice Received" era el mes en
+ * texto) y el mes de la Description en "Cut Date Month" (antes "Impact Month").
+ * Se aceptan los dos layouts: manda la columna vieja si el archivo la trae.
  * @returns {Array<object>} ver campos abajo; `netoClp` es null cuando la celda esta vacia y
  *   `redondeadoClp` (col "INVOICE ROUND AMOUNT", ROUND(neto) puesto por Finanzas desde 2026-09)
  *   es null en los archivos que no traen la columna.
@@ -79,9 +92,9 @@ export function leerMaster1(matriz) {
   return filasComoObjetos(matriz, ['Customer', 'Invoice Number', 'Division']).map((f) => ({
     year: numeroONulo(f.year),
     cutDate: textoOVacio(f['cut date']),
-    impactMonth: textoOVacio(f['impact month']),
-    invoiceDate: fechaIso(f['invoice date']),
-    invoiceNumber: f['invoice number'] == null || f['invoice number'] === '' ? '' : String(f['invoice number']).trim(),
+    cutDateMonth: textoOVacio('impact month' in f ? f['impact month'] : f['cut date month']),
+    invoiceDate: fechaIso('invoice date' in f ? f['invoice date'] : f['invoice received']),
+    invoiceNumber: numeroFactura(f['invoice number']),
     customer: textoOVacio(f.customer),
     bu: textoOVacio(f.bu).toUpperCase(),
     division: textoOVacio(f.division),
@@ -107,7 +120,9 @@ export function leerMaster2(matriz) {
     systemModule: normalizar(f['system module']),
     invoiceType: textoOVacio(f['invoice type']),
     payeeCode: textoOVacio(f['payee code']),
-    titulo: textoOVacio(f['description (f/cn-123 + title + mmyy)'] ?? f.description),
+    // El encabezado cambia con cada ajuste de Finanzas ("Description (F/CN-123 +
+    // title + MMYY)", luego "... + Cut date month)"): se ubica por el prefijo.
+    titulo: textoOVacio(f[Object.keys(f).find((k) => k.startsWith('description'))]),
     creditAccount: textoOVacio(f['credit-account']),
     debitDepartment: textoOVacio(f['debit-department']),
     vatCode: textoOVacio(f['vat tax code']),

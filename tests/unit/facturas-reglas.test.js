@@ -9,8 +9,8 @@ import { leerMapa, leerMaster1, leerMaster2, normalizar } from '../../src/featur
 import { agruparDocumentos } from '../../src/features/facturas/reglas/agrupar.js';
 import { armarReceta } from '../../src/features/facturas/reglas/receta.js';
 import { calcularMontos, redondear } from '../../src/features/facturas/reglas/calculo.js';
-import { armarDescripcion, fechaGevs, mesDeImpactMonth } from '../../src/features/facturas/reglas/descripcion.js';
-import { evaluarElegibilidad } from '../../src/features/facturas/reglas/validar.js';
+import { armarDescripcion, fechaGevs, mesEnIngles } from '../../src/features/facturas/reglas/descripcion.js';
+import { estadoFactura, evaluarElegibilidad } from '../../src/features/facturas/reglas/validar.js';
 import { armarPlan, emparejarAdjuntos } from '../../src/features/facturas/reglas/plan.js';
 
 const FECHA_MP = new Date(2026, 7, 25);
@@ -29,21 +29,22 @@ const NETOS_MP = [
   ['SAC', 'DMT', 0],
 ];
 
-// Layout de Master 1 desde 2026-09: "Doc Type" al principio y las columnas
-// "INVOICE ROUND AMOUNT" / "INVOICE ROUND VAT" (el ROUND de Finanzas).
+// Layout de Master 1 desde 2026-10: la fecha de la factura en "Invoice Received",
+// el mes de la Description en "Cut Date Month" e "Invoice Status" con el mes
+// ("Need to register on OCT"). Las columnas ROUND son las de 2026-09.
 const ENCABEZADO_MASTER1 = [
-  'Doc Type', 'Year', 'Cut Date', 'Invoice Received', 'Impact Month', 'Invoice Registered', 'Invoice Date',
+  'Doc Type', 'Year', 'Cut Date', 'Cut Date Month', 'Invoice Received', 'Provision Status', 'Invoice Status',
   'Invoice Number', 'Customer', 'OBS/3P', 'BU', 'Division', 'Invoice Net Amt (CLP)', 'VAT (CLP)', 'Total Amt (CLP)',
-  'INVOICE ROUND AMOUNT', 'INVOICE ROUND VAT', 'Commission Type', 'Invoice Status', 'Invoice URL',
+  'INVOICE ROUND AMOUNT', 'INVOICE ROUND VAT', 'Commission Type', 'Description', 'Invoice URL',
 ];
 const COL = Object.fromEntries(ENCABEZADO_MASTER1.map((h, i) => [h, i]));
 
 function filaMaster1({
-  division, bu, neto, vat = 0, total = null, roundVat = null, status = 'Pending', numero = 2943361, url = null,
+  division, bu, neto, vat = 0, total = null, roundVat = null, status = 'Need to register on OCT', numero = 2943361, url = null,
   customer = 'MERCADO PAGO', docType = 'Invoice', redondeado = redondear(neto),
 }) {
-  return [docType, 2026, 'JUL 26 to AUG 25', 'AUG', 'AUG (Provision)', 'Pending', FECHA_MP, numero, customer, 'OBS', bu, division,
-    neto, vat, total ?? neto * 1.19, redondeado, roundVat, 'Monthly Commission', status, url];
+  return [docType, 2026, 'JUL 26 to AUG 25', 'AUG', FECHA_MP, 'Accrued on AUG', status, numero, customer, 'OBS', bu, division,
+    neto, vat, total ?? neto * 1.19, redondeado, roundVat, 'Monthly Commission', null, url];
 }
 
 /** `signo: -1` deja el fixture como nota de credito (sin -0: Excel tampoco los tiene). */
@@ -64,7 +65,7 @@ function matrizMaster1({ signo = 1, ...opciones } = {}) {
 const MATRIZ_MASTER2 = [
   ['STEPS', 1, 2, 3],
   [null, 'Payee', 'Doc No', 'Doc Type', 'System Module', 'Invoice Type', 'Invoice No', 'Date', 'Payee Code',
-    'Total Amount in Invoice Detail', 'Description (F/CN-123 + title + MMYY)', 'Expense', 'TAX', 'Credit-Account',
+    'Total Amount in Invoice Detail', 'Description (F/CN-123 + title + Cut date month)', 'Expense', 'TAX', 'Credit-Account',
     'Debit-Department', 'Manual BU', 'Button of "Add"', 'TAX_CODE column', 'VAT Tax Code', 'Debit-Account'],
   [null, 'MERCADO PAGO', 33, 'Invoice', 'Complex voucher', 'Vendor Invoice (CHL)', 'Find', 'Select', 'CL005108', null,
     'PG Commission MERCADO PAGO, 1.0%-2.3% - ', null, null, 21117701, 20148, null, null, null, 'CLIDD19', 51357755],
@@ -102,7 +103,7 @@ describe('hojas', () => {
     expect(filas).toHaveLength(12);
     expect(filas[0]).toMatchObject({
       year: 2026, customer: 'MERCADO PAGO', bu: 'CNT', division: 'Refrigeration', invoiceNumber: '2943361',
-      docType: 'invoice', status: 'pending', impactMonth: 'AUG (Provision)', redondeadoClp: 1508792,
+      docType: 'invoice', status: 'need to register on oct', cutDateMonth: 'AUG', redondeadoClp: 1508792,
     });
     expect(filas[0].invoiceDate).toBe('2026-08-25');
     expect(filas[11].invoiceUrl).toBe('2026-08-BILL-MercadoPago (2).pdf');
@@ -110,11 +111,31 @@ describe('hojas', () => {
 
   it('deja el numero como string y la fecha invalida como texto', () => {
     const matriz = matrizMaster1();
-    matriz[3][COL['Invoice Date']] = 'sep';
+    matriz[3][COL['Invoice Received']] = 'sep';
     matriz[3][COL['Invoice Number']] = null;
     const [fila] = leerMaster1(matriz);
     expect(fila.invoiceDate).toBe('sep');
     expect(fila.invoiceNumber).toBe('');
+  });
+
+  it('toma el 0 de una formula sin dato como vacio (numero y fecha)', () => {
+    const matriz = matrizMaster1();
+    matriz[3][COL['Invoice Received']] = new Date(1899, 11, 30);
+    matriz[3][COL['Invoice Number']] = 0;
+    const [fila] = leerMaster1(matriz);
+    expect(fila.invoiceDate).toBe('');
+    expect(fila.invoiceNumber).toBe('');
+  });
+
+  it('lee el layout de 2026-09 (Invoice Date e Impact Month)', () => {
+    const encabezado = [
+      'Doc Type', 'Year', 'Cut Date', 'Invoice Received', 'Impact Month', 'Invoice Registered', 'Invoice Date',
+      'Invoice Number', 'Customer', 'BU', 'Division', 'Invoice Net Amt (CLP)', 'Invoice Status',
+    ];
+    const fila = ['Invoice', 2026, 'JUL 26 to AUG 25', 'AUG', 'AUG (Provision)', 'Approving', FECHA_MP, 2943361, 'MERCADO PAGO',
+      'CNT', 'Refrigeration', 1508792.39, 'Pending'];
+    const [leida] = leerMaster1([encabezado, fila]);
+    expect(leida).toMatchObject({ invoiceDate: '2026-08-25', cutDateMonth: 'AUG (Provision)', status: 'pending', invoiceNumber: '2943361' });
   });
 
   it('lee un archivo viejo (sin las columnas ROUND ni Doc Type al principio) dejando el redondeo en null', () => {
@@ -216,17 +237,18 @@ describe('calculo', () => {
 
 describe('descripcion', () => {
   it('arma la Description como se cargo en GEVS', () => {
-    expect(armarDescripcion({ docType: 'invoice', invoiceNumber: '2943361', titulo: 'PG Commission MERCADO PAGO, 1.0%-2.3%', impactMonth: 'AUG (Provision)', year: 2026 }))
+    expect(armarDescripcion({ docType: 'invoice', invoiceNumber: '2943361', titulo: 'PG Commission MERCADO PAGO, 1.0%-2.3%', cutDateMonth: 'AUG', year: 2026 }))
       .toBe('F 2943361 - PG Commission MERCADO PAGO, 1.0%-2.3% - August 2026');
-    expect(armarDescripcion({ docType: 'credit note', invoiceNumber: '10', titulo: 'T', impactMonth: 'SEP (Ingresar )', year: 2026 }))
+    expect(armarDescripcion({ docType: 'credit note', invoiceNumber: '10', titulo: 'T', cutDateMonth: 'SEP', year: 2026 }))
       .toBe('CN 10 - T - September 2026');
   });
 
   it('devuelve vacio si falta cualquier pieza o el tipo no tiene prefijo', () => {
-    expect(armarDescripcion({ docType: 'invoice', invoiceNumber: '', titulo: 'T', impactMonth: 'AUG', year: 2026 })).toBe('');
-    expect(armarDescripcion({ docType: 'invoice', invoiceNumber: '1', titulo: 'T', impactMonth: 'XYZ', year: 2026 })).toBe('');
-    expect(armarDescripcion({ docType: 'debit note', invoiceNumber: '1', titulo: 'T', impactMonth: 'AUG', year: 2026 })).toBe('');
-    expect(mesDeImpactMonth('jul (Provision)')).toBe('July');
+    expect(armarDescripcion({ docType: 'invoice', invoiceNumber: '', titulo: 'T', cutDateMonth: 'AUG', year: 2026 })).toBe('');
+    expect(armarDescripcion({ docType: 'invoice', invoiceNumber: '1', titulo: 'T', cutDateMonth: 'XYZ', year: 2026 })).toBe('');
+    expect(armarDescripcion({ docType: 'debit note', invoiceNumber: '1', titulo: 'T', cutDateMonth: 'AUG', year: 2026 })).toBe('');
+    expect(mesEnIngles('jul')).toBe('July');
+    expect(mesEnIngles('AUG (Provision)')).toBe('August'); // layout 2026-09
   });
 
   it('formatea fechas como dd/MM/yyyy', () => {
@@ -237,7 +259,16 @@ describe('descripcion', () => {
 });
 
 describe('validar', () => {
-  it('acepta una Pending completa con receta Complex voucher', () => {
+  it('reconoce los estados de Invoice Status con y sin mes', () => {
+    const casos = {
+      'need to register on oct': 'pending', 'need register on oct': 'pending', 'pending to register on oct': 'pending',
+      pending: 'pending', 'ap completed on sep': 'ap completed', 'ap completed': 'ap completed',
+      'approving on oct': 'approving', 'pending report': 'pending report', 'need to review with joseph': 'revisar', '': '',
+    };
+    for (const [status, estado] of Object.entries(casos)) expect(estadoFactura(status), status).toBe(estado);
+  });
+
+  it('acepta una pendiente de registrar completa con receta Complex voucher', () => {
     expect(evaluarElegibilidad(documentoMp(), recetaMp().receta)).toEqual({ elegible: true, motivos: [] });
   });
 
@@ -249,7 +280,12 @@ describe('validar', () => {
 
   it('explica cada motivo de rechazo', () => {
     const { receta } = recetaMp();
-    expect(evaluarElegibilidad(documentoMp({ status: 'Approving' }), receta).motivos).toEqual(['ya registrada en GEVS (Approving)']);
+    expect(evaluarElegibilidad(documentoMp({ status: 'Approving on OCT' }), receta).motivos).toEqual(['ya registrada en GEVS (Approving)']);
+    expect(evaluarElegibilidad(documentoMp({ status: 'AP Completed on SEP' }), receta).motivos).toEqual(['ya aprobada (AP Completed)']);
+    expect(evaluarElegibilidad(documentoMp({ status: 'Need to review with Joseph' }), receta).motivos[0]).toMatch(/revision/);
+    expect(evaluarElegibilidad(documentoMp({ numero: 'Not received' }), receta).motivos).toEqual(['numero de factura invalido ("Not received")']);
+    expect(evaluarElegibilidad({ ...documentoMp(), commissionType: 'Logistic Cost' }, receta).motivos)
+      .toEqual(['"Logistic Cost" no tiene receta en Master 2 (su Description es otra)']);
     expect(evaluarElegibilidad(documentoMp({ status: 'Draft' }), receta).motivos[0]).toMatch(/Draft/);
     expect(evaluarElegibilidad(documentoMp({ numero: null }), receta).motivos).toEqual(['sin numero de factura']);
     expect(evaluarElegibilidad(documentoMp(), null).motivos).toEqual(['sin receta para este cliente']);
@@ -323,9 +359,22 @@ describe('plan', () => {
     expect(plan.resumen).toMatchObject({ net: -7255544, iva: -1378553, credit: -8634097, filasDebit: 10, totalMaster1: -8634096.17 });
   });
 
-  it('marca errores cuando faltan adjuntos o la fecha no sirve', () => {
+  it('marca error cuando la fecha no sirve (los adjuntos que faltan no son error)', () => {
     const plan = armarPlan({ documento: { ...documentoMp(), invoiceDate: 'sep' }, receta: recetaMp().receta, adjuntos: [] });
-    expect(plan.errores).toEqual(['La fecha de factura no es valida.', 'Falta el adjunto "factura".', 'Falta el adjunto "detalle".']);
+    expect(plan.errores).toEqual(['La fecha de factura no es valida.']);
+  });
+
+  it('los adjuntos son opcionales: sube los que haya y avisa los que faltan', () => {
+    const sinNinguno = armarPlan({ documento: documentoMp(), receta: recetaMp().receta, adjuntos: [] });
+    expect(sinNinguno.errores).toEqual([]);
+    expect(sinNinguno.adjuntos).toEqual([]);
+    expect(sinNinguno.avisos).toEqual(['Sin adjunto "factura": el voucher se guarda sin el.', 'Sin adjunto "detalle": el voucher se guarda sin el.']);
+    const soloFactura = armarPlan({ documento: documentoMp(), receta: recetaMp().receta, adjuntos: [ADJUNTOS[0]] });
+    expect(soloFactura.errores).toEqual([]);
+    expect(soloFactura.adjuntos.map((a) => a.rol)).toEqual(['factura']);
+    expect(soloFactura.avisos).toEqual(['Sin adjunto "detalle": el voucher se guarda sin el.']);
+    const soloDetalle = armarPlan({ documento: documentoMp(), receta: recetaMp().receta, adjuntos: [ADJUNTOS[1]] });
+    expect(soloDetalle.adjuntos.map((a) => a.rol)).toEqual(['detalle']);
   });
 
   it('no deja cargar si el ROUND de Finanzas no coincide con el calculado', () => {

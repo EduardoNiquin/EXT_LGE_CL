@@ -44,7 +44,10 @@ escribir, idempotencia ante reloads y puntos de parada explicitos.
   `CN <num> - ...` y TODOS los montos en negativo** (lineas, IVA, credito, SUPPLY_PRICE y ORIGINAL_TAX_AMOUNT), que es
   como vienen en el Excel: el driver no distingue tipos, copia el signo del plan. Un documento cuyo signo no corresponde a
   su tipo (factura con negativos, nota de credito con positivos) no es elegible. `Debit Note` queda fuera.
-- Solo `Invoice Status = Pending`. `Draft`, `Pending Report`, `Approving` y `AP Completed` se listan con motivo.
+- Solo las pendientes de registrar: `Invoice Status` = `Pending` (layout 2026-09) o `Need (to) register on <MES>` /
+  `Pending to register on <MES>` (layout 2026-10). `Approving [on ..]`, `AP Completed [on ..]`, `Draft`, `Pending Report`
+  y `Need to review with ..` se listan con motivo. Tampoco entran `Commission Type = Logistic Cost` (sin receta propia
+  en Master 2: su titulo es otro) ni un `Invoice Number` que no sea numerico (`Not received`, `Monthly`, `In transit`).
 - Una factura por corrida. La extension llena todo, adjunta y hace **Save** (queda Draft con `batchId`); el **Submit**
   (Reset + Submit + modal de avisos) **lo hace la persona en GEVS**. La extension lo indica en el popup, no toca mas la
   pantalla, y si la persona envia, lee "Submitted Successfully (Reference=...)" en Inquiry y cierra la corrida con la
@@ -52,15 +55,21 @@ escribir, idempotencia ante reloads y puntos de parada explicitos.
 - **Bitacora** (checkbox "Grabar bitacora", activa por defecto): la corrida se graba con Registro de acciones y al
   terminar se descarga sola en `Descargas/registro-acciones/<fecha>_facturas-<cliente>-<numero>/` (indice + partes). Es
   el material para darle a una IA si algo salio mal.
-- Adjuntos: factura (PDF) y detalle obligatorios, subidos por el usuario en el popup y emparejados por numero de factura
-  en el nombre (o `Invoice URL`); distribution se ignora por ahora.
+- Adjuntos: factura (PDF) y detalle, **ambos opcionales** (decision del usuario, 2026-10-20: a veces no se sube uno o
+  ninguno). Se sube lo que haya (0, 1 o 2); el que falte sale como aviso en el plan y en el confirm de Iniciar, no como
+  error. Para no subir un archivo, se quita de la lista de Adjuntos. Se emparejan por numero de factura en el nombre (o
+  `Invoice URL`), o el rol se elige a mano; distribution se ignora por ahora. Si Iniciar queda deshabilitado, el popup lo
+  dice en rojo junto a los requisitos que faltan.
+- Probado el 2026-10-20 con el Excel 261006 (layout 2026-10), sin adjuntos y sin Submit, hasta Save: MERCADO PAGO 3016125
+  (batch 50251500, 10 filas, credito 6.905.945, `... - September 2026`) y PARIS 4063 (batch 50251427, 8 filas, credito
+  15.174.308, `... - August 2026`).
 - **Como entran los archivos (Excel y adjuntos): pegando con Ctrl+V.** Dentro de la red de LG la politica de DLP deja el
   dialogo de "Subir archivo" sin devolver nada, asi que la via buena es copiar el archivo en el Explorador (Ctrl+C) y
   pegarlo en el popup; el navegador entrega los bytes sin abrir ningun dialogo. Mismo truco que en el modulo
   DevolucionesSeller del portal. La zona (`shared/ui/file-intake.js`) acepta las tres vias -pegar, arrastrar y el
   selector de siempre- y el selector sigue ahi para los equipos sin el bloqueo. Ojo con el orden: al pasar al Explorador
   el popup se cierra, asi que se copia primero y se pega al reabrirlo (el portapapeles sobrevive).
-- Description: `F <num> - <title> - <Mes en ingles> <Year>` a partir del `Impact Month`.
+- Description: `F <num> - <title> - <Mes en ingles> <Year>` a partir del `Cut Date Month` (hasta 2026-09, `Impact Month`).
 - Redondeo al entero mas cercano; IVA = round(NET' * 0.19); Credit = NET' + IVA' (cuadre garantizado). Desde 2026-09
   Master 1 trae su propio ROUND por linea (`INVOICE ROUND AMOUNT`): se contrasta con el calculado y, si difieren (ajuste a
   mano o Excel sin recalcular), el plan da error y no se carga hasta que una persona lo resuelva en el Excel.
@@ -220,7 +229,8 @@ El popup muestra el `sesionId` y, al terminar, la carpeta.
   a mano en GEVS el 2026-09-21 sobre un voucher sin guardar (`facturas-flujo-gevs.md`, punto 14): OAF muestra un monto
   negativo como `-12.345` (signo adelante: `normalizarMonto` lo entiende), recalcula el Credit Amount en negativo y el
   DFF de la fila VAT acepta SUPPLY_PRICE / ORIGINAL_TAX_AMOUNT negativos (Apply sin mensajes). **Falta la primera
-  corrida completa (Save con negativos)**: la NC 459689 esta Pending y necesita sus adjuntos (PDF + detalle).
+  corrida completa (Save con negativos)**: en el Excel de 2026-10 la NC 459689 ya figura `AP Completed on SEP` (cargada
+  a mano); la proxima NC pendiente sirve para probarlo.
 - Lote de varias facturas y `Debit Note`: etapa 2. Ajuste manual por linea (el `E19` de Round): no se soporta; si
   `INVOICE ROUND AMOUNT` de Master 1 difiere de ROUND(neto), el plan da error y no se carga.
 - Las notas de credito de Transbank y Mercado Pago dicen en Master 2 "no distribuir si el monto es peanuts": no se

@@ -89,3 +89,50 @@ describe.skipIf(!hayArchivo)('excel (Invoice Master File real)', () => {
     expect(plan.resumen).toMatchObject({ net: -82304998, iva: -15637950, credit: -97942948, filasDebit: 8 });
   });
 });
+
+// Copia de 2026-10-06: Finanzas renombro columnas de Master 1 (fecha en "Invoice
+// Received", mes en "Cut Date Month", "Invoice Status" con el mes) y el
+// encabezado del titulo en Master 2. Lo que antes era Pending ya esta AP Completed.
+const RUTA_261006 = new URL('../../docs/features/Facturas/Invoice Master File 261006.xlsx', import.meta.url);
+const hayArchivo261006 = existsSync(RUTA_261006);
+
+describe.skipIf(!hayArchivo261006)('excel 2026-10 (layout con Cut Date Month)', () => {
+  const libro = hayArchivo261006 ? leerMasterFile(new Uint8Array(readFileSync(RUTA_261006)).buffer) : null;
+  const docs = hayArchivo261006 ? agruparDocumentos(libro.master1) : [];
+  const conReceta = docs.map((documento) => ({
+    documento,
+    receta: armarReceta({ master2: libro.master2, mapa: libro.mapa, customer: documento.customer, docType: documento.docType }).receta,
+  }));
+
+  it('lee el layout nuevo y los titulos de Master 2', () => {
+    expect(libro.master1).toHaveLength(912);
+    expect(docs).toHaveLength(76);
+    expect(libro.master2.filter((r) => r.systemModule === 'complex voucher').every((r) => r.titulo)).toBe(true);
+    const fala = docs.find((d) => d.invoiceNumber === '494026');
+    expect(fala).toMatchObject({ invoiceDate: '2026-08-21', cutDateMonth: 'AUG', status: 'ap completed on sep' });
+  });
+
+  it('elige solo las pendientes de registrar completas y sin Logistic Cost', () => {
+    const elegibles = conReceta
+      .filter(({ documento, receta }) => evaluarElegibilidad(documento, receta).elegible)
+      .map(({ documento }) => `${documento.customer} ${documento.invoiceNumber}`);
+    expect(elegibles).toEqual([
+      'PARIS (FULLKOM) 4063', 'WALMART (FULLKOM) 4064', 'RIPLEY (FULLKOM) 4066', 'WALMART (FULLKOM) 4067', 'MERCADO PAGO 3016125',
+    ]);
+    const logistic = conReceta.find(({ documento }) => documento.invoiceNumber === '4015');
+    expect(evaluarElegibilidad(logistic.documento, logistic.receta).motivos).toEqual(['"Logistic Cost" no tiene receta en Master 2 (su Description es otra)']);
+  });
+
+  it('arma el plan de MP 3016125 con el mes de Cut Date Month', () => {
+    const { documento, receta } = conReceta.find(({ documento: d }) => d.invoiceNumber === '3016125');
+    const plan = armarPlan({ documento, receta, adjuntos: [
+      { id: '1', nombre: 'F 3016125.pdf', tipo: 'application/pdf' }, { id: '2', nombre: 'detalle.xlsx', tipo: '' },
+    ] });
+    expect(plan.errores).toEqual([]);
+    expect(plan.cabecera).toMatchObject({
+      invoiceNo: '3016125', invoiceDate: '25/09/2026', payeeCode: 'CL005108',
+      description: 'F 3016125 - PG Commission MERCADO PAGO, 1.0%-2.3% - September 2026',
+    });
+    expect(plan.resumen).toMatchObject({ net: 5803315, iva: 1102630, credit: 6905945, filasDebit: 10 });
+  });
+});

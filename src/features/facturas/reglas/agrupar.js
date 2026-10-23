@@ -28,7 +28,7 @@ export function agruparDocumentos(filas) {
         invoiceDate: fila.invoiceDate,
         cutDate: fila.cutDate,
         commissionType: fila.commissionType,
-        impactMonth: fila.impactMonth,
+        cutDateMonth: fila.cutDateMonth,
         year: fila.year,
         docType: fila.docType,
         status: fila.status,

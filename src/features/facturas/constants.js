@@ -43,13 +43,16 @@ export const GEVS = {
   MODULO_SOPORTADO: 'complex voucher', // Master 2 col "System Module", normalizado
 };
 
-// Estados de Master 1 (col "Invoice Status") y que significa cada uno.
+// Estados de Master 1 (col "Invoice Status"). Desde 2026-10 la columna es texto
+// libre con el mes ("AP Completed on SEP", "Need to register on OCT"): cada
+// estado se reconoce por su patron (`estadoFactura` en reglas/validar.js).
 export const ESTADO_FACTURA = {
-  PENDING: 'pending',
-  APPROVING: 'approving',
-  AP_COMPLETED: 'ap completed',
+  PENDING: 'pending',           // "Pending", "Need (to) register on OCT", "Pending to register on OCT"
+  APPROVING: 'approving',       // "Approving", "Approving on OCT"
+  AP_COMPLETED: 'ap completed', // "AP Completed", "AP Completed on SEP"
   DRAFT: 'draft',
   PENDING_REPORT: 'pending report',
+  REVISAR: 'revisar',           // "Need to review with ..."
 };
 
 // Col "Doc Type" de Master 1 y Master 2, normalizada.
@@ -80,12 +83,13 @@ export const MESES_EN = {
 };
 
 // Roles de los adjuntos. "distribution" existe en el proceso pero por ahora no
-// se sube (decision del usuario).
+// se sube (decision del usuario). Ninguno es obligatorio (decision del usuario,
+// 2026-10-20): a veces no se sube uno o ninguno; el que falte es un aviso.
 export const ROL_ADJUNTO = {
   FACTURA: 'factura',
   DETALLE: 'detalle',
 };
-export const ROLES_OBLIGATORIOS = [ROL_ADJUNTO.FACTURA, ROL_ADJUNTO.DETALLE];
+export const ROLES_ADJUNTO = [ROL_ADJUNTO.FACTURA, ROL_ADJUNTO.DETALLE];
 
 // --- Pantalla ---------------------------------------------------------------
 

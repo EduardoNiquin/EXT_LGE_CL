@@ -36,7 +36,7 @@ export async function render(container) {
       </section>
       <section class="lt-form-card">
         <h3 class="lt-section-title">Facturas del archivo</h3>
-        <p class="lt-hint">Entran las <strong>Pending</strong> de clientes Complex voucher con numero, fecha y montos: facturas (todo en positivo) y notas de credito (todo en negativo). El resto se muestra con su motivo.</p>
+        <p class="lt-hint">Entran las pendientes de registrar (<strong>Need/Pending to register</strong>) de clientes Complex voucher con numero, fecha y montos: facturas (todo en positivo) y notas de credito (todo en negativo). El resto se muestra con su motivo.</p>
         <label class="dt-check">
           <input type="checkbox" id="fa-forzar" ${draft?.forzar ? 'checked' : ''}>
           <span>Permitir elegir facturas no elegibles (solo para pruebas)</span>

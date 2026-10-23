@@ -59,9 +59,17 @@ export function wireFileIntake(container, { id, onArchivos }) {
     // La zona vive en la sub-vista: si ya no esta en el DOM, este listener es
     // de una vista vieja y sobra.
     if (!zona.isConnected) { dispose(); return; }
-    const archivos = archivosDelPortapapeles(event.clipboardData);
     // Pegar texto no es asunto nuestro: se deja pasar tal cual. Solo se
-    // intercepta cuando vienen archivos, y entonces da igual donde este el foco.
+    // intercepta cuando vienen archivos que la zona acepta.
+    //
+    // Ojo con Excel: al copiar celdas deja en el portapapeles el texto Y una
+    // imagen PNG de esas celdas. Sin el filtro por `accept`, esa "imagen" se
+    // tragaba el pegado y el texto nunca llegaba al campo (habia que pasar por
+    // el Bloc de notas). Y si el foco esta en un campo de texto y hay texto, gana
+    // el texto aunque venga algun archivo.
+    const datos = event.clipboardData;
+    if (esCampoDeTexto(event.target) && datos?.getData('text/plain')) return;
+    const archivos = archivosDelPortapapeles(datos).filter((a) => aceptaArchivo(input?.accept, a));
     if (!archivos.length) return;
     event.preventDefault();
     entregar(archivos, 'pegado');
@@ -108,6 +116,29 @@ export function archivosDelPortapapeles(clipboardData) {
     if (archivo) archivos.push(archivo);
   }
   return archivos;
+}
+
+function esCampoDeTexto(el) {
+  if (!el || !(el instanceof Element)) return false;
+  if (el.isContentEditable) return true;
+  if (el.tagName === 'TEXTAREA') return true;
+  return el.tagName === 'INPUT' && !['file', 'checkbox', 'radio', 'button', 'submit'].includes(el.type);
+}
+
+/**
+ * `true` si el archivo calza con un `accept` nativo (".csv,.xlsx,text/plain,
+ * image/*"). Sin `accept`, todo vale.
+ */
+export function aceptaArchivo(accept, archivo) {
+  const reglas = String(accept || '').split(',').map((r) => r.trim().toLowerCase()).filter(Boolean);
+  if (!reglas.length) return true;
+  const ext = extensionDe(archivo);
+  const tipo = String(archivo?.type || '').toLowerCase();
+  return reglas.some((regla) => {
+    if (regla.startsWith('.')) return ext === regla.slice(1);
+    if (regla.endsWith('/*')) return tipo.startsWith(regla.slice(0, -1));
+    return tipo === regla;
+  });
 }
 
 /** Extension del nombre, en minusculas y sin punto ('' si no tiene). */

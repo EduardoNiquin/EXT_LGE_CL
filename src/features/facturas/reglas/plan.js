@@ -2,7 +2,7 @@
 // para una factura. Es lo que el popup muestra para revisar y lo que el content
 // ejecuta; el driver no calcula nada, solo copia lo que dice el plan.
 
-import { GEVS, ROLES_OBLIGATORIOS, ROL_ADJUNTO } from '../constants.js';
+import { GEVS, ROLES_ADJUNTO, ROL_ADJUNTO } from '../constants.js';
 import { calcularMontos, redondear } from './calculo.js';
 import { armarDescripcion, fechaGevs } from './descripcion.js';
 
@@ -52,7 +52,7 @@ export function armarPlan({ documento, receta, adjuntos = [] }) {
     docType: documento.docType,
     invoiceNumber: documento.invoiceNumber,
     titulo: receta.titulo,
-    impactMonth: documento.impactMonth,
+    cutDateMonth: documento.cutDateMonth,
     year: documento.year,
   });
   const invoiceDate = fechaGevs(documento.invoiceDate);
@@ -60,14 +60,15 @@ export function armarPlan({ documento, receta, adjuntos = [] }) {
 
   const errores = [];
   const avisos = [];
-  if (!description) errores.push('No se pudo armar la Description (falta numero, titulo, Impact Month o Year).');
+  if (!description) errores.push('No se pudo armar la Description (falta numero, titulo, Cut Date Month o Year).');
   if (!invoiceDate) errores.push('La fecha de factura no es valida.');
   if (!montos.filas.length) errores.push('Ninguna BU tiene monto.');
   for (const campo of ['payeeCode', 'debitDepartment', 'debitAccount', 'creditAccount', 'vatCode']) {
     if (!receta[campo]) errores.push(`La receta no tiene ${campo}.`);
   }
-  for (const rol of ROLES_OBLIGATORIOS) {
-    if (!porRol[rol]) errores.push(`Falta el adjunto "${rol}".`);
+  // Los adjuntos son opcionales: se sube lo que haya (0, 1 o 2) y se avisa lo que no.
+  for (const rol of ROLES_ADJUNTO) {
+    if (!porRol[rol]) avisos.push(`Sin adjunto "${rol}": el voucher se guarda sin el.`);
   }
   // Master 1 trae desde 2026-09 su propio redondeo por linea (INVOICE ROUND
   // AMOUNT, una formula ROUND). Si no coincide con el de aqui, o Finanzas ajusto
@@ -114,7 +115,7 @@ export function armarPlan({ documento, receta, adjuntos = [] }) {
       supplier: receta.payeeCode,
       taxRateCode: receta.vatCode,
     },
-    adjuntos: ROLES_OBLIGATORIOS
+    adjuntos: ROLES_ADJUNTO
       .map((rol) => porRol[rol] && { rol, id: porRol[rol].id, nombre: porRol[rol].nombre, tipo: porRol[rol].tipo })
       .filter(Boolean),
     resumen: {

@@ -22,7 +22,7 @@ export async function render(container) {
     <div class="lt-view">
       <section class="lt-form-card">
         <h3 class="lt-section-title">Adjuntos</h3>
-        <p class="lt-hint">La <strong>factura</strong> (PDF) y el <strong>detalle</strong> son obligatorios; la distribution no se sube por ahora. Se emparejan solos por el numero de factura en el nombre; si no, elige el rol aqui.</p>
+        <p class="lt-hint">La <strong>factura</strong> (PDF) y el <strong>detalle</strong> son opcionales: se sube lo que haya (ninguno, uno o los dos). La distribution no se sube por ahora. Se emparejan solos por el numero de factura en el nombre; si no, elige el rol aqui. Para no subir un archivo, quitalo de la lista.</p>
         ${fileIntakeHtml({
           id: 'fa-adjuntos-zona',
           titulo: 'Pega aqui la factura y el detalle',

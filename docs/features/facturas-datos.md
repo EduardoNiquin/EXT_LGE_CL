@@ -1,7 +1,7 @@
 # Facturas - datos de entrada (Invoice Master File) y reglas de calculo
 
-Que hay en `Invoice Master File <yymmdd>.xlsx` (copia analizada: `docs/features/Facturas/Invoice Master File
-260831.xlsx`), que hojas usa la extension, como se arma cada valor que va a GEVS y que reglas deciden que factura se
+Que hay en `Invoice Master File <yymmdd>.xlsx` (copias analizadas en `docs/features/Facturas/`: `260831-v2.xlsx`, layout
+2026-09, y `261006.xlsx`, layout 2026-10; ver "Cambios de 2026-10" abajo), que hojas usa la extension, como se arma cada valor que va a GEVS y que reglas deciden que factura se
 procesa. Complemento de `facturas-flujo-gevs.md` (donde va cada valor en pantalla).
 
 ## Hojas del archivo
@@ -14,13 +14,34 @@ procesa. Complemento de `facturas-flujo-gevs.md` (donde va cada valor en pantall
 | **`Round`** | Regla de redondeo (se reimplementa) | hoja de trabajo manual: pegar 11 netos, redondear, sumar, IVA, total, cantidad de lineas |
 | `Master 1_BU` | no (oculta, version vieja) | |
 | `Pivot Master1`, `Sheet1`, `Sep Sales Portion`, `Aug Sales Portion`, `FX` | no | pivot, lista informal de accruals, distribucion de ventas por BU (ya volcada en Master 1), tipos de cambio |
+| `Check Invoice`, `Master Draft`, `Report Summary` (2026-10) | no | control de Finanzas (cliente/tipo/numero contra Master 1, estado de accrual), plantilla vacia del layout viejo de Master 1, resumen OMS |
 
 Las hojas `Sales Portion` son el origen de la distribucion por BU, pero su resultado ya esta en `Master 1_BU v2`: la
 extension no las necesita.
 
+## Cambios de 2026-10 (`Invoice Master File 261006.xlsx`)
+
+| Que cambio | Antes (2026-09) | Ahora (2026-10) | Efecto en la extension |
+|---|---|---|---|
+| Fila de encabezado de Master 1 | 4 | 5 (la fila 2 numera las columnas; la 4 dice "*Applies in the Invoice description" sobre `Cut Date Month`) | ninguno: se busca por contenido |
+| Fecha de la factura | `Invoice Date` | `Invoice Received` (antes era el mes en texto, `AUG`) | se lee `Invoice Date` si existe, si no `Invoice Received` |
+| Mes de la Description | `Impact Month` (`AUG (Provision)`) | `Cut Date Month` (`AUG`) | idem: `Impact Month` si existe, si no `Cut Date Month` |
+| `Invoice Registered` | estado espejo | eliminada; aparece `Provision Status` (`Accrued on AUG`, `No Need Accrual`) | no se usan |
+| `Invoice Status` | `Pending`, `Approving`, `AP Completed`, `Draft`, `Pending Report` | texto con mes: `Need to register on OCT`, `Need register on OCT`, `Pending to register on OCT`, `Approving on OCT`, `AP Completed on SEP`, `Need to review with Joseph` | se clasifica por patron (`estadoFactura` en `reglas/validar.js`) |
+| `Description` (Master 1, nueva) | - | Description del **accrual** (`Accrual - PG Commission ... - AUG 2026`), casi siempre vacia | no se usa (no es la del voucher) |
+| `Invoice Number` | numero o vacio | ademas `Not received`, `Monthly`, `In transit`, `Need to review with Joseph` y `0` (formula sin dato) | `0` = vacio; texto = no elegible |
+| `Invoice Received` sin dato | - | `0` con formato fecha (llega como 1899-12-30) | se toma como vacia |
+| Titulo en Master 2 (col L) | `Description (F/CN-123 + title + MMYY)` | `Description (F/CN-123 + title + Cut date month)` | se ubica por prefijo `description`; con el nombre fijo el titulo quedaba vacio y ningun plan se podia armar |
+| Map | tabla en `F16:K29` | se inserto arriba un bloque con el layout de Master 1 (filas 3-15); la tabla bajo a `G18:L31`, BU->GBU a `D19:E31` | ninguno: se busca por contenido |
+
+Con el codigo anterior el archivo de 2026-10 no dejaba elegir nada: todas las fechas "vacias", todos los estados
+"desconocidos" y todos los titulos vacios. En la copia de 2026-10 (912 filas, 76 documentos) son elegibles PARIS 4063,
+WALMART 4064, RIPLEY 4066, WALMART 4067 (`Commission (In transit)`) y MERCADO PAGO 3016125; PARIS 4015 (`Logistic
+Cost`, `Need register on OCT`) queda fuera por no tener receta propia.
+
 ## `Master 1_BU v2`
 
-Encabezado en la **fila 4**, datos desde la fila 5 (624 filas en la copia analizada). La extension ubica el encabezado
+Encabezado en la **fila 4** (fila 5 desde 2026-10), datos desde la fila 5 (624 filas en la copia analizada). La extension ubica el encabezado
 buscando la celda `Customer` y cada columna **por su nombre**, no por posicion: en 2026-09 Finanzas movio `Doc Type` al
 principio y agrego `INVOICE ROUND AMOUNT` / `INVOICE ROUND VAT` (captura en `Facturas/master1-columnas-2026-09.png`) sin
 que hubiera que tocar el parser.
@@ -31,9 +52,9 @@ que hubiera que tocar el parser.
 | Year | 2026 | año de la Description |
 | Cut Date | `JUL 26 to AUG 25` | trazabilidad (log/resultado) |
 | Invoice Received | `AUG` | no |
-| Impact Month | `AUG (Provision)` / `SEP (Ingresar)` | **mes de la Description** (se toma el prefijo de 3 letras) |
+| Impact Month | `AUG (Provision)` / `SEP (Ingresar)` | **mes de la Description** (se toma el prefijo de 3 letras). Desde 2026-10: `Cut Date Month` (`AUG`) |
 | Invoice Registered | `Approving` / `AUG` / `Pending` | espejo del estado; no se usa |
-| Invoice Date | `2026-08-25` (fecha) | Invoice Date de GEVS y ISSUE_DATE del DFF. Se valida: hay filas con `sep` (texto) o vacias |
+| Invoice Date | `2026-08-25` (fecha) | Invoice Date de GEVS y ISSUE_DATE del DFF. Se valida: hay filas con `sep` (texto) o vacias. Desde 2026-10: `Invoice Received` |
 | Invoice Number | `2943361` (numero) | Invoice No y Description. Se normaliza a string |
 | Customer | `MERCADO PAGO` | clave de la receta y del Map |
 | OBS/3P | `OBS` | no |
@@ -48,7 +69,7 @@ que hubiera que tocar el parser.
 | Commission Type | `Monthly Commission`, `Commission (1era Quincena)`, `Commission (2da Quincena)`, `Logistic Cost`, `Commission (In transit)` | trazabilidad |
 | Provision | `Provision (Based on External Report)` / `(Based on PO, One View)` | no |
 | Variable /Fixed | `Variable` | no |
-| Invoice Status | `Pending` / `Approving` / `AP Completed` / `Draft` / `Pending Report` | **elegibilidad** |
+| Invoice Status | `Pending` / `Approving` / `AP Completed` / `Draft` / `Pending Report` (2026-10: con mes, ver arriba) | **elegibilidad** |
 | BU (2da), Provision * | | no |
 | Invoice URL | a veces el nombre del PDF (`2026-08-BILL-MercadoPago (2).pdf`) o una URL de acepta.com | ayuda a emparejar adjuntos |
 
@@ -73,14 +94,17 @@ duplicar y, si una division aparece dos veces con montos distintos, el documento
 
 Un documento entra al proceso solo si:
 
-1. `Invoice Status` = `Pending` (los demas se listan con el motivo: `Approving` = ya registrado, `AP Completed` = ya
-   aprobado, `Draft` y `Pending Report` = fuera de alcance por ahora).
+1. `Invoice Status` pendiente de registrar: `Pending`, `Need (to) register on <MES>` o `Pending to register on <MES>`
+   (los demas se listan con el motivo: `Approving [on ..]` = ya registrado, `AP Completed [on ..]` = ya aprobado, `Draft`,
+   `Pending Report` y `Need to review with ..` = fuera de alcance por ahora).
 2. `Doc Type` = `Invoice` o `Credit Note`, con el **signo que corresponde**: una factura lleva todo >= 0 y una nota de
    credito todo <= 0 (lineas y TOTAL); un monto con el signo cambiado es un error del Excel. `Debit Note` no se soporta.
 3. El cliente tiene receta con `System Module` = `Complex voucher` (ver Master 2).
-4. `Invoice Number` presente y `Invoice Date` es una fecha valida.
+4. `Invoice Number` numerico (no `Not received`, `Monthly`, ...) y `Invoice Date` es una fecha valida.
+4b. `Commission Type` distinto de `Logistic Cost`: Master 2 no tiene receta para ese costo y su Description es otra
+   (`Logistic Cost 3P PARIS (Fullkom), 3-4%` segun Check Invoice); con la receta de comision quedaria mal titulada.
 5. Al menos una BU con neto distinto de 0 y `TOTAL` distinto de 0.
-6. Adjuntos asignados: factura (PDF) y detalle (obligatorios); distribution se ignora por ahora.
+6. (Ya no es requisito) Adjuntos: factura (PDF) y detalle son opcionales desde 2026-10-20; el que falte es un aviso del plan. Distribution se ignora por ahora.
 
 En la copia de 2026-09-21 cumplen dos documentos de FALABELLA (DIRECT): la factura 494026 (cargada ese dia por la
 extension) y la nota de credito 459689; el resto de las Pending de Complex voucher no tiene numero todavia. El popup
@@ -98,7 +122,7 @@ Encabezados en la fila 5; datos en las filas 6-19. Columnas que se leen:
 | F | System Module | `Complex voucher` (unico soportado); `Commission & Charge_Others` e `ITMS ...` quedan fuera |
 | G | Invoice Type | `Vendor Invoice (CHL)` -> `#InvoiceTypeId` = `55001` |
 | J | Payee Code | VLOOKUP a Map (valor cacheado) |
-| L | Description (title) | `PG Commission MERCADO PAGO, 1.0%-2.3% - ` (termina en ` - `: se recorta) |
+| L | Description (title) | `PG Commission MERCADO PAGO, 1.0%-2.3% - ` (termina en ` - `: se recorta). El encabezado cambia (`... + MMYY)`, `... + Cut date month)`): se ubica por el prefijo |
 | O | Credit-Account | `21117701` en todos |
 | P | Debit-Department | VLOOKUP a Map (valor cacheado) |
 | T | VAT Tax Code | `CLIDD19` |
@@ -192,7 +216,10 @@ F 2943361 - PG Commission MERCADO PAGO, 1.0%-2.3% - August 2026
 ```
 
 - Prefijo: `F` para Invoice; `CN` para Credit Note (`TIPOS_DOCUMENTO` en `constants.js`).
-- Mes: prefijo de 3 letras de `Impact Month` (`AUG (Provision)` -> August, `SEP (Ingresar)` -> September); año de `Year`.
+- Mes: prefijo de 3 letras de `Cut Date Month` (`AUG` -> August); en el layout 2026-09, de `Impact Month`
+  (`AUG (Provision)` -> August). Año de `Year`. Ojo: en `Check Invoice` hay Descriptions con el mes abreviado y de
+  registro (`F 58523578 - ... - SEP 2026` con Cut Date Month AUG); se sigue el encabezado de Master 2 ("title + Cut date
+  month") y el formato largo que ya se cargo en GEVS (`August 2026`).
 - La misma cadena va en `#Description` y en la Description de **todas** las filas Debit (incluida la de IVA).
 
 ## Mapeo resumido columna -> campo GEVS
